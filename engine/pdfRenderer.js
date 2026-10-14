@@ -52,11 +52,14 @@ class PDFRenderer {
     // 3. Render HTML to vector PDF using Headless Chrome
     let browser = null;
     try {
-      browser = await chromium.launch({
-        executablePath: CHROME_PATH,
+      const launchOptions = {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
-      });
+      };
+      if (fs.existsSync(CHROME_PATH)) {
+        launchOptions.executablePath = CHROME_PATH;
+      }
+      browser = await chromium.launch(launchOptions);
 
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'load' });

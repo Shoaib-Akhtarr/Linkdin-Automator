@@ -2,6 +2,86 @@
   "lastResetDate": "2026-10-14",
   "applications": [
     {
+      "jobId": "job_22_SrAIEng",
+      "title": "Sr. AI Engineer, AI FDE",
+      "company": "Jobgether",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T14:07:19.127Z",
+      "notes": "Application submitted successfully."
+    },
+    {
+      "jobId": "job_9_PythonAI",
+      "title": "Python AI Engineer",
+      "company": "techolution",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T14:06:45.616Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_1_Assistant",
+      "title": "Assistant Lead - Data Scientist (Verified job)",
+      "company": "Assistant Lead - Data Scientist",
+      "location": "Forage AI",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T14:06:42.321Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_7_MLEnginee",
+      "title": "ML Engineer",
+      "company": "Arrise Solutions (India) Pvt. Ltd.",
+      "location": "Hyderabad (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T14:03:15.312Z",
+      "notes": "Application processed through available steps."
+    },
+    {
+      "jobId": "job_17_MLAIEngi",
+      "title": "ML/AI Engineer - Classical ML",
+      "company": "Jobgether",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T14:02:49.070Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_ML_AI_Engineer_-_Classical_ML.pdf"
+    },
+    {
+      "jobId": "job_2_Assistant",
+      "title": "Assistant Lead - Data Scientist (Verified job)",
+      "company": "Assistant Lead - Data Scientist",
+      "location": "Forage AI",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T13:56:55.372Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_12_MLEnginee",
+      "title": "ML Engineer",
+      "company": "Arrise Solutions (India) Pvt. Ltd.",
+      "location": "Arrise Solutions (India) Pvt. Ltd.",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T13:56:40.205Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_4_PythonAI",
+      "title": "Python AI Engineer",
+      "company": "techolution",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T13:56:31.485Z",
+      "notes": "Application submitted successfully."
+    },
+    {
       "jobId": "job_11_Fullstack",
       "title": "Fullstack Engineer",
       "company": "Lumenci",
@@ -509,16 +589,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:37:38.617Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_4_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:37:34.055Z",
       "notes": "No Easy Apply button found"
     },
     {

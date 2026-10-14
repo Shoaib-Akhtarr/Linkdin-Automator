@@ -1,0 +1,68 @@
+name: 24/7 LinkedIn Job Autopilot
+
+on:
+  schedule:
+    # Runs every 2 hours (UTC)
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Number of jobs to apply in this batch'
+        required: false
+        default: '10'
+
+concurrency:
+  group: linkedin-autopilot
+  cancel-in-progress: false
+
+jobs:
+  apply-batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Install Playwright Chromium & OS Dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Autopilot Job Application Batch
+        env:
+          LI_AT_COOKIE: ${{ secrets.LI_AT_COOKIE }}
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '10' }}
+          HEADLESS_MODE: 'true'
+          RUN_IN_CLOUD: 'true'
+          MAX_TIMEOUT_MINUTES: '25'
+        run: node run-batch.js
+
+      - name: Upload Generated ATS CVs as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailored-ats-cvs
+          path: tailored_cvs/*.pdf
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Commit and Push Application Tracking History
+        if: always()
+        run: |
+          git config --global user.name "LinkedIn-Automator[bot]"
+          git config --global user.email "bot@linkedin-automator.local"
+          git add data/tracker.json
+          git diff --staged --quiet || (git commit -m "chore(tracker): auto-update application history [skip ci]" && git push)

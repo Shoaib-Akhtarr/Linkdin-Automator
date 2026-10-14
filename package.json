@@ -2,9 +2,11 @@
   "name": "linkdin-automation",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "batch": "node run-batch.js",
+    "get-cookie": "node scripts/get-cookie.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

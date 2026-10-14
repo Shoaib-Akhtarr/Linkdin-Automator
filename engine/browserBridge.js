@@ -78,6 +78,60 @@ class BrowserBridge {
   }
 
   async connect() {
+    if (process.env.CI || process.env.HEADLESS_MODE === 'true' || process.env.RUN_IN_CLOUD === 'true') {
+      console.log('🌐 Launching Headless Chromium for Cloud/CI Autopilot...');
+      const launchOptions = {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-blink-features=AutomationControlled'
+        ]
+      };
+      if (fs.existsSync(CHROME_PATH)) {
+        launchOptions.executablePath = CHROME_PATH;
+      }
+      this.browser = await chromium.launch(launchOptions);
+
+      this.context = await this.browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        viewport: { width: 1366, height: 768 }
+      });
+
+      if (process.env.LI_AT_COOKIE) {
+        console.log('🔑 Injecting authenticated LinkedIn session cookie (li_at)...');
+        await this.context.addCookies([
+          {
+            name: 'li_at',
+            value: process.env.LI_AT_COOKIE.trim(),
+            domain: '.www.linkedin.com',
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+          },
+          {
+            name: 'li_at',
+            value: process.env.LI_AT_COOKIE.trim(),
+            domain: '.linkedin.com',
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+          }
+        ]);
+      }
+
+      this.page = await this.context.newPage();
+      try {
+        this.cdpSession = await this.context.newCDPSession(this.page);
+      } catch (e) {
+        this.cdpSession = null;
+      }
+      return this.page;
+    }
+
     await this.launchChromeIfNeeded();
 
     console.log('Connecting Playwright over CDP to Chrome...');
