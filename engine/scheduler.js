@@ -56,7 +56,27 @@ class AutopilotScheduler extends EventEmitter {
   listenToOrchestrator() {
     if (!this.orchestrator) return;
 
-    this.orchestrator.on('cycle_finished', () => {
+    this.orchestrator.on('cycle_finished', async (data) => {
+      // Send 2-Hour Email Report
+      try {
+        const emailNotifier = require('./emailNotifier');
+        const tracker = require('./tracker');
+        const stats = tracker.getStats(this.orchestrator.settings?.dailyLimit || 50);
+        const allApps = tracker.getAllApplications();
+        const cycleApplied = allApps.slice(0, data?.applied || this.batchSize);
+
+        await emailNotifier.sendReport({
+          cycleTime: new Date().toLocaleString(),
+          batchApplied: data?.applied || cycleApplied.length,
+          batchSkipped: stats.skipped,
+          totalAppliedToday: stats.todayApplied,
+          dailyLimit: this.orchestrator.settings?.dailyLimit || 50,
+          appliedJobs: cycleApplied
+        });
+      } catch (err) {
+        console.error('Error sending autopilot email report:', err);
+      }
+
       if (this.enabled) {
         const ms = this.intervalMinutes * 60 * 1000;
         this.orchestrator.log(

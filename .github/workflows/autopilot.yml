@@ -47,6 +47,9 @@ jobs:
           HEADLESS_MODE: 'true'
           RUN_IN_CLOUD: 'true'
           MAX_TIMEOUT_MINUTES: '25'
+          EMAIL_USER: ${{ secrets.EMAIL_USER || 'onlyshoaib158@gmail.com' }}
+          EMAIL_PASS: ${{ secrets.EMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO || 'onlyshoaib158@gmail.com' }}
         run: node run-batch.js
 
       - name: Upload Generated ATS CVs as Artifacts

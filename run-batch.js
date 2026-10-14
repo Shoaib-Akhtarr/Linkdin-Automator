@@ -96,6 +96,23 @@ async function runBatch() {
     console.log(`Skipped: ${stats.skipped} | Failed: ${stats.failed}`);
     console.log('======================================================\n');
 
+    // Send 2-Hour Email Report
+    try {
+      const emailNotifier = require('./engine/emailNotifier');
+      const allApps = tracker.getAllApplications();
+      const cycleApplied = allApps.filter(a => a.status === 'applied' && a.appliedAt && new Date(a.appliedAt).getTime() >= startTime);
+      await emailNotifier.sendReport({
+        cycleTime: new Date().toLocaleString(),
+        batchApplied: cycleApplied.length,
+        batchSkipped: stats.skipped,
+        totalAppliedToday: stats.todayApplied,
+        dailyLimit: orchestrator.settings.dailyLimit || 50,
+        appliedJobs: cycleApplied
+      });
+    } catch (e) {
+      console.error('Email report error:', e.message);
+    }
+
     await browserBridge.disconnect();
     process.exit(0);
 
