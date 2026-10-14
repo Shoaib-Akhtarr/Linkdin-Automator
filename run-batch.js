@@ -11,6 +11,16 @@ const browserBridge = require('./engine/browserBridge');
 const orchestrator = require('./engine/orchestrator');
 const tracker = require('./engine/tracker');
 
+const fs = require('fs');
+
+function writeSummary(markdown) {
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown + '\n');
+    } catch (e) {}
+  }
+}
+
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || '10', 10);
 const MAX_TIMEOUT_MINUTES = parseInt(process.env.MAX_TIMEOUT_MINUTES || '25', 10);
 
@@ -21,9 +31,10 @@ async function runBatch() {
   console.log(`⏱ Maximum Run Timeout: ${MAX_TIMEOUT_MINUTES} minutes`);
   console.log('======================================================\n');
 
-  if (!process.env.LI_AT_COOKIE) {
+  if (!process.env.LI_AT_COOKIE || !process.env.LI_AT_COOKIE.trim()) {
     console.error('❌ FATAL: LI_AT_COOKIE environment variable is not defined.');
     console.error('👉 Please set LI_AT_COOKIE in your GitHub Secrets or environment!');
+    writeSummary(`### ❌ Missing \`LI_AT_COOKIE\` Secret\nThe **LI_AT_COOKIE** secret is missing or empty in GitHub Secrets.\n\nPlease go to **Settings -> Secrets and variables -> Actions -> New repository secret** and add your **LI_AT_COOKIE**.`);
     process.exit(1);
   }
 
@@ -47,6 +58,7 @@ async function runBatch() {
       console.error('❌ LinkedIn session authentication failed.');
       console.error(`Current URL: ${currentUrl}`);
       console.error('👉 Your li_at cookie may be expired. Please run "node scripts/get-cookie.js" and update GitHub Secrets.');
+      writeSummary(`### ❌ LinkedIn Session Verification Failed\nLinkedIn redirected to: \`${currentUrl}\`\n\nYour \`li_at\` cookie may be invalid or expired. Please run \`node scripts/get-cookie.js\` locally and update the **LI_AT_COOKIE** secret in GitHub.`);
       await browserBridge.disconnect();
       process.exit(1);
     }
@@ -109,6 +121,7 @@ async function runBatch() {
         dailyLimit: orchestrator.settings.dailyLimit || 50,
         appliedJobs: cycleApplied
       });
+      writeSummary(`### ✅ 24/7 LinkedIn Autopilot Batch Completed!\n* **Jobs Applied in this Cycle:** ${cycleApplied.length}\n* **Today's Running Total:** ${stats.todayApplied} / ${orchestrator.settings.dailyLimit || 50}\n* **Jobs Skipped / Filtered:** ${stats.skipped}\n* **Email Report:** Sent to \`${process.env.EMAIL_TO || 'onlyshoaib158@gmail.com'}\``);
     } catch (e) {
       console.error('Email report error:', e.message);
     }
@@ -119,6 +132,7 @@ async function runBatch() {
   } catch (err) {
     clearTimeout(watchdog);
     console.error('❌ Critical Error during batch execution:', err);
+    writeSummary(`### ❌ Critical Execution Error\n\`\`\`\n${err.stack || err.message}\n\`\`\``);
     await browserBridge.disconnect();
     process.exit(1);
   }
