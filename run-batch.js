@@ -50,7 +50,17 @@ async function runBatch() {
     const page = await browserBridge.connect();
 
     console.log('🔍 Step 2: Verifying LinkedIn session...');
-    await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    try {
+      await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (navErr) {
+      if (navErr.message.includes('ERR_TOO_MANY_REDIRECTS')) {
+        console.error('❌ LinkedIn session cookie expired or invalid (ERR_TOO_MANY_REDIRECTS).');
+        writeSummary(`### ❌ LinkedIn Session Expired / Logged Out\nLinkedIn rejected the session cookie with \`ERR_TOO_MANY_REDIRECTS\`.\n\n👉 **How to Fix:**\n1. Log back in to LinkedIn in your Google Chrome browser.\n2. In terminal, run: \`node scripts/get-cookie.js\`\n3. Copy the fresh cookie and update the **LI_AT_COOKIE** secret in GitHub.`);
+        await browserBridge.disconnect();
+        process.exit(1);
+      }
+      throw navErr;
+    }
     await browserBridge.humanDelay(2000, 3000);
 
     const currentUrl = page.url();

@@ -105,15 +105,6 @@ class BrowserBridge {
           {
             name: 'li_at',
             value: process.env.LI_AT_COOKIE.trim(),
-            domain: '.www.linkedin.com',
-            path: '/',
-            httpOnly: true,
-            secure: true,
-            sameSite: 'None'
-          },
-          {
-            name: 'li_at',
-            value: process.env.LI_AT_COOKIE.trim(),
             domain: '.linkedin.com',
             path: '/',
             httpOnly: true,
