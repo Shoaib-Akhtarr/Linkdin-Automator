@@ -2,7 +2,7 @@ name: 24/7 LinkedIn Job Autopilot
 
 on:
   schedule:
-    # Runs every 2 hours (UTC)
+    # Runs automatically every 2 hours (UTC)
     - cron: '0 */2 * * *'
   workflow_dispatch:
     inputs:
@@ -29,11 +29,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
 
       - name: Install Project Dependencies
         run: npm install
@@ -55,14 +54,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tailored-ats-cvs
-          path: tailored_cvs/*.pdf
+          path: data/tailored_cvs/*.pdf
           if-no-files-found: ignore
           retention-days: 14
 
       - name: Commit and Push Application Tracking History
         if: always()
+        continue-on-error: true
         run: |
           git config --global user.name "LinkedIn-Automator[bot]"
           git config --global user.email "bot@linkedin-automator.local"
-          git add data/tracker.json
+          if [ -f data/applications.json ]; then git add data/applications.json; fi
+          if [ -f data/tracker.json ]; then git add data/tracker.json; fi
           git diff --staged --quiet || (git commit -m "chore(tracker): auto-update application history [skip ci]" && git push)
