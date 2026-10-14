@@ -44,5 +44,10 @@
     "minimumMatchScore": 10,
     "tailorCoverLetter": true,
     "dynamicCVGeneration": true
+  },
+  "autopilot": {
+    "enabled": true,
+    "intervalMinutes": 120,
+    "batchSize": 10
   }
 }
