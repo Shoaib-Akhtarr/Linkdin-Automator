@@ -89,7 +89,9 @@ class Tracker {
       url: app.url || '',
       status: app.status || 'applied', // 'applied' | 'skipped' | 'failed' | 'reviewed'
       appliedAt: new Date().toISOString(),
-      notes: app.notes || ''
+      notes: app.notes || '',
+      cvUsed: app.cvUsed || (app.notes && app.notes.includes('Tailored ATS CV:') ? app.notes.split('Tailored ATS CV:')[1].trim() : 'LinkedIn Default ATS Resume'),
+      description: app.description || ''
     };
 
     // Remove old entry with same jobId if any
