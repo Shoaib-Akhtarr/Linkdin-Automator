@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment & Local Secrets
+.env
+.env.local
+
+# Chrome User Profile & Remote Debugging sessions
+LinkedInAutomationChromeProfile/
+*.log
+
+# Dynamically Generated Output & PDFs
+data/tailored_cvs/*.pdf
+
+# Debugging screenshots & test dumps
+scripts/*.jpg
+scripts/*.png
+scripts/*.html
+
+# OS and Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

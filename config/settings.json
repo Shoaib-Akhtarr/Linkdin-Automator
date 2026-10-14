@@ -1,0 +1,48 @@
+{
+  "search": {
+    "keywords": [
+      "AI Engineer",
+      "Generative AI Engineer",
+      "Machine Learning Engineer",
+      "Python Developer",
+      "LLM Engineer"
+    ],
+    "location": "Asia",
+    "workplaceType": "remote",
+    "remoteOnly": true,
+    "easyApplyOnly": false,
+    "applyType": "all",
+    "datePosted": "pastWeek",
+    "experienceLevels": [],
+    "blacklistCompanies": [
+      "CyberCoders",
+      "Revature",
+      "Staffing",
+      "TalentBurst"
+    ]
+  },
+  "externalApply": {
+    "enabled": true,
+    "autoSubmitStandardATS": true,
+    "assistComplexPortals": true
+  },
+  "execution": {
+    "mode": "autonomous",
+    "dailyApplicationLimit": 50,
+    "minDelayMs": 2500,
+    "maxDelayMs": 5500,
+    "cdpPort": 9222,
+    "cdpHost": "http://127.0.0.1:9222",
+    "autoSubmitInAutonomousMode": true,
+    "pauseForReviewInHybridMode": true,
+    "skipOnUnmatchedRequiredFields": false
+  },
+  "intelligence": {
+    "readFullDescription": true,
+    "filterSecurityClearance": true,
+    "filterCitizenshipRestricted": true,
+    "minimumMatchScore": 10,
+    "tailorCoverLetter": true,
+    "dynamicCVGeneration": true
+  }
+}

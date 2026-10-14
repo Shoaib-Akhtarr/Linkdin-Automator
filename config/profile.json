@@ -1,0 +1,74 @@
+{
+  "personal": {
+    "firstName": "Shoaib",
+    "lastName": "Akhtar",
+    "fullName": "Shoaib Akhtar",
+    "headline": "AI Engineer | AI/ML Software Engineer | LLM & Multi-Agent Systems",
+    "email": "onlyshoaib158@gmail.com",
+    "phone": "+923056054842",
+    "phoneCountryCode": "Pakistan (+92)",
+    "phoneCountryCodeNumber": "92",
+    "address": {
+      "city": "Gujrat",
+      "state": "Punjab",
+      "country": "Pakistan",
+      "postalCode": "50700"
+    },
+    "links": {
+      "github": "https://github.com/Shoaib-Akhtarr",
+      "linkedin": "https://www.linkedin.com/in/shoaib-akhtar-133103300/",
+      "portfolio": "https://github.com/Shoaib-Akhtarr"
+    }
+  },
+  "workExperienceYears": {
+    "total": 2,
+    "Python": 3,
+    "Machine Learning": 2,
+    "Artificial Intelligence": 2,
+    "Deep Learning": 2,
+    "LLM": 2,
+    "RAG": 2,
+    "LangChain": 2,
+    "LangGraph": 2,
+    "CrewAI": 2,
+    "FastAPI": 2,
+    "Docker": 2,
+    "SQL": 2,
+    "PyTorch": 2,
+    "TensorFlow": 2,
+    "Vector Databases": 2,
+    "ChromaDB": 2,
+    "Qdrant": 2,
+    "FAISS": 2,
+    "NLP": 2,
+    "JavaScript": 2,
+    "TypeScript": 1,
+    "Git": 3,
+    "default": 2
+  },
+  "workAuthorization": {
+    "legallyAuthorized": "Yes",
+    "requireSponsorship": "No",
+    "requireSponsorshipFuture": "No",
+    "citizenship": "Pakistan",
+    "securityClearance": "No",
+    "willingToRelocate": "Yes",
+    "remoteWork": "Yes"
+  },
+  "compensationAndAvailability": {
+    "desiredSalary": "Competitive / Negotiable",
+    "desiredSalaryNumeric": 50000,
+    "currency": "USD",
+    "noticePeriod": "Immediately (within 2 weeks)",
+    "noticePeriodWeeks": 2,
+    "availableToStart": "Immediately"
+  },
+  "education": {
+    "degree": "Bachelor of Science in Computer Science (BSCS)",
+    "fieldOfStudy": "Computer Science",
+    "university": "University of Gujrat (UOG)",
+    "hasDegree": "Yes",
+    "graduationYear": "2026"
+  },
+  "resumePath": "assets/resume.pdf"
+}
