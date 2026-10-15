@@ -62,15 +62,17 @@ class AutopilotScheduler extends EventEmitter {
         const emailNotifier = require('./emailNotifier');
         const tracker = require('./tracker');
         const stats = tracker.getStats(this.orchestrator.settings?.dailyLimit || 50);
-        const allApps = tracker.getAllApplications();
-        const cycleApplied = allApps.slice(0, data?.applied || this.batchSize);
+        const appliedCount = data?.batchAppliedCount !== undefined ? data.batchAppliedCount : (data?.applied || 0);
+        const cycleApplied = appliedCount > 0
+          ? allApps.filter(a => a.status === 'applied').slice(0, appliedCount)
+          : [];
 
         await emailNotifier.sendReport({
           cycleTime: new Date().toLocaleString(),
-          batchApplied: data?.applied || cycleApplied.length,
+          batchApplied: appliedCount,
           batchSkipped: stats.skipped,
           totalAppliedToday: stats.todayApplied,
-          dailyLimit: this.orchestrator.settings?.dailyLimit || 50,
+          dailyLimit: this.orchestrator.settings?.dailyLimit || 80,
           appliedJobs: cycleApplied
         });
       } catch (err) {

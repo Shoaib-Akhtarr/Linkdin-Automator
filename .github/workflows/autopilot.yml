@@ -43,6 +43,7 @@ jobs:
       - name: Run Autopilot Job Application Batch
         env:
           LI_AT_COOKIE: ${{ secrets.LI_AT_COOKIE }}
+          LINKEDIN_COOKIES: ${{ secrets.LINKEDIN_COOKIES }}
           BATCH_SIZE: ${{ github.event.inputs.batch_size || '10' }}
           HEADLESS_MODE: 'true'
           RUN_IN_CLOUD: 'true'

@@ -31,10 +31,12 @@ async function runBatch() {
   console.log(`⏱ Maximum Run Timeout: ${MAX_TIMEOUT_MINUTES} minutes`);
   console.log('======================================================\n');
 
-  if (!process.env.LI_AT_COOKIE || !process.env.LI_AT_COOKIE.trim()) {
-    console.error('❌ FATAL: LI_AT_COOKIE environment variable is not defined.');
-    console.error('👉 Please set LI_AT_COOKIE in your GitHub Secrets or environment!');
-    writeSummary(`### ❌ Missing \`LI_AT_COOKIE\` Secret\nThe **LI_AT_COOKIE** secret is missing or empty in GitHub Secrets.\n\nPlease go to **Settings -> Secrets and variables -> Actions -> New repository secret** and add your **LI_AT_COOKIE**.`);
+  const hasCookies = (process.env.LINKEDIN_COOKIES && process.env.LINKEDIN_COOKIES.trim()) ||
+                     (process.env.LI_AT_COOKIE && process.env.LI_AT_COOKIE.trim());
+  if (!hasCookies) {
+    console.error('❌ FATAL: LINKEDIN_COOKIES or LI_AT_COOKIE environment variable is not defined.');
+    console.error('👉 Please set LINKEDIN_COOKIES (or LI_AT_COOKIE) in your GitHub Secrets or environment!');
+    writeSummary(`### ❌ Missing Cookie Secret\nNeither **LINKEDIN_COOKIES** nor **LI_AT_COOKIE** was found in GitHub Secrets.\n\nPlease go to **Settings -> Secrets and variables -> Actions -> New repository secret** and add **LINKEDIN_COOKIES**.`);
     process.exit(1);
   }
 

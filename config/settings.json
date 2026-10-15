@@ -5,21 +5,25 @@
       "Generative AI Engineer",
       "Machine Learning Engineer",
       "Python Developer",
-      "LLM Engineer"
+      "LLM Engineer",
+      "NLP Engineer",
+      "Deep Learning Engineer",
+      "MLOps Engineer"
     ],
-    "location": "Asia",
+    "location": "Worldwide",
     "workplaceType": "remote",
     "remoteOnly": true,
     "easyApplyOnly": false,
     "applyType": "all",
-    "datePosted": "pastWeek",
+    "datePosted": "pastMonth",
     "experienceLevels": [],
     "blacklistCompanies": [
       "CyberCoders",
       "Revature",
       "Staffing",
       "TalentBurst"
-    ]
+    ],
+    "paginationPages": 3
   },
   "externalApply": {
     "enabled": true,
@@ -28,7 +32,7 @@
   },
   "execution": {
     "mode": "autonomous",
-    "dailyApplicationLimit": 50,
+    "dailyApplicationLimit": 80,
     "minDelayMs": 2500,
     "maxDelayMs": 5500,
     "cdpPort": 9222,
@@ -48,6 +52,7 @@
   "autopilot": {
     "enabled": true,
     "intervalMinutes": 120,
-    "batchSize": 10
+    "batchSize": 15,
+    "nextRunTime": 1792050021288
   }
 }

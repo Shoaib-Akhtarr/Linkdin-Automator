@@ -8,11 +8,15 @@ class SearchEngine {
   /**
    * Build the LinkedIn job search URL based on settings
    */
-  buildSearchUrl(keyword, settings) {
+  buildSearchUrl(keyword, settings, start = 0) {
     const searchConfig = settings.search || {};
     const params = new URLSearchParams();
 
     params.set('keywords', keyword || 'AI Engineer');
+
+    if (start > 0) {
+      params.set('start', String(start));
+    }
 
     // Handle Location & Workplace type safely with geoId mapping
     const loc = (searchConfig.location || '').trim();
@@ -87,24 +91,38 @@ class SearchEngine {
   }
 
   /**
-   * Navigate to search results and extract available jobs
+   * Navigate to search results and extract available jobs (with pagination)
    */
   async navigateToSearch(keyword, settings, update) {
     const page = await this.bridge.getPage();
-    const url = this.buildSearchUrl(keyword, settings);
-    update(`Navigating to search URL: ${url}`);
+    const maxPages = settings.search?.paginationPages || 3;
+    const allJobs = [];
+    const seenJobIds = new Set();
 
-    try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    } catch (e) {
-      update(`Navigation note: ${e.message}`);
+    for (let pageNum = 0; pageNum < maxPages; pageNum++) {
+      const url = this.buildSearchUrl(keyword, settings, pageNum * 25);
+      update(`Navigating to search URL (page ${pageNum + 1}): ${url}`);
+
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      } catch (e) {
+        update(`Navigation note: ${e.message}`);
+      }
+
+      await this.bridge.humanDelay(2500, 4000);
+      await this.scrollJobList(page);
+      const pageJobs = await this.extractJobListings(page, settings, update);
+
+      // Deduplicate across pages
+      const newJobs = pageJobs.filter(j => !seenJobIds.has(j.jobId));
+      newJobs.forEach(j => seenJobIds.add(j.jobId));
+      allJobs.push(...newJobs);
+
+      if (pageJobs.length < 5) break; // No more results
     }
 
-    await this.bridge.humanDelay(3000, 5000);
-
-    // Scroll to load listings
-    await this.scrollJobList(page);
-    return await this.extractJobListings(page, settings, update);
+    update(`Found ${allJobs.length} candidate Easy Apply listings for "${keyword}" (across ${maxPages} pages).`);
+    return allJobs;
   }
 
   /**

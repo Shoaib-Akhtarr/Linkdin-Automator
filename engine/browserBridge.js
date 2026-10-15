@@ -57,6 +57,7 @@ class BrowserBridge {
         `--user-data-dir=${userDataDir}`,
         '--no-first-run',
         '--no-default-browser-check',
+        '--disable-quic',
         'https://www.linkedin.com/jobs/'
       ],
       {
@@ -99,7 +100,28 @@ class BrowserBridge {
         viewport: { width: 1366, height: 768 }
       });
 
-      if (process.env.LI_AT_COOKIE) {
+      if (process.env.LINKEDIN_COOKIES) {
+        try {
+          let raw = process.env.LINKEDIN_COOKIES.trim();
+          if (!raw.startsWith('[') && !raw.startsWith('{')) {
+            raw = Buffer.from(raw, 'base64').toString('utf-8');
+          }
+          const cookies = JSON.parse(raw);
+          const cookieList = Array.isArray(cookies) ? cookies : [cookies];
+          console.log(`🔑 Injecting full authenticated LinkedIn session bundle (${cookieList.length} cookies)...`);
+          await this.context.addCookies(cookieList.map(c => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain.startsWith('.') ? c.domain : '.' + c.domain,
+            path: c.path || '/',
+            httpOnly: !!c.httpOnly,
+            secure: c.secure !== false,
+            sameSite: c.sameSite || 'None'
+          })));
+        } catch (e) {
+          console.error('Failed to parse LINKEDIN_COOKIES:', e.message);
+        }
+      } else if (process.env.LI_AT_COOKIE) {
         console.log('🔑 Injecting authenticated LinkedIn session cookie (li_at)...');
         await this.context.addCookies([
           {
