@@ -226,7 +226,9 @@ class Orchestrator extends EventEmitter {
             continue;
           }
 
-          const allowExternal = this.settings.search?.easyApplyOnly === false || this.settings.search?.applyType === 'all';
+          const allowExternal = this.settings.search?.easyApplyOnly !== true &&
+                                this.settings.search?.applyType !== 'easy_apply' &&
+                                this.settings.externalApply?.enabled === true;
           let result = null;
           let isExternal = false;
           let externalPageRef = null;

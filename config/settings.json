@@ -13,8 +13,8 @@
     "location": "United Kingdom",
     "workplaceType": "remote",
     "remoteOnly": true,
-    "easyApplyOnly": false,
-    "applyType": "all",
+    "easyApplyOnly": true,
+    "applyType": "easy_apply",
     "datePosted": "pastMonth",
     "experienceLevels": [],
     "blacklistCompanies": [
@@ -26,9 +26,9 @@
     "paginationPages": 3
   },
   "externalApply": {
-    "enabled": true,
-    "autoSubmitStandardATS": true,
-    "assistComplexPortals": true
+    "enabled": false,
+    "autoSubmitStandardATS": false,
+    "assistComplexPortals": false
   },
   "execution": {
     "mode": "autonomous",
