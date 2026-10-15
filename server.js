@@ -158,4 +158,10 @@ app.listen(PORT, () => {
   console.log(`🚀 LinkedIn Easy Apply Automation Control Dashboard`);
   console.log(`📡 URL: http://localhost:${PORT}`);
   console.log(`======================================================\n`);
+
+  // Automatically open default browser once server is confirmed listening
+  try {
+    const { exec } = require('child_process');
+    exec(`start http://localhost:${PORT}`);
+  } catch (e) {}
 });
