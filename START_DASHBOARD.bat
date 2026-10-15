@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 title LinkedIn Job Assistant - Control Dashboard
 color 0B
 
