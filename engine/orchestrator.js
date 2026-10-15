@@ -293,21 +293,33 @@ class Orchestrator extends EventEmitter {
             });
 
             if (decision === 'submit') {
-              if (isExternal && externalPageRef) {
+              if (isExternal && externalPageRef && !externalPageRef.isClosed()) {
                 // Submit external form
-                const extSubmit = await externalPageRef.$('button[type="submit"], input[type="submit"], button:has-text("Submit Application"), button:has-text("Submit")');
-                if (extSubmit) await extSubmit.click({ force: true });
-                await browserBridge.humanDelay(2500, 4000);
+                try {
+                  const extSubmit = await externalPageRef.$(
+                    'button[type="submit"], input[type="submit"], button:has-text("Submit Application"), button:has-text("Submit"), button:has-text("Send Application")'
+                  );
+                  if (extSubmit) {
+                    await extSubmit.click({ force: true }).catch(() => {});
+                  }
+                } catch (e) {
+                  this.log(`Note on external submission: ${e.message}`, 'info');
+                }
+                await browserBridge.humanDelay(2000, 3500);
                 await externalPageRef.close().catch(() => {});
               } else {
                 // Click submit in LinkedIn modal
-                const submitBtn = await page.$(
-                  'dialog button:has-text("Submit application"), dialog button:has-text("Submit"), [data-testid="dialog"] button:has-text("Submit"), button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
-                );
-                if (submitBtn) {
-                  await submitBtn.click({ force: true });
-                  await browserBridge.humanDelay(2500, 4000);
-                  await this.easyApplyModal.closeSuccessModal(page, msg => this.log(msg));
+                try {
+                  const submitBtn = await page.$(
+                    'dialog button:has-text("Submit application"), dialog button:has-text("Submit"), [data-testid="dialog"] button:has-text("Submit"), button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
+                  );
+                  if (submitBtn) {
+                    await submitBtn.click({ force: true }).catch(() => {});
+                    await browserBridge.humanDelay(2500, 4000);
+                    await this.easyApplyModal.closeSuccessModal(page, msg => this.log(msg));
+                  }
+                } catch (e) {
+                  this.log(`Note on modal submission: ${e.message}`, 'info');
                 }
               }
               tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
@@ -315,7 +327,7 @@ class Orchestrator extends EventEmitter {
               batchAppliedCount++;
             } else {
               // Dismiss / close
-              if (isExternal && externalPageRef) {
+              if (isExternal && externalPageRef && !externalPageRef.isClosed()) {
                 await externalPageRef.close().catch(() => {});
               } else {
                 await this.easyApplyModal.dismissModal(page);
@@ -326,6 +338,9 @@ class Orchestrator extends EventEmitter {
 
             this.state = 'running';
             this.emit('state_change', this.state);
+          } else if (result && result.status === 'limit_reached') {
+            this.log('🛑 LinkedIn Easy Apply daily limit reached for today! LinkedIn has capped Easy Apply submissions until tomorrow.', 'warn');
+            this.easyApplyLimitReached = true;
           } else if (result && result.status === 'already_applied') {
             if (isExternal && externalPageRef) {
               await externalPageRef.close().catch(() => {});

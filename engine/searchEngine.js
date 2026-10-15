@@ -402,6 +402,15 @@ class SearchEngine {
   async selectJob(page, job, update) {
     update(`Selecting job: "${job.title}" at "${job.company}"...`);
 
+    // Dismiss any blocking dialogs/modals (e.g. daily limit modal, feedback dialogs)
+    try {
+      const blockingBtn = await page.$('button:has-text("Got it"), [data-testid="dialog"] button[aria-label*="Dismiss"], [data-testid="dialog"] button[aria-label*="Close"], button.artdeco-modal__dismiss');
+      if (blockingBtn && await blockingBtn.isVisible()) {
+        await blockingBtn.click().catch(() => {});
+        await this.bridge.humanDelay(500, 1000);
+      }
+    } catch (e) {}
+
     let selected = false;
 
     // 1. In modern LazyColumn, click card by index

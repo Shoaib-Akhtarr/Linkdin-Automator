@@ -67,6 +67,15 @@ class EasyApplyModal {
       return { status: 'already_applied', message: 'Already applied according to LinkedIn modal' };
     }
 
+    // Daily Easy Apply Quota Cap Check
+    if (/you reached today's easy apply limit|limit easy apply submissions/i.test(initialText)) {
+      update("🛑 You reached today's Easy Apply limit on LinkedIn. Easy Apply submissions are paused by LinkedIn until tomorrow.");
+      const gotItBtn = await dialog.$('button:has-text("Got it"), button[aria-label*="Dismiss"], button.artdeco-button--primary');
+      if (gotItBtn) await gotItBtn.click().catch(() => {});
+      await this.dismissModal(page);
+      return { status: 'limit_reached', message: 'LinkedIn Daily Easy Apply limit reached' };
+    }
+
     let stepCount = 0;
     const maxSteps = 12;
     let lastDialogFingerprint = '';
