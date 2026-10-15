@@ -245,8 +245,23 @@ class BrowserBridge {
     if (url.includes('linkedin.com/login') || url.includes('linkedin.com/checkpoint')) {
       return false;
     }
-    const navExists = await this.page.$('.global-nav, .jobs-search-box, .feed-identity-module, header, nav, #global-nav');
-    return !!navExists || url.includes('linkedin.com/feed') || url.includes('linkedin.com/jobs');
+    try {
+      if (this.context) {
+        const cookies = await this.context.cookies('https://www.linkedin.com');
+        const hasLiAt = cookies.some(c => c.name === 'li_at' && c.value && c.value.length > 10);
+        if (hasLiAt) return true;
+      }
+    } catch (e) {}
+
+    try {
+      const memberNav = await this.page.$('.global-nav__me, img.global-nav__me-photo, #global-nav-typeahead, .feed-identity-module');
+      if (memberNav) return true;
+
+      const guestSignIn = await this.page.$('a.nav__button-secondary, a[data-tracking-control-name*="signin"]');
+      if (guestSignIn) return false;
+    } catch (e) {}
+
+    return url.includes('linkedin.com/feed');
   }
 
   async disconnect() {
