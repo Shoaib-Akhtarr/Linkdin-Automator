@@ -3,6 +3,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const DEFAULT_USER_DATA_DIR = path.join(
@@ -93,6 +94,36 @@ class BrowserBridge {
       if (fs.existsSync(CHROME_PATH)) {
         launchOptions.executablePath = CHROME_PATH;
       }
+
+      if (process.env.PROXY_SERVER) {
+        console.log(`🌐 Routing browser traffic through proxy: ${process.env.PROXY_SERVER}`);
+        launchOptions.proxy = { server: process.env.PROXY_SERVER };
+        if (process.env.PROXY_USERNAME && process.env.PROXY_PASSWORD) {
+          launchOptions.proxy.username = process.env.PROXY_USERNAME;
+          launchOptions.proxy.password = process.env.PROXY_PASSWORD;
+        }
+      } else if (process.env.PHONE_PROXY_IP) {
+        const phoneIp = process.env.PHONE_PROXY_IP.trim();
+        const phoneProxy = `http://${phoneIp}:8080`;
+        console.log(`📱 Checking Phone Residential Proxy (${phoneProxy})...`);
+
+        const isReachable = await new Promise(resolve => {
+          const s = new net.Socket();
+          s.setTimeout(3500);
+          s.on('connect', () => { s.destroy(); resolve(true); });
+          s.on('error', () => { s.destroy(); resolve(false); });
+          s.on('timeout', () => { s.destroy(); resolve(false); });
+          s.connect(8080, phoneIp);
+        });
+
+        if (isReachable) {
+          console.log(`✅ Phone Residential Proxy is REACHABLE! Routing cloud traffic through phone in Pakistan.`);
+          launchOptions.proxy = { server: phoneProxy };
+        } else {
+          console.warn(`⚠️ Phone Proxy (${phoneProxy}) not responding. Proceeding with cloud direct connection.`);
+        }
+      }
+
       this.browser = await chromium.launch(launchOptions);
 
       this.context = await this.browser.newContext({

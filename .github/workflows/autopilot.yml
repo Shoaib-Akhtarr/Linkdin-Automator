@@ -40,10 +40,17 @@ jobs:
       - name: Install Playwright Chromium & OS Dependencies
         run: npx playwright install --with-deps chromium
 
+      - name: Connect to Tailscale Private Mesh (Phone Bridge)
+        continue-on-error: true
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+
       - name: Run Autopilot Job Application Batch
         env:
           LI_AT_COOKIE: ${{ secrets.LI_AT_COOKIE }}
           LINKEDIN_COOKIES: ${{ secrets.LINKEDIN_COOKIES }}
+          PHONE_PROXY_IP: ${{ secrets.PHONE_PROXY_IP || '100.98.217.120' }}
           BATCH_SIZE: ${{ github.event.inputs.batch_size || '10' }}
           HEADLESS_MODE: 'true'
           RUN_IN_CLOUD: 'true'
