@@ -397,7 +397,12 @@ class ExternalApplyEngine {
   async finalizeExternalSubmission(page, submitSelector, update, options) {
     const submitBtn = await page.$(submitSelector);
 
-    if (options.mode === 'hybrid' || options.mode === 'review') {
+    const isHybrid = options.mode === 'hybrid' ||
+                     options.mode === 'review' ||
+                     options.settings?.externalApply?.autoSubmitStandardATS === false ||
+                     options.settings?.execution?.externalMode === 'hybrid';
+
+    if (isHybrid) {
       update('Form pre-filled with tailored ATS CV. Pausing for review in Hybrid Mode.');
       return {
         status: 'needs_review',

@@ -241,8 +241,9 @@ class Orchestrator extends EventEmitter {
             const screenshot = await browserBridge.takeScreenshot();
             if (screenshot) this.emit('screenshot', screenshot);
 
+            const eaMode = this.settings.execution?.easyApplyMode || (mode === 'hybrid' && !this.settings.execution?.externalMode ? 'hybrid' : 'autonomous');
             result = await this.easyApplyModal.handleModal(job, {
-              mode,
+              mode: eaMode,
               settings: this.settings,
               onStatusUpdate: msg => this.log(msg)
             });
@@ -255,8 +256,9 @@ class Orchestrator extends EventEmitter {
 
             isExternal = true;
             this.log(`🌐 Universal External Apply: Initiating application for "${job.title}" at "${job.company}"...`, 'info');
+            const extMode = this.settings.execution?.externalMode || 'hybrid';
             result = await this.externalApplyEngine.handleExternalApply(page, job, {
-              mode,
+              mode: extMode,
               settings: this.settings,
               onStatusUpdate: msg => this.log(msg)
             });
@@ -270,8 +272,20 @@ class Orchestrator extends EventEmitter {
           if (result && result.status === 'needs_review') {
             this.state = 'awaiting_review';
             this.emit('state_change', this.state);
-            const reviewScreenshot = await browserBridge.takeScreenshot();
+
+            let reviewScreenshot = null;
+            if (isExternal && externalPageRef && !externalPageRef.isClosed()) {
+              try {
+                const buf = await externalPageRef.screenshot({ timeout: 3000, animations: 'disabled' });
+                reviewScreenshot = buf.toString('base64');
+              } catch (e) {}
+            }
+            if (!reviewScreenshot) {
+              reviewScreenshot = await browserBridge.takeScreenshot();
+            }
             if (reviewScreenshot) this.emit('screenshot', reviewScreenshot);
+
+            this.log(`⏸ Application prepared and paused for your review on the dashboard: "${job.title}" at "${job.company}".`, 'warn');
 
             // Wait for user review decision
             const decision = await new Promise(resolve => {
