@@ -93,8 +93,10 @@ async function runBatch() {
     console.log(`\n🚀 Step 3: Starting Autopilot cycle for ${BATCH_SIZE} jobs...`);
     
     let finished = false;
+    let batchAppliedTotal = 0;
     orchestrator.once('cycle_finished', (data) => {
-      console.log(`\n🎉 Cycle Finished Event received: ${data.applied} jobs applied in this batch.`);
+      batchAppliedTotal = data?.batchAppliedCount !== undefined ? data.batchAppliedCount : (data?.applied || 0);
+      console.log(`\n🎉 Cycle Finished Event received: ${batchAppliedTotal} jobs applied in this batch.`);
       finished = true;
     });
 
@@ -124,10 +126,14 @@ async function runBatch() {
     try {
       const emailNotifier = require('./engine/emailNotifier');
       const allApps = tracker.getAllApplications();
-      const cycleApplied = allApps.filter(a => a.status === 'applied' && a.appliedAt && new Date(a.appliedAt).getTime() >= startTime);
+      const cycleApplied = batchAppliedTotal > 0
+        ? allApps.filter(a => a.status === 'applied').slice(0, batchAppliedTotal)
+        : allApps.filter(a => a.status === 'applied' && a.appliedAt && new Date(a.appliedAt).getTime() >= (startTime - 120000));
+      const finalCount = Math.max(batchAppliedTotal, cycleApplied.length);
+
       await emailNotifier.sendReport({
         cycleTime: new Date().toLocaleString(),
-        batchApplied: cycleApplied.length,
+        batchApplied: finalCount,
         batchSkipped: stats.skipped,
         totalAppliedToday: stats.todayApplied,
         dailyLimit: orchestrator.settings.dailyLimit || 50,

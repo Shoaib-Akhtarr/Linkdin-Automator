@@ -398,33 +398,39 @@ class SearchEngine {
       'button[aria-label*="Apply to"]',
       'a[aria-label*="Apply to"]',
       '.jobs-apply-button--top-card button',
+      '.jobs-s-apply button',
       'button:has-text("Apply")',
-      'a:has-text("Apply")'
+      'a:has-text("Apply")',
+      '[data-control-name="jobdetails_topcard_inapply"]'
     ];
 
-    for (const selector of applyButtonSelectors) {
-      try {
-        const btn = await page.$(selector);
-        if (btn && await btn.isVisible()) {
-          const text = (await btn.innerText()).trim();
-          const aria = (await btn.getAttribute('aria-label') || '').toLowerCase();
+    // Retry up to 5 times (waiting up to ~5s for details pane to render)
+    for (let attempt = 0; attempt < 5; attempt++) {
+      for (const selector of applyButtonSelectors) {
+        try {
+          const btn = await page.$(selector);
+          if (btn && await btn.isVisible()) {
+            const text = (await btn.innerText()).trim();
+            const aria = (await btn.getAttribute('aria-label') || '').toLowerCase();
 
-          if (/applied/i.test(text) || aria.includes('applied')) {
-            if (update) update('Job already marked as applied on LinkedIn.');
-            return { type: 'already_applied', element: btn };
-          }
+            if (/applied/i.test(text) || aria.includes('applied')) {
+              if (update) update('Job already marked as applied on LinkedIn.');
+              return { type: 'already_applied', element: btn };
+            }
 
-          if (/easy apply/i.test(text) || aria.includes('easy apply')) {
-            if (update) update('Found direct LinkedIn "Easy Apply" button.');
-            return { type: 'easy_apply', element: btn };
-          }
+            if (/easy apply/i.test(text) || aria.includes('easy apply')) {
+              if (update) update('Found direct LinkedIn "Easy Apply" button.');
+              return { type: 'easy_apply', element: btn };
+            }
 
-          if (/apply/i.test(text) || aria.includes('apply')) {
-            if (update) update('Found External Career Site "Apply" button.');
-            return { type: 'external_apply', element: btn };
+            if (/apply/i.test(text) || aria.includes('apply')) {
+              if (update) update('Found External Career Site "Apply" button.');
+              return { type: 'external_apply', element: btn };
+            }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
+      await this.bridge.humanDelay(700, 1200);
     }
 
     return { type: 'none', element: null };
