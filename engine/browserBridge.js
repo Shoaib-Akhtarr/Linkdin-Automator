@@ -59,6 +59,7 @@ class BrowserBridge {
         '--no-first-run',
         '--no-default-browser-check',
         '--disable-quic',
+        '--disable-features=OptimizationHints,Translate,WebUIOmniboxPopup',
         'https://www.linkedin.com/jobs/'
       ],
       {
