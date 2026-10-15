@@ -2,6 +2,76 @@
   "lastResetDate": "2026-10-15",
   "applications": [
     {
+      "jobId": "job_17_MLAIEngi",
+      "title": "ML/AI Engineer - Classical ML",
+      "company": "Jobgether",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T14:02:49.070Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_ML_AI_Engineer_-_Classical_ML.pdf"
+    },
+    {
+      "jobId": "job_18_DataScien",
+      "title": "Data Scientist - LLM",
+      "company": "Arrise Solutions (India) Pvt. Ltd.",
+      "location": "Noida (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T08:05:27.079Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_20_AIDataSc",
+      "title": "AI Data Scientist",
+      "company": "Westernacher Consulting",
+      "location": "Bengaluru East (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T08:01:37.845Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_9_Conversati",
+      "title": "Conversational AI Engineer",
+      "company": "Bush and Bush Law Group",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T08:01:26.225Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_8_PythonAI",
+      "title": "Python AI Engineer",
+      "company": "techolution",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T08:00:19.638Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_2_Assistant",
+      "title": "Assistant Lead - Data Scientist (Verified job)",
+      "company": "Assistant Lead - Data Scientist",
+      "location": "Forage AI",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:41:31.937Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
+      "description": ""
+    },
+    {
       "jobId": "job_16_AIEnginee",
       "title": "AI Engineer",
       "company": "Keywords Studios",
@@ -14,39 +84,15 @@
       "description": ""
     },
     {
-      "jobId": "job_12_AIEnginee",
-      "title": "AI Engineer",
-      "company": "Keywords Studios",
-      "location": "Keywords Studios",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:54:48.719Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_11_PythonAI",
+      "jobId": "job_2_PythonAI",
       "title": "Python AI Engineer  (Verified job)",
       "company": "Python AI Engineer",
       "location": "techolution",
       "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:54:39.049Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_10_Conversati",
-      "title": "Conversational AI Engineer",
-      "company": "Bush and Bush Law Group",
-      "location": "Bush and Bush Law Group",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:54:31.537Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:52:39.045Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
       "description": ""
     },
     {
@@ -59,18 +105,6 @@
       "appliedAt": "2026-10-15T07:53:20.956Z",
       "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_Python_Developer.pdf",
       "cvUsed": "Shoaib_Akhtar_CV_Jobgether_Python_Developer.pdf",
-      "description": ""
-    },
-    {
-      "jobId": "job_2_PythonAI",
-      "title": "Python AI Engineer  (Verified job)",
-      "company": "Python AI Engineer",
-      "location": "techolution",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-15T07:52:39.045Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
-      "cvUsed": "Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
       "description": ""
     },
     {
@@ -98,102 +132,6 @@
       "description": ""
     },
     {
-      "jobId": "job_14_AIEnginee",
-      "title": "AI Engineer",
-      "company": "Keywords Studios",
-      "location": "Pune Division (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-15T07:45:30.501Z",
-      "notes": "Application submitted successfully.",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_12_Conversati",
-      "title": "Conversational AI Engineer",
-      "company": "Bush and Bush Law Group",
-      "location": "Bush and Bush Law Group",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:44:26.178Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_19_AIDataSc",
-      "title": "AI Data Scientist",
-      "company": "Westernacher Consulting",
-      "location": "Bengaluru East (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:44:01.516Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_14_Conversati",
-      "title": "Conversational AI Engineer",
-      "company": "Bush and Bush Law Group",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-15T07:43:49.728Z",
-      "notes": "Application submitted successfully.",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_11_AIEnginee",
-      "title": "AI Engineer",
-      "company": "Keywords Studios",
-      "location": "Keywords Studios",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:42:46.307Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_9_AIEnginee",
-      "title": "AI Engineer",
-      "company": "Keywords Studios",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-15T07:42:36.723Z",
-      "notes": "No Apply button found",
-      "cvUsed": "LinkedIn Default ATS Resume",
-      "description": ""
-    },
-    {
-      "jobId": "job_5_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-15T07:42:07.930Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_techolution_Python_AI_Engineer.pdf",
-      "cvUsed": "Shoaib_Akhtar_CV_techolution_Python_AI_Engineer.pdf",
-      "description": ""
-    },
-    {
-      "jobId": "job_2_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-15T07:41:31.937Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
-      "cvUsed": "Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
-      "description": ""
-    },
-    {
       "jobId": "job_2_SeniorPyt",
       "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340] (Verified job)",
       "company": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
@@ -214,26 +152,6 @@
       "notes": "Application processed through available steps."
     },
     {
-      "jobId": "job_19_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T16:00:03.604Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_10_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T16:00:01.249Z",
-      "notes": "No Apply button found"
-    },
-    {
       "jobId": "job_23_StaffAIC",
       "title": "Staff AI Compiler Engineer",
       "company": "EnCharge AI",
@@ -241,16 +159,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T15:59:18.824Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_9_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T15:59:11.266Z",
       "notes": "No Apply button found"
     },
     {
@@ -264,84 +172,24 @@
       "notes": "Application submitted successfully."
     },
     {
-      "jobId": "job_9_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T14:06:45.616Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_1_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T14:06:42.321Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_7_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
+      "jobId": "job_3_Fullstack",
+      "title": "Fullstack Engineer",
+      "company": "Lumenci",
+      "location": "Lumenci",
       "url": "",
       "status": "applied",
-      "appliedAt": "2026-10-14T14:03:15.312Z",
+      "appliedAt": "2026-10-14T11:01:10.239Z",
       "notes": "Application processed through available steps."
     },
     {
-      "jobId": "job_17_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T14:02:49.070Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_ML_AI_Engineer_-_Classical_ML.pdf"
-    },
-    {
-      "jobId": "job_12_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Arrise Solutions (India) Pvt. Ltd.",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T13:56:40.205Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_4_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T13:56:31.485Z",
-      "notes": "Application submitted successfully."
-    },
-    {
-      "jobId": "job_11_Fullstack",
-      "title": "Fullstack Engineer",
-      "company": "Lumenci",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T12:01:00.415Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_6_SeniorPyt",
+      "jobId": "job_5_SeniorPyt",
       "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
       "company": "Smart Working",
-      "location": "India (Remote)",
+      "location": "Chandigarh (Remote)",
       "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T12:00:56.037Z",
-      "notes": "No Apply button found"
+      "status": "applied",
+      "appliedAt": "2026-10-14T11:59:28.827Z",
+      "notes": "Application completed (dialog closed)."
     },
     {
       "jobId": "job_23_SeniorFul",
@@ -364,16 +212,6 @@
       "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Data_Eminence_Machine_Learning_Engineer.pdf"
     },
     {
-      "jobId": "job_19_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T12:00:25.507Z",
-      "notes": "No Apply button found"
-    },
-    {
       "jobId": "job_18_SeniorAI",
       "title": "Senior AI Software Engineer",
       "company": "Jobgether",
@@ -394,96 +232,6 @@
       "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Betterbizs_Gen_AI_Engineer.pdf"
     },
     {
-      "jobId": "job_5_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Chandigarh (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:59:28.827Z",
-      "notes": "Application completed (dialog closed)."
-    },
-    {
-      "jobId": "job_3_GenAIEng",
-      "title": "Gen AI Engineer",
-      "company": "Betterbizs",
-      "location": "Betterbizs",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:57:41.243Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Betterbizs_Gen_AI_Engineer.pdf"
-    },
-    {
-      "jobId": "job_12_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "Jobgether",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:57:23.364Z",
-      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_ML_AI_Engineer_-_Classical_ML.pdf"
-    },
-    {
-      "jobId": "job_10_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:57:05.466Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_7_GenAIEng",
-      "title": "Gen AI Engineer",
-      "company": "Betterbizs",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:56:27.887Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_20_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:56:08.848Z",
-      "notes": "Application submitted successfully."
-    },
-    {
-      "jobId": "job_17_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:55:35.735Z",
-      "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_16_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:55:28.768Z",
-      "notes": "Application submitted successfully."
-    },
-    {
-      "jobId": "job_3_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:54:48.060Z",
-      "notes": "Application submitted successfully."
-    },
-    {
       "jobId": "job_5_Assistant",
       "title": "Assistant Lead - Data Scientist",
       "company": "Forage AI",
@@ -492,36 +240,6 @@
       "status": "skipped",
       "appliedAt": "2026-10-14T11:54:04.074Z",
       "notes": "No Apply button found"
-    },
-    {
-      "jobId": "job_3_SrAIEng",
-      "title": "Sr. AI Engineer, AI FDE",
-      "company": "Jobgether",
-      "location": "Jobgether",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:47:41.672Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_2_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "Jobgether",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:47:33.474Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_1_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Arrise Solutions (India) Pvt. Ltd.",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:47:30.541Z",
-      "notes": "No Easy Apply button found"
     },
     {
       "jobId": "job_9_FullStack",
@@ -564,66 +282,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_4_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:38:45.514Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_1_MLAIEngi",
-      "title": "ML/AI Engineer - Classical ML",
-      "company": "Jobgether",
-      "location": "Jobgether",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:38:37.776Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_3_FullStack",
-      "title": "Full-Stack AI Engineer (Up to 15LPA)",
-      "company": "CodeRound AI",
-      "location": "CodeRound AI",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:27:29.582Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_3_Fullstack",
-      "title": "Fullstack Engineer",
-      "company": "Lumenci",
-      "location": "Lumenci",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T11:01:10.239Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_2_MLEnginee",
-      "title": "ML Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Arrise Solutions (India) Pvt. Ltd.",
-      "url": "",
-      "status": "failed",
-      "appliedAt": "2026-10-14T10:59:02.156Z",
-      "notes": "Easy Apply modal dialog did not appear in DOM."
-    },
-    {
-      "jobId": "job_2_Fullstack",
-      "title": "Fullstack Engineer",
-      "company": "Lumenci",
-      "location": "Lumenci",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T10:39:26.561Z",
-      "notes": "Application processed through available steps."
-    },
-    {
       "jobId": "job_24_Generative",
       "title": "Generative AI Engineer - Freshers 2026/27 (Computer Science or AI Only)",
       "company": "Digitals AI",
@@ -631,16 +289,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:38:49.301Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_23_HiringGen",
-      "title": "Hiring Generative AI Engineer - Freshers 2026/27 (Computer Science or AI Only)",
-      "company": "Digitals AI",
-      "location": "Digitals AI",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:45.312Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -654,16 +302,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_21_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:38.758Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_20_PythonDja",
       "title": "Python Django Developer (Backend) — 1-3 Years",
       "company": "StartxLabs",
@@ -671,56 +309,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:38:35.102Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_19_SeniorFul",
-      "title": "Senior Full-stack Developer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:31.122Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_18_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Greater Delhi Area (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:27.360Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_17_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Mumbai (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:23.117Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_16_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Pune Division (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:19.354Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_15_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:38:15.326Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -764,14 +352,14 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_10_SeniorFul",
-      "title": "Senior Full-Stack Software Engineer, AI & Data (Verified job)",
-      "company": "Senior Full-Stack Software Engineer, AI & Data",
-      "location": "Everbridge",
+      "jobId": "job_10_SoftwareE",
+      "title": "Software Engineer, AI (Verified job)",
+      "company": "Software Engineer, AI",
+      "location": "Robert Half",
       "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:37:57.222Z",
-      "notes": "No Easy Apply button found"
+      "status": "applied",
+      "appliedAt": "2026-10-14T09:00:54.048Z",
+      "notes": "Application submitted successfully."
     },
     {
       "jobId": "job_9_AIMLEngi",
@@ -824,26 +412,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_1_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340] (Verified job)",
-      "company": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "location": "Smart Working",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:37:25.666Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_0_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340] (Verified job)",
-      "company": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "location": "Smart Working",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:37:20.482Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_20_LeadAISy",
       "title": "Lead AI Systems Architect (Data-Centric AI & Multimodal)",
       "company": "Jobgether",
@@ -871,26 +439,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:36:20.011Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_17_Memberof",
-      "title": "Member of Technical Staff",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:36:16.587Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_16_SeniorAI",
-      "title": "Senior AI Software Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:36:12.364Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -964,36 +512,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_6_Principal",
-      "title": "Principal Azure & AI Architect (Hands-On)",
-      "company": "Logic Hire Solutions LTD",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:35:35.825Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_5_MachineLe",
-      "title": "Machine Learning Engineer",
-      "company": "Data Eminence",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:35:28.783Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_4_ComputerV",
-      "title": "Computer Vision Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:35:23.905Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_20_SeniorFul",
       "title": "Senior Full-Stack Software Engineer, AI & Data",
       "company": "Everbridge",
@@ -1024,56 +542,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_15_SeniorAge",
-      "title": "Senior Agentic AI Engineer – Python (6+ Years Experience | Remote | Immediate Joiners)",
-      "company": "YMinds.AI",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:32:01.273Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_14_SoftwareE",
-      "title": "Software Engineer",
-      "company": "Fulcrum Digital Inc",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:31:58.089Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_13_FoundingS",
-      "title": "Founding Senior Applied AI Engineer - Causal and Experiments",
-      "company": "Unloq®",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:31:54.060Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_12_SeniorRes",
-      "title": "Senior Research Engineer",
-      "company": "Sony Research India",
-      "location": "Sony Research India",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:31:50.489Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_11_AIMLEngi",
-      "title": "AI/ML Engineer  (Verified job)",
-      "company": "AI/ML Engineer",
-      "location": "IntraEdge",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:31:46.247Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_9_SeniorSer",
       "title": "Senior ServiceNow AI Engineer - Full-Remote",
       "company": "All European Careers",
@@ -1094,86 +562,6 @@
       "notes": "Application processed through available steps."
     },
     {
-      "jobId": "job_22_StaffEngi",
-      "title": "Staff Engineer",
-      "company": "Success Pact",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:54.236Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_21_SeniorAge",
-      "title": "Senior Agentic AI Engineer – Python (6+ Years Experience | Remote | Immediate Joiners)",
-      "company": "YMinds.AI",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:51.236Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_20_SeniorAI",
-      "title": "Senior AI engineer",
-      "company": "AllysAI | AI-Native Enterprise",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:47.785Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_19_AIMLLead",
-      "title": "AI/ML Lead",
-      "company": "Digitrix Software LLP",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:44.576Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_18_SoftwareE",
-      "title": "Software Engineer",
-      "company": "Fulcrum Digital Inc",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:41.627Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_17_AIMLEngi",
-      "title": "AI/ML Engineer",
-      "company": "IntraEdge",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:37.544Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_15_AIML",
-      "title": "AI / ML & Generative AI Engineer",
-      "company": "INSPYR Global Solutions",
-      "location": "Delhi (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:32.816Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_14_SeniorSer",
-      "title": "Senior ServiceNow AI Engineer - Full-Remote",
-      "company": "All European Careers",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:28.764Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_13_893YJYHP",
       "title": "[893YJYHP] AI Research Engineer – Machine Learning (Verified job)",
       "company": "[893YJYHP] AI Research Engineer – Machine Learning",
@@ -1181,16 +569,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:29:25.013Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_12_FoundingS",
-      "title": "Founding Senior Applied AI Engineer - Causal and Experiments",
-      "company": "Unloq®",
-      "location": "Unloq®",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:22.101Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -1204,36 +582,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_9_Principal",
-      "title": "Principal Azure & AI Architect (Hands-On)",
-      "company": "Logic Hire Solutions LTD",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:10.372Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_8_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:07.296Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_7_StaffAIC",
-      "title": "Staff AI Compiler Engineer",
-      "company": "EnCharge AI",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:04.226Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_6_SeniorAI",
       "title": "Senior AI Compiler Engineer",
       "company": "EnCharge AI",
@@ -1241,16 +589,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:29:01.060Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_5_Fullstack",
-      "title": "Fullstack Engineer",
-      "company": "Lumenci",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:28:57.405Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -1264,36 +602,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_21_LeadAISy",
-      "title": "Lead AI Systems Architect (Data-Centric AI & Multimodal)",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:39.903Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_20_FoundingS",
-      "title": "Founding Staff Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:36.268Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_19_Memberof",
-      "title": "Member of Technical Staff",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:32.203Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_18_Principal",
       "title": "Principal, Machine Learning Engineer (L5)",
       "company": "Jobgether",
@@ -1304,26 +612,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_17_SeniorAI",
-      "title": "Senior AI Software Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:24.731Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_16_StaffMach",
-      "title": "Staff Machine Learning Engineer (L4)",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:20.778Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_15_AIEnginee",
       "title": "AI Engineer – Enterprise AI Solutions",
       "company": "Pinetree Group",
@@ -1331,226 +619,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:14:16.215Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_13_SeniorAI",
-      "title": "Senior AI / GenAI Engineer",
-      "company": "Artech L.L.C.",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:14:09.062Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_9_SeniorRes",
-      "title": "Senior Research Engineer",
-      "company": "Sony Research India",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:13:56.608Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_8_AIMLEngi",
-      "title": "AI/ML Engineer",
-      "company": "IntraEdge",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:13:52.690Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_7_AIML",
-      "title": "AI / ML & Generative AI Engineer",
-      "company": "INSPYR Global Solutions",
-      "location": "Delhi (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:13:48.431Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_5_AgenticAI",
-      "title": "Agentic AI Engineer",
-      "company": "BayOne Solutions",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:13:40.538Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_24_HiringGen",
-      "title": "Hiring Generative AI Engineer - Freshers 2026/27 (Computer Science or AI Only)",
-      "company": "Digitals AI",
-      "location": "Hyderabad (Hybrid)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:53.409Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_23_SeniorGen",
-      "title": "Senior Generative AI Engineer – Python, LangChain, RAG & AWS | Remote",
-      "company": "Talpro - Leaders in Technology ( for one of our Leading Small Finance Bank Client)",
-      "location": "Bengaluru (On-site)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:50.032Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_22_Assistant",
-      "title": "Assistant Lead - Data Scientist",
-      "company": "Forage AI",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:46.022Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_21_PythonDja",
-      "title": "Python Django Developer (Backend) — 1-3 Years",
-      "company": "StartxLabs",
-      "location": "Faridabad (Hybrid)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:42.351Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_19_SeniorPyt",
-      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
-      "company": "Smart Working",
-      "location": "Mumbai (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:34.682Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_15_SrFoundi",
-      "title": "Sr. Founding Product Engineer",
-      "company": "Teamified",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:20.251Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_14_GCPCloud",
-      "title": "GCP Cloud Engineer",
-      "company": "Veridic Solutions",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:16.018Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_13_SeniorAge",
-      "title": "Senior Agentic AI Engineer – Python (6+ Years Experience | Remote | Immediate Joiners)",
-      "company": "YMinds.AI",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:11.813Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_12_SeniorPla",
-      "title": "Senior Platform Engineer",
-      "company": "Sutra.AI",
-      "location": "Greater Delhi Area (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:08.136Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_11_SeniorFul",
-      "title": "Senior Full-Stack Software Engineer, AI & Data",
-      "company": "Everbridge",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:04.081Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_10_AIMLEngi",
-      "title": "AI/ML Engineer",
-      "company": "IntraEdge",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:12:00.299Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_9_SoftwareE",
-      "title": "Software Engineer",
-      "company": "Fulcrum Digital Inc",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:55.952Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_8_SeniorPyt",
-      "title": "Senior Python, Cloud Infrastructure & AI Engineer",
-      "company": "Everbridge",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:52.120Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_7_SeniorSof",
-      "title": "Senior Software Engineer",
-      "company": "TEKsystems",
-      "location": "Bengaluru (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:47.917Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_6_Memberof",
-      "title": "Member of Technical Staff",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:43.554Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_4_SeniorAI",
-      "title": "Senior AI Software Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:35.979Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_3_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:11:32.137Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -1574,56 +642,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_20_SeniorApp",
-      "title": "Senior Applied Machine Learning Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:10:27.158Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_19_SeniorAI",
-      "title": "Senior AI Software Engineer",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:10:23.230Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_16_Principal",
-      "title": "Principal, Machine Learning Engineer (L5)",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:10:12.723Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_15_StaffMach",
-      "title": "Staff Machine Learning Engineer (L4)",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:10:08.899Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_14_ComputerV",
-      "title": "Computer Vision Engineer",
-      "company": "Process Point Technologies Corporation",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:10:04.791Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_12_SeniorAI",
       "title": "Senior AI engineer (Verified job)",
       "company": "Senior AI engineer",
@@ -1631,56 +649,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:09:57.967Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_11_AIML",
-      "title": "AI / ML & Generative AI Engineer",
-      "company": "INSPYR Global Solutions",
-      "location": "INSPYR Global Solutions",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:09:54.297Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_10_SeniorRes",
-      "title": "Senior Research Engineer",
-      "company": "Sony Research India",
-      "location": "Sony Research India",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:09:50.384Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_6_MachineLe",
-      "title": "Machine Learning Engineer",
-      "company": "Data Eminence",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:09:34.807Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_5_ComputerV",
-      "title": "Computer Vision Engineer",
-      "company": "Arrise Solutions (India) Pvt. Ltd.",
-      "location": "Hyderabad (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:09:30.383Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_4_SrAIEng",
-      "title": "Sr. AI Engineer, AI FDE",
-      "company": "Jobgether",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:09:26.555Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -1694,16 +662,6 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_0_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T09:55:30.880Z",
-      "notes": "Application processed through available steps."
-    },
-    {
       "jobId": "job_11_Principal",
       "title": "Principal Engineer - Agentic AI Applications (Verified job)",
       "company": "Principal Engineer - Agentic AI Applications",
@@ -1712,16 +670,6 @@
       "status": "applied",
       "appliedAt": "2026-10-14T09:02:18.041Z",
       "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_10_SoftwareE",
-      "title": "Software Engineer, AI (Verified job)",
-      "company": "Software Engineer, AI",
-      "location": "Robert Half",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T09:00:54.048Z",
-      "notes": "Application submitted successfully."
     },
     {
       "jobId": "job_9_AIDataEn",
@@ -1844,16 +792,6 @@
       "notes": "Application submitted successfully."
     },
     {
-      "jobId": "job_0_Conversati",
-      "title": "Conversational AI Engineer",
-      "company": "Conversational AI Engineer",
-      "location": "Bush and Bush Law Group",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T08:49:34.419Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
       "jobId": "job_4_SeniorSof",
       "title": "Senior Software Engineer – Integrations & MCP",
       "company": "Attimo",
@@ -1864,74 +802,24 @@
       "notes": "No Easy Apply button found"
     },
     {
-      "jobId": "job_3_Principal",
+      "jobId": "job_4_Principal",
       "title": "Principal Software Engineer - Python",
       "company": "TenX",
       "location": "Lahore (On-site)",
       "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T08:49:06.996Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_7_SeniorMac",
-      "title": "Senior Machine Learning Engineer",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
       "status": "applied",
-      "appliedAt": "2026-10-14T08:47:53.297Z",
-      "notes": "Application processed through available steps."
+      "appliedAt": "2026-10-14T07:41:08.755Z",
+      "notes": "Application submitted successfully."
     },
     {
-      "jobId": "job_6_ForwardDe",
+      "jobId": "job_3_ForwardDe",
       "title": "Forward Deployed Engineer - GenAI",
       "company": "Systems Limited",
       "location": "Lahore (On-site)",
       "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T08:47:44.386Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_4_Postdoctor",
-      "title": "Postdoctoral Researcher _ AI & IoT",
-      "company": "GAOTek Inc.",
-      "location": "Pakistan (Remote)",
-      "url": "",
-      "status": "failed",
-      "appliedAt": "2026-10-14T08:47:33.653Z",
-      "notes": "Easy Apply modal dialog did not appear in DOM."
-    },
-    {
-      "jobId": "job_2_Artificial",
-      "title": "Artificial Intelligence Engineer (Verified job)",
-      "company": "Artificial Intelligence Engineer",
-      "location": "Prismecs",
-      "url": "",
       "status": "applied",
-      "appliedAt": "2026-10-14T08:15:09.971Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_3_SeniorSof",
-      "title": "Senior Software Engineer – Integrations & MCP",
-      "company": "Attimo",
-      "location": "Pakistan (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T08:13:38.536Z",
-      "notes": "Skipped by user review"
-    },
-    {
-      "jobId": "job_5_Microsoft",
-      "title": "Microsoft Copilot Studio Developer / AI Specialist",
-      "company": "Go Pk Resources",
-      "location": "Lahore (Hybrid)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T08:04:07.860Z",
-      "notes": "Application processed through available steps."
+      "appliedAt": "2026-10-14T07:42:08.972Z",
+      "notes": "Application submitted successfully."
     },
     {
       "jobId": "job_1_Postdoctor",
@@ -1944,24 +832,14 @@
       "notes": "Application completed (dialog closed)."
     },
     {
-      "jobId": "job_7_Microsoft",
-      "title": "Microsoft Copilot Studio Developer / AI Specialist",
-      "company": "Go Pk Resources",
-      "location": "Lahore (Hybrid)",
+      "jobId": "job_2_Artificial",
+      "title": "Artificial Intelligence Engineer (Verified job)",
+      "company": "Artificial Intelligence Engineer",
+      "location": "Prismecs",
       "url": "",
       "status": "applied",
-      "appliedAt": "2026-10-14T08:00:59.459Z",
+      "appliedAt": "2026-10-14T08:15:09.971Z",
       "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_6_SeniorMac",
-      "title": "Senior Machine Learning Engineer",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T07:59:43.830Z",
-      "notes": "No Easy Apply button found"
     },
     {
       "jobId": "job_3_SeniorAI",
@@ -1982,96 +860,6 @@
       "status": "applied",
       "appliedAt": "2026-10-14T07:53:47.032Z",
       "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_4_SeniorMac",
-      "title": "Senior Machine Learning Engineer",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:43:25.549Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_3_ForwardDe",
-      "title": "Forward Deployed Engineer - GenAI",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:42:08.972Z",
-      "notes": "Application submitted successfully."
-    },
-    {
-      "jobId": "job_4_Principal",
-      "title": "Principal Software Engineer - Python",
-      "company": "TenX",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:41:08.755Z",
-      "notes": "Application submitted successfully."
-    },
-    {
-      "jobId": "job_2_Postdoctor",
-      "title": "Postdoctoral Researcher _ AI & IoT",
-      "company": "GAOTek Inc.",
-      "location": "GAOTek Inc.",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:40:01.813Z",
-      "notes": "Application completed (dialog closed)."
-    },
-    {
-      "jobId": "job_1_SeniorAI",
-      "title": "Senior AI Engineer / Agentic AI Architect",
-      "company": "CodeNinja Inc.",
-      "location": "CodeNinja Inc.",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:37:24.062Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_2_SeniorAI",
-      "title": "Senior AI Engineer / Agentic AI Architect",
-      "company": "CodeNinja Inc.",
-      "location": "CodeNinja Inc.",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:33:18.328Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_5_SeniorAI",
-      "title": "Senior AI Engineer / Agentic AI Architect",
-      "company": "CodeNinja Inc.",
-      "location": "Lahore (Hybrid)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:30:28.946Z",
-      "notes": "Application processed through available steps."
-    },
-    {
-      "jobId": "job_4_ForwardDe",
-      "title": "Forward Deployed Engineer - GenAI",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "applied",
-      "appliedAt": "2026-10-14T07:22:44.523Z",
-      "notes": "Application completed (dialog closed)."
-    },
-    {
-      "jobId": "job_3_Postdoctor",
-      "title": "Postdoctoral Researcher _ AI & IoT",
-      "company": "GAOTek Inc.",
-      "location": "Pakistan (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T07:22:27.645Z",
-      "notes": "No Easy Apply button found"
     },
     {
       "jobId": "job_2_ForwardDe",
@@ -2121,16 +909,6 @@
       "url": "",
       "status": "failed",
       "appliedAt": "2026-10-14T07:05:17.167Z",
-      "notes": "Easy Apply modal did not appear"
-    },
-    {
-      "jobId": "job_5_ForwardDe",
-      "title": "Forward Deployed Engineer - GenAI",
-      "company": "Systems Limited",
-      "location": "Lahore (On-site)",
-      "url": "",
-      "status": "failed",
-      "appliedAt": "2026-10-14T07:02:59.588Z",
       "notes": "Easy Apply modal did not appear"
     }
   ]

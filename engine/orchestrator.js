@@ -179,8 +179,11 @@ class Orchestrator extends EventEmitter {
             break;
           }
 
-          if (tracker.hasApplied(job.jobId)) {
-            this.log(`Skipping already applied job: ${job.title} at ${job.company}`, 'info');
+          // History checkpoint: prevent applying again to any job already applied in tracker
+          const priorApp = tracker.findPriorApplication(job);
+          if (priorApp && priorApp.status === 'applied') {
+            const appliedDate = priorApp.appliedAt ? priorApp.appliedAt.split('T')[0] : 'previously';
+            this.log(`⏭️ History checkpoint: Skipping already applied job: "${job.title}" at "${job.company}" (Applied on ${appliedDate})`, 'info');
             continue;
           }
 
@@ -208,10 +211,11 @@ class Orchestrator extends EventEmitter {
             this.log(`💡 JD Intelligence (${eligibility.matchedSkills.length} skills): ${eligibility.matchedSkills.slice(0, 5).join(', ')} | Match: ${eligibility.matchScore}%`, 'info');
           }
 
-          // Check for Apply buttons (Easy Apply vs External Apply)
+          // Check for Apply buttons (Easy Apply vs External Apply vs Already Applied)
           const detected = await this.searchEngine.detectApplyButton(page, msg => this.log(msg));
           if (detected.type === 'already_applied') {
-            tracker.record({ ...job, status: 'applied', notes: 'Already applied on LinkedIn' });
+            this.log(`✓ LinkedIn confirms already applied for "${job.title}" at "${job.company}". Updating history and skipping.`, 'info');
+            tracker.record({ ...job, status: 'applied', notes: detected.message || 'Already applied on LinkedIn' });
             this.emit('stats_update', tracker.getStats(dailyLimit));
             continue;
           }
@@ -306,6 +310,14 @@ class Orchestrator extends EventEmitter {
 
             this.state = 'running';
             this.emit('state_change', this.state);
+          } else if (result && result.status === 'already_applied') {
+            if (isExternal && externalPageRef) {
+              await externalPageRef.close().catch(() => {});
+            } else {
+              await this.easyApplyModal.dismissModal(page);
+            }
+            tracker.record({ ...job, status: 'applied', notes: result.message || 'Already applied on LinkedIn' });
+            this.log(`✓ Job "${job.title}" at "${job.company}" was already applied on LinkedIn. History updated.`, 'info');
           } else if (result && result.status === 'applied') {
             if (isExternal && externalPageRef) {
               await externalPageRef.close().catch(() => {});

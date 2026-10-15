@@ -113,8 +113,12 @@ class SearchEngine {
       await this.scrollJobList(page);
       const pageJobs = await this.extractJobListings(page, settings, update);
 
-      // Deduplicate across pages
-      const newJobs = pageJobs.filter(j => !seenJobIds.has(j.jobId));
+      // Deduplicate across pages (by ID and Company+Title)
+      const newJobs = pageJobs.filter(j => {
+        if (seenJobIds.has(j.jobId)) return false;
+        if (allJobs.some(existing => tracker.isSameJob(existing, j))) return false;
+        return true;
+      });
       newJobs.forEach(j => seenJobIds.add(j.jobId));
       allJobs.push(...newJobs);
 
@@ -163,6 +167,12 @@ class SearchEngine {
     const jobs = await page.evaluate(() => {
       const results = [];
 
+      const extractNumericIdFromText = (txt) => {
+        if (!txt) return null;
+        const m = txt.match(/(\d{7,14})/);
+        return m ? m[1] : null;
+      };
+
       // Strategy A: Modern React UI with LazyColumn
       const lazyColumn = document.querySelector('[data-testid="lazy-column"], [data-component-type="LazyColumn"]');
       if (lazyColumn) {
@@ -176,7 +186,6 @@ class SearchEngine {
           if (lines.length < 2) continue;
 
           // Lines typically: [0] Title, [1] Title or Company, [2] Company or Location
-          // Remove "Selected, " prefix if present
           let title = lines[0].replace(/^Selected,\s*/i, '');
           let company = lines[1] || 'Unknown Company';
           if (lines[0] === lines[1] && lines[2]) {
@@ -185,15 +194,69 @@ class SearchEngine {
 
           let location = lines[2] || lines[3] || '';
 
-          // Look for job ID in card links or data attributes
+          // 1. Extract Real Numeric Job ID from all available anchors and attributes
           let jobId = '';
-          const link = card.querySelector('a[href*="/jobs/view/"]');
-          if (link) {
-            const m = link.href.match(/\/jobs\/view\/(\d+)/);
-            if (m) jobId = m[1];
+          const rawJobId = card.getAttribute('data-job-id') ||
+                           card.getAttribute('data-occludable-job-id') ||
+                           card.querySelector('[data-job-id]')?.getAttribute('data-job-id') ||
+                           card.querySelector('[data-occludable-job-id]')?.getAttribute('data-occludable-job-id');
+          if (rawJobId && /^\d+$/.test(rawJobId)) {
+            jobId = rawJobId;
           }
+
           if (!jobId) {
-            jobId = card.getAttribute('data-job-id') || `job_${i}_${title.slice(0, 10).replace(/\W/g, '')}`;
+            const links = Array.from(card.querySelectorAll('a[href]'));
+            for (const a of links) {
+              const href = a.href || '';
+              const m1 = href.match(/\/jobs\/view\/(\d+)/);
+              if (m1) { jobId = m1[1]; break; }
+              const m2 = href.match(/[?&]currentJobId=(\d+)/);
+              if (m2) { jobId = m2[1]; break; }
+              const m3 = href.match(/[?&]jobId=(\d+)/);
+              if (m3) { jobId = m3[1]; break; }
+            }
+          }
+
+          if (!jobId) {
+            const urnMatch = (card.outerHTML || '').match(/urn:li:(?:fsd_)?jobPosting:(\d+)/);
+            if (urnMatch) jobId = urnMatch[1];
+          }
+
+          // Deterministic fallback (Never use index i!)
+          if (!jobId) {
+            const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+            const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+            jobId = `hash_${cleanC}_${cleanT}`;
+          }
+
+          // 2. Detect if LinkedIn search card shows "Applied" badge or status
+          let isAppliedOnLinkedIn = false;
+          const nonTitleLines = lines.filter(l => l.toLowerCase() !== title.toLowerCase());
+          for (const line of nonTitleLines) {
+            const l = line.trim().toLowerCase();
+            if (
+              l === 'applied' ||
+              l === 'application submitted' ||
+              /^applied\s*[·•-]\s*easy apply/i.test(l) ||
+              /^applied\s+\d+[mhdwy]\s+ago/i.test(l) ||
+              /^applied\s+on\s+/i.test(l) ||
+              /^applied\s+(today|yesterday)/i.test(l)
+            ) {
+              isAppliedOnLinkedIn = true;
+              break;
+            }
+          }
+
+          if (!isAppliedOnLinkedIn) {
+            const appliedBadge = card.querySelector(
+              '.job-card-container__footer-item--highlighted, [class*="applied-date"], [class*="application-date"], .artdeco-inline-feedback--success, [aria-label*="Applied"]'
+            );
+            if (appliedBadge) {
+              const bText = (appliedBadge.innerText || appliedBadge.getAttribute('aria-label') || '').toLowerCase();
+              if (bText.includes('applied')) {
+                isAppliedOnLinkedIn = true;
+              }
+            }
           }
 
           const hasEasyApply = text.toLowerCase().includes('easy apply');
@@ -204,7 +267,8 @@ class SearchEngine {
             title,
             company,
             location,
-            hasEasyApply
+            hasEasyApply,
+            isAppliedOnLinkedIn
           });
         }
 
@@ -217,11 +281,19 @@ class SearchEngine {
       );
       for (let i = 0; i < classicCards.length; i++) {
         const card = classicCards[i];
-        const jobId =
+        let jobId =
           card.getAttribute('data-occludable-job-id') ||
           card.getAttribute('data-job-id') ||
-          card.querySelector('[data-job-id]')?.getAttribute('data-job-id') ||
-          `classic_${i}`;
+          card.querySelector('[data-job-id]')?.getAttribute('data-job-id');
+
+        if (!jobId || !/^\d+$/.test(jobId)) {
+          const links = Array.from(card.querySelectorAll('a[href]'));
+          for (const a of links) {
+            const href = a.href || '';
+            const m = href.match(/\/jobs\/view\/(\d+)/) || href.match(/[?&]currentJobId=(\d+)/);
+            if (m) { jobId = m[1]; break; }
+          }
+        }
 
         const titleEl = card.querySelector(
           '.job-card-list__title, a.job-card-container__link, strong'
@@ -238,17 +310,43 @@ class SearchEngine {
         );
         const location = locEl ? locEl.innerText.trim() : '';
 
+        if (!jobId) {
+          const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+          const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+          jobId = `hash_${cleanC}_${cleanT}`;
+        }
+
+        const cardText = (card.innerText || '').trim();
+        let isAppliedOnLinkedIn = false;
+        const lines = cardText.split('\n').map(l => l.trim()).filter(Boolean);
+        const nonTitleLines = lines.filter(l => l.toLowerCase() !== title.toLowerCase());
+        for (const line of nonTitleLines) {
+          const l = line.trim().toLowerCase();
+          if (
+            l === 'applied' ||
+            l === 'application submitted' ||
+            /^applied\s*[·•-]\s*easy apply/i.test(l) ||
+            /^applied\s+\d+[mhdwy]\s+ago/i.test(l) ||
+            /^applied\s+on\s+/i.test(l) ||
+            /^applied\s+(today|yesterday)/i.test(l)
+          ) {
+            isAppliedOnLinkedIn = true;
+            break;
+          }
+        }
+
         const hasEasyApply = !!card.querySelector(
           '.job-card-container__apply-method, [aria-label*="Easy Apply"], .job-card-list__easy-apply-label'
-        ) || card.innerText.toLowerCase().includes('easy apply');
+        ) || cardText.toLowerCase().includes('easy apply');
 
         results.push({
           index: i,
-          jobId: String(jobId).replace(/\D/g, '') || `id_${i}`,
+          jobId: String(jobId),
           title,
           company,
           location,
-          hasEasyApply
+          hasEasyApply,
+          isAppliedOnLinkedIn
         });
       }
 
@@ -257,13 +355,43 @@ class SearchEngine {
 
     if (update) update(`Extracted ${jobs.length} total listings from page.`);
 
-    // Filter by Easy Apply, blacklist, and already applied
+    // Checkpoint A: Auto-sync any jobs displaying an "Applied" badge on LinkedIn into tracker history
+    let historySyncedCount = 0;
+    for (const j of jobs) {
+      if (j.isAppliedOnLinkedIn && !tracker.hasApplied(j)) {
+        tracker.record({
+          ...j,
+          status: 'applied',
+          notes: 'Already applied on LinkedIn (detected from search history badge)'
+        });
+        historySyncedCount++;
+      }
+    }
+    if (historySyncedCount > 0 && update) {
+      update(`🔖 Synchronized ${historySyncedCount} previously applied jobs from LinkedIn search history.`);
+    }
+
+    // Checkpoint B: Filter out jobs that are blacklisted or already applied (in tracker OR on LinkedIn)
+    let skippedHistoryCount = 0;
     const filtered = jobs.filter(j => {
-      if (!j.hasEasyApply) return false;
+      const requireEasyApply = settings.search?.easyApplyOnly === true || settings.search?.applyType === 'easy_apply';
+      if (requireEasyApply && !j.hasEasyApply) return false;
+
       const isBlacklisted = blacklist.some(b => j.company.toLowerCase().includes(b));
-      const alreadyApplied = tracker.hasApplied(j.jobId);
-      return !isBlacklisted && !alreadyApplied;
+      if (isBlacklisted) return false;
+
+      // History checkpoint: prevent applying again to any job already applied
+      if (j.isAppliedOnLinkedIn || tracker.hasApplied(j)) {
+        skippedHistoryCount++;
+        return false;
+      }
+
+      return true;
     });
+
+    if (skippedHistoryCount > 0 && update) {
+      update(`🛡️ History filter: Skipped ${skippedHistoryCount} jobs that were already applied previously.`);
+    }
 
     return filtered;
   }
@@ -390,6 +518,15 @@ class SearchEngine {
    * Returns: { type: 'easy_apply' | 'external_apply' | 'already_applied' | 'none', element: ElementHandle }
    */
   async detectApplyButton(page, update) {
+    const appliedBadgeSelectors = [
+      '.jobs-s-apply__application-date',
+      '.artdeco-inline-feedback--success',
+      '[data-view-name*="applied"]',
+      '.jobs-search-results-list__list-item--applied',
+      'span.jobs-s-apply__application-date',
+      '.jobs-details__top-card .artdeco-inline-feedback'
+    ];
+
     const applyButtonSelectors = [
       'button.jobs-apply-button',
       'a.jobs-apply-button',
@@ -406,6 +543,35 @@ class SearchEngine {
 
     // Retry up to 5 times (waiting up to ~5s for details pane to render)
     for (let attempt = 0; attempt < 5; attempt++) {
+      // 1. Direct Check: Did LinkedIn render an "Applied on..." date or success feedback banner?
+      for (const sel of appliedBadgeSelectors) {
+        try {
+          const el = await page.$(sel);
+          if (el && await el.isVisible()) {
+            const badgeText = (await el.innerText()).trim();
+            if (/applied|application\s+submitted/i.test(badgeText)) {
+              if (update) update(`Job details confirm already applied on LinkedIn: "${badgeText}".`);
+              return { type: 'already_applied', element: el, message: badgeText };
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Evaluate top-card text for "You applied on..." banner
+      try {
+        const topCardText = await page.evaluate(() => {
+          const top = document.querySelector('.jobs-details__top-card, .job-details-jobs-unified-top-card, .jobs-unified-top-card, .scaffold-layout__detail');
+          return top ? top.innerText : '';
+        });
+        if (topCardText && /(you applied on|applied \d+[mhdwy] ago|application submitted)/i.test(topCardText)) {
+          const match = topCardText.match(/(you applied on [^\n\.]+|(?:applied\s+\d+[mhdwy]\s+ago)|application submitted)/i);
+          const msg = match ? match[0] : 'Applied on LinkedIn';
+          if (update) update(`Job details indicate: ${msg}`);
+          return { type: 'already_applied', element: null, message: msg };
+        }
+      } catch (e) {}
+
+      // 3. Inspect apply button elements
       for (const selector of applyButtonSelectors) {
         try {
           const btn = await page.$(selector);
@@ -414,8 +580,8 @@ class SearchEngine {
             const aria = (await btn.getAttribute('aria-label') || '').toLowerCase();
 
             if (/applied/i.test(text) || aria.includes('applied')) {
-              if (update) update('Job already marked as applied on LinkedIn.');
-              return { type: 'already_applied', element: btn };
+              if (update) update('Apply button confirms: already applied on LinkedIn.');
+              return { type: 'already_applied', element: btn, message: text || 'Applied' };
             }
 
             if (/easy apply/i.test(text) || aria.includes('easy apply')) {

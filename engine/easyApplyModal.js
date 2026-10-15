@@ -59,6 +59,14 @@ class EasyApplyModal {
 
     update('✓ Easy Apply modal dialog detected.');
 
+    // Early Check: Does the modal indicate already applied?
+    const initialText = (await dialog.innerText()).trim();
+    if (/you('ve| have)? already applied|application was sent|application submitted/i.test(initialText)) {
+      update('ℹ️ Modal confirms you already applied for this job.');
+      await this.dismissModal(page);
+      return { status: 'already_applied', message: 'Already applied according to LinkedIn modal' };
+    }
+
     let stepCount = 0;
     const maxSteps = 12;
     let lastDialogFingerprint = '';

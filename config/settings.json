@@ -50,9 +50,9 @@
     "dynamicCVGeneration": true
   },
   "autopilot": {
-    "enabled": true,
+    "enabled": false,
     "intervalMinutes": 120,
-    "batchSize": 15,
-    "nextRunTime": 1792050021288
+    "batchSize": 10,
+    "nextRunTime": null
   }
 }
