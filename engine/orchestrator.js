@@ -118,6 +118,7 @@ class Orchestrator extends EventEmitter {
   }
 
   async runLoop() {
+    let batchAppliedCount = 0;
     try {
       this.log('Connecting to Google Chrome...', 'info');
       const page = await browserBridge.connect();
@@ -145,7 +146,6 @@ class Orchestrator extends EventEmitter {
       const dailyLimit = this.settings.execution?.dailyApplicationLimit || 25;
       const mode = this.settings.execution?.mode || 'hybrid';
       const batchLimit = this.settings.autopilot?.batchSize || 10;
-      let batchAppliedCount = 0;
 
       for (const keyword of keywords) {
         if (this.state === 'stopped') break;

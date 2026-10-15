@@ -2,6 +2,258 @@
   "lastResetDate": "2026-10-15",
   "applications": [
     {
+      "jobId": "job_16_AIEnginee",
+      "title": "AI Engineer",
+      "company": "Keywords Studios",
+      "location": "Pune Division (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:55:42.063Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Keywords_Studios_AI_Engineer.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Keywords_Studios_AI_Engineer.pdf",
+      "description": ""
+    },
+    {
+      "jobId": "job_12_AIEnginee",
+      "title": "AI Engineer",
+      "company": "Keywords Studios",
+      "location": "Keywords Studios",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:54:48.719Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_11_PythonAI",
+      "title": "Python AI Engineer  (Verified job)",
+      "company": "Python AI Engineer",
+      "location": "techolution",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:54:39.049Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_10_Conversati",
+      "title": "Conversational AI Engineer",
+      "company": "Bush and Bush Law Group",
+      "location": "Bush and Bush Law Group",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:54:31.537Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_3_PythonDev",
+      "title": "Python Developer",
+      "company": "Jobgether",
+      "location": "Jobgether",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:53:20.956Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_Python_Developer.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Jobgether_Python_Developer.pdf",
+      "description": ""
+    },
+    {
+      "jobId": "job_2_PythonAI",
+      "title": "Python AI Engineer  (Verified job)",
+      "company": "Python AI Engineer",
+      "location": "techolution",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:52:39.045Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Python_AI_Engineer_Python_AI_Engineer_Verified_jo.pdf",
+      "description": ""
+    },
+    {
+      "jobId": "job_0_PythonDev",
+      "title": "Python Developer",
+      "company": "Python Developer",
+      "location": "Fude Developments",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:52:09.249Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_21_AIEnginee",
+      "title": "AI Engineer | India",
+      "company": "Volga Partners",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "failed",
+      "appliedAt": "2026-10-15T07:48:30.075Z",
+      "notes": "This field is required",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_14_AIEnginee",
+      "title": "AI Engineer",
+      "company": "Keywords Studios",
+      "location": "Pune Division (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:45:30.501Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_12_Conversati",
+      "title": "Conversational AI Engineer",
+      "company": "Bush and Bush Law Group",
+      "location": "Bush and Bush Law Group",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:44:26.178Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_19_AIDataSc",
+      "title": "AI Data Scientist",
+      "company": "Westernacher Consulting",
+      "location": "Bengaluru East (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:44:01.516Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_14_Conversati",
+      "title": "Conversational AI Engineer",
+      "company": "Bush and Bush Law Group",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:43:49.728Z",
+      "notes": "Application submitted successfully.",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_11_AIEnginee",
+      "title": "AI Engineer",
+      "company": "Keywords Studios",
+      "location": "Keywords Studios",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:42:46.307Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_9_AIEnginee",
+      "title": "AI Engineer",
+      "company": "Keywords Studios",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-15T07:42:36.723Z",
+      "notes": "No Apply button found",
+      "cvUsed": "LinkedIn Default ATS Resume",
+      "description": ""
+    },
+    {
+      "jobId": "job_5_PythonAI",
+      "title": "Python AI Engineer",
+      "company": "techolution",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:42:07.930Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_techolution_Python_AI_Engineer.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_techolution_Python_AI_Engineer.pdf",
+      "description": ""
+    },
+    {
+      "jobId": "job_2_Assistant",
+      "title": "Assistant Lead - Data Scientist (Verified job)",
+      "company": "Assistant Lead - Data Scientist",
+      "location": "Forage AI",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-15T07:41:31.937Z",
+      "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
+      "cvUsed": "Shoaib_Akhtar_CV_Assistant_Lead_-_Data_Scientis_Assistant_Lead_-_Data_Scientis.pdf",
+      "description": ""
+    },
+    {
+      "jobId": "job_2_SeniorPyt",
+      "title": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340] (Verified job)",
+      "company": "Senior Python Engineer - Data ( Remote, Full-Time) [AS340]",
+      "location": "Smart Working",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T16:03:46.028Z",
+      "notes": "Application submitted successfully."
+    },
+    {
+      "jobId": "job_5_MLEnginee",
+      "title": "ML Engineer",
+      "company": "Arrise Solutions (India) Pvt. Ltd.",
+      "location": "Hyderabad (Remote)",
+      "url": "",
+      "status": "applied",
+      "appliedAt": "2026-10-14T16:00:45.772Z",
+      "notes": "Application processed through available steps."
+    },
+    {
+      "jobId": "job_19_MLAIEngi",
+      "title": "ML/AI Engineer - Classical ML",
+      "company": "Jobgether",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T16:00:03.604Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_10_PythonAI",
+      "title": "Python AI Engineer",
+      "company": "techolution",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T16:00:01.249Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_23_StaffAIC",
+      "title": "Staff AI Compiler Engineer",
+      "company": "EnCharge AI",
+      "location": "India (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T15:59:18.824Z",
+      "notes": "No Apply button found"
+    },
+    {
+      "jobId": "job_9_MLEnginee",
+      "title": "ML Engineer",
+      "company": "Arrise Solutions (India) Pvt. Ltd.",
+      "location": "Hyderabad (Remote)",
+      "url": "",
+      "status": "skipped",
+      "appliedAt": "2026-10-14T15:59:11.266Z",
+      "notes": "No Apply button found"
+    },
+    {
       "jobId": "job_22_SrAIEng",
       "title": "Sr. AI Engineer, AI FDE",
       "company": "Jobgether",
@@ -50,16 +302,6 @@
       "status": "applied",
       "appliedAt": "2026-10-14T14:02:49.070Z",
       "notes": "Tailored ATS CV: Shoaib_Akhtar_CV_Jobgether_ML_AI_Engineer_-_Classical_ML.pdf"
-    },
-    {
-      "jobId": "job_2_Assistant",
-      "title": "Assistant Lead - Data Scientist (Verified job)",
-      "company": "Assistant Lead - Data Scientist",
-      "location": "Forage AI",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T13:56:55.372Z",
-      "notes": "No Apply button found"
     },
     {
       "jobId": "job_12_MLEnginee",
@@ -319,16 +561,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T11:38:53.052Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_5_PythonAI",
-      "title": "Python AI Engineer",
-      "company": "techolution",
-      "location": "India (Remote)",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T11:38:49.598Z",
       "notes": "No Easy Apply button found"
     },
     {
@@ -959,16 +1191,6 @@
       "url": "",
       "status": "skipped",
       "appliedAt": "2026-10-14T10:29:22.101Z",
-      "notes": "No Easy Apply button found"
-    },
-    {
-      "jobId": "job_11_AIEnginee",
-      "title": "AI Engineer",
-      "company": "Sutra.AI",
-      "location": "Sutra.AI",
-      "url": "",
-      "status": "skipped",
-      "appliedAt": "2026-10-14T10:29:18.005Z",
       "notes": "No Easy Apply button found"
     },
     {

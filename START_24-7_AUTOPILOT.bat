@@ -15,7 +15,7 @@ if %errorlevel% neq 0 (
     if not exist %CHROME_PATH% (
         set CHROME_PATH="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
     )
-    start "" %CHROME_PATH% --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\LinkedInAutomationChromeProfile" --no-first-run --no-default-browser-check https://www.linkedin.com/feed/
+    start "" %CHROME_PATH% --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\LinkedInAutomationChromeProfile" --no-first-run --no-default-browser-check --disable-quic https://www.linkedin.com/feed/
     timeout /t 3 /nobreak >nul
 ) else (
     echo  [+] Chrome Debugging Session is already ACTIVE on port 9222.

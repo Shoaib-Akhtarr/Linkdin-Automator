@@ -1,3 +1,6 @@
+// Load local .env credentials
+require('./engine/envLoader');
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
