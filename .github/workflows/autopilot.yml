@@ -1,0 +1,79 @@
+name: LinkedIn Autopilot (4G Mobile Routed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      li_at_cookie:
+        description: 'LinkedIn li_at session cookie automatically sent from mobile client app'
+        required: false
+      batch_size:
+        description: 'Number of jobs to apply to in this run'
+        required: false
+        default: '10'
+  schedule:
+    # Auto-run scheduled batch every 3 hours (UTC)
+    - cron: '0 */3 * * *'
+
+concurrency:
+  group: linkedin-autopilot
+  cancel-in-progress: false
+
+jobs:
+  run-autopilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Install Playwright Chromium & System Dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Start 4G Mobile Proxy Tunnel Bridge
+        run: |
+          node scripts/worker-proxy.js &
+          sleep 4
+        env:
+          RELAY_URL: wss://cloud-relay-cn0l.onrender.com/worker
+          PROXY_PORT: 9050
+
+      - name: Run Cloud Autopilot Cycle
+        run: node scripts/run-cloud-autopilot.js
+        env:
+          CI: 'true'
+          HEADLESS_MODE: 'true'
+          RUN_IN_CLOUD: 'true'
+          PROXY_SERVER: 'http://127.0.0.1:9050'
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '10' }}
+          # Automatically uses the client app's li_at input, with fallback to secret
+          LI_AT_COOKIE: ${{ github.event.inputs.li_at_cookie || secrets.LI_AT_COOKIE }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+
+      - name: Commit and Push Application Tracker History
+        if: always()
+        run: |
+          git config --global user.name "LinkedIn Cloud Autopilot"
+          git config --global user.email "bot@linkautomator.ai"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No new application records to commit."
+          else
+            git commit -m "chore(tracker): update applications tracking history [skip ci]"
+            git push origin main
+          fi

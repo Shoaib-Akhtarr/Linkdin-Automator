@@ -45,11 +45,11 @@ class EmailNotifier {
    * Generates a modern responsive HTML email body
    */
   generateHTML(report) {
-    const { cycleTime, batchApplied, batchSkipped, totalAppliedToday, dailyLimit, appliedJobs = [] } = report;
+    const { cycleTime, batchApplied, batchSkipped, totalAppliedToday, dailyLimit, appliedJobs = [], isManualStop, sessionStartTime } = report;
 
     let jobRows = '';
     if (appliedJobs.length === 0) {
-      jobRows = '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">No jobs were submitted in this cycle.</td></tr>';
+      jobRows = '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">No new jobs were submitted in this session.</td></tr>';
     } else {
       jobRows = appliedJobs.map((j, i) => {
         const cvBadge = j.cvUsed && !j.cvUsed.includes('Default')
@@ -67,6 +67,18 @@ class EmailNotifier {
       }).join('');
     }
 
+    const headerBg = isManualStop
+      ? 'linear-gradient(135deg, #e11d48 0%, #881337 100%)'
+      : 'linear-gradient(135deg, #0a66c2 0%, #004182 100%)';
+
+    const headerTitle = isManualStop
+      ? '🛑 LinkedIn Automation Stopped by User'
+      : '🚀 LinkedIn Automation Summary Report';
+
+    const headerSubtitle = isManualStop
+      ? `Process stopped at: ${cycleTime}${sessionStartTime ? ` (Session Started: ${sessionStartTime})` : ''}`
+      : `Cycle Completed: ${cycleTime}`;
+
     return `
       <!DOCTYPE html>
       <html>
@@ -75,7 +87,7 @@ class EmailNotifier {
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
           .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-          .header { background: linear-gradient(135deg, #0a66c2 0%, #004182 100%); color: #ffffff; padding: 24px; text-align: left; }
+          .header { background: ${headerBg}; color: #ffffff; padding: 24px; text-align: left; }
           .header h1 { margin: 0; font-size: 20px; font-weight: 700; }
           .header p { margin: 6px 0 0 0; opacity: 0.85; font-size: 13px; }
           .stats { display: flex; padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
@@ -91,15 +103,15 @@ class EmailNotifier {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🚀 LinkedIn 2-Hour Autopilot Summary</h1>
-            <p>Cycle Completed: ${cycleTime}</p>
+            <h1>${headerTitle}</h1>
+            <p>${headerSubtitle}</p>
           </div>
 
           <table style="width: 100%; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 0;">
             <tr>
               <td style="text-align: center; width: 33%;">
                 <div style="font-size: 22px; font-weight: 700; color: #16a34a;">${batchApplied}</div>
-                <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600;">Applied (Cycle)</div>
+                <div style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 600;">Applied (Session)</div>
               </td>
               <td style="text-align: center; width: 33%; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
                 <div style="font-size: 22px; font-weight: 700; color: #0a66c2;">${totalAppliedToday} / ${dailyLimit}</div>
@@ -113,7 +125,7 @@ class EmailNotifier {
           </table>
 
           <div class="content">
-            <h3 style="margin-top: 0; margin-bottom: 14px; font-size: 15px; color: #0f172a;">Jobs Applied In This Batch</h3>
+            <h3 style="margin-top: 0; margin-bottom: 14px; font-size: 15px; color: #0f172a;">Jobs Applied In This Session</h3>
             <table class="table">
               <thead>
                 <tr>
@@ -130,7 +142,7 @@ class EmailNotifier {
           </div>
 
           <div class="footer">
-            Automated by LinkedIn-Automator • Running 24/7 on GitHub Actions Cloud
+            Automated by LinkedIn-Automator • Continuous Execution Engine
           </div>
         </div>
       </body>
@@ -147,24 +159,26 @@ class EmailNotifier {
     const sender = process.env.EMAIL_USER || process.env.SMTP_USER || this.profile?.personal?.email || 'onlyshoaib158@gmail.com';
 
     if (!transporter) {
-      console.log('ℹ️ [Email Notifier] EMAIL_APP_PASSWORD is not set. Email report was skipped.');
-      console.log('👉 To enable automatic email reports, add EMAIL_APP_PASSWORD in GitHub Secrets.');
+      console.log('ℹ️ [Email Notifier] EMAIL_PASS / EMAIL_APP_PASSWORD is not set. Email report was skipped.');
       return false;
     }
 
     try {
-      const subject = `🎯 LinkedIn Autopilot Report: ${report.batchApplied} Jobs Applied (${new Date().toLocaleTimeString()})`;
+      const subject = report.isManualStop
+        ? `🛑 LinkedIn Automation Stopped: ${report.batchApplied} Jobs Applied in Session (${new Date().toLocaleTimeString()})`
+        : `🎯 LinkedIn Automation Report: ${report.batchApplied} Jobs Applied (${new Date().toLocaleTimeString()})`;
       const html = this.generateHTML(report);
 
       // Check if there are tailored PDF attachments to attach
       const attachments = [];
       if (Array.isArray(report.appliedJobs)) {
         for (const job of report.appliedJobs) {
-          if (job.cvUsed && job.cvUsed.endsWith('.pdf')) {
-            const pdfPath = path.join(__dirname, '..', 'data', 'tailored_cvs', job.cvUsed);
-            if (fs.existsSync(pdfPath) && attachments.length < 5) {
+          const cvName = job.tailoredCV || (job.cvUsed && job.cvUsed.endsWith('.pdf') ? job.cvUsed : null);
+          if (cvName) {
+            const pdfPath = path.join(__dirname, '..', 'data', 'tailored_cvs', cvName);
+            if (fs.existsSync(pdfPath) && attachments.length < 5 && !attachments.some(a => a.filename === cvName)) {
               attachments.push({
-                filename: job.cvUsed,
+                filename: cvName,
                 path: pdfPath
               });
             }
@@ -172,7 +186,7 @@ class EmailNotifier {
         }
       }
 
-      console.log(`📧 [Email Notifier] Sending 2-Hour report to ${recipient}...`);
+      console.log(`📧 [Email Notifier] Sending session report (${report.batchApplied} applied) to ${recipient}...`);
       const info = await transporter.sendMail({
         from: `"LinkedIn Automator" <${sender}>`,
         to: recipient,

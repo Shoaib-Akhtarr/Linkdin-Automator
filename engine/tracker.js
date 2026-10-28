@@ -9,7 +9,31 @@ class Tracker {
     this.ensureDataFile();
     this.data = this.loadData();
     this.cleanDailyQuotaIfNeeded();
+    this.migrateLegacyDetected();
     this.deduplicateHistory();
+  }
+
+  migrateLegacyDetected() {
+    if (!Array.isArray(this.data?.applications)) return;
+    let migrated = 0;
+    for (const app of this.data.applications) {
+      const isDetected = (app.notes && (
+        app.notes.toLowerCase().includes('already applied') ||
+        app.notes.toLowerCase().includes('detected from search history badge')
+      ));
+      if (isDetected && app.status !== 'previously_applied') {
+        app.status = 'previously_applied';
+        if (app.appliedAt) {
+          app.detectedAt = app.appliedAt;
+          app.appliedAt = null;
+        }
+        migrated++;
+      }
+    }
+    if (migrated > 0) {
+      console.log(`[Tracker] Migrated ${migrated} legacy detected applications to 'previously_applied' status.`);
+      this.saveData();
+    }
   }
 
   ensureDataFile() {
@@ -123,7 +147,7 @@ class Tracker {
     };
 
     return this.data.applications.some(
-      app => app.status === 'applied' && this.isSameJob(app, target)
+      app => (app.status === 'applied' || app.status === 'previously_applied') && this.isSameJob(app, target)
     );
   }
 
@@ -166,8 +190,9 @@ class Tracker {
       if (idx === -1) {
         unique.push(app);
       } else {
-        // Upgrade to 'applied' if previously skipped/failed
-        if (unique[idx].status !== 'applied' && app.status === 'applied') {
+        // Preference: applied (3) > previously_applied (2) > skipped/failed (1)
+        const rank = s => (s === 'applied' ? 3 : (s === 'previously_applied' ? 2 : 1));
+        if (rank(app.status) > rank(unique[idx].status)) {
           unique[idx] = app;
         }
       }
@@ -182,7 +207,11 @@ class Tracker {
   getTodayAppliedCount() {
     const today = this.getTodayDateString();
     return this.data.applications.filter(
-      app => app.status === 'applied' && app.appliedAt && app.appliedAt.startsWith(today)
+      app => app.status === 'applied' &&
+             !app.notes?.toLowerCase().includes('already applied') &&
+             !app.notes?.toLowerCase().includes('detected from search history badge') &&
+             app.appliedAt &&
+             app.appliedAt.startsWith(today)
     ).length;
   }
 
@@ -191,16 +220,35 @@ class Tracker {
   }
 
   record(app) {
+    const isPreviouslyApplied = app.status === 'previously_applied' ||
+      (app.notes && (
+        app.notes.toLowerCase().includes('already applied') ||
+        app.notes.toLowerCase().includes('detected from search history badge')
+      ));
+    const finalStatus = isPreviouslyApplied ? 'previously_applied' : (app.status || 'applied');
+
+    let plat = app.platform;
+    if (!plat) {
+      if (app.url && app.url.includes('wellfound')) plat = 'wellfound';
+      else if (app.url && app.url.includes('weworkremotely')) plat = 'weworkremotely';
+      else if (app.url && app.url.includes('remoteok')) plat = 'remoteok';
+      else if (app.url && app.url.includes('jobicy')) plat = 'jobicy';
+      else if (app.url && (app.url.includes('greenhouse') || app.url.includes('lever') || app.url.includes('ashby'))) plat = 'remote_ats';
+      else plat = 'linkedin';
+    }
+
     const entry = {
       jobId: String(app.jobId || Date.now()),
+      platform: plat,
       title: app.title || 'Unknown Title',
       company: app.company || 'Unknown Company',
       location: app.location || 'Unknown Location',
       url: app.url || '',
-      status: app.status || 'applied', // 'applied' | 'skipped' | 'failed' | 'reviewed'
-      appliedAt: new Date().toISOString(),
-      notes: app.notes || '',
-      cvUsed: app.cvUsed || (app.notes && app.notes.includes('Tailored ATS CV:') ? app.notes.split('Tailored ATS CV:')[1].trim() : 'LinkedIn Default ATS Resume'),
+      status: finalStatus, // 'applied' | 'previously_applied' | 'skipped' | 'failed' | 'reviewed'
+      appliedAt: isPreviouslyApplied ? null : (app.appliedAt || new Date().toISOString()),
+      detectedAt: isPreviouslyApplied ? (app.detectedAt || new Date().toISOString()) : undefined,
+      notes: app.notes || (isPreviouslyApplied ? 'Already applied on LinkedIn (detected from badge)' : ''),
+      cvUsed: app.cvUsed || (app.notes && app.notes.includes('Tailored ATS CV:') ? app.notes.split('Tailored ATS CV:')[1].trim() : (isPreviouslyApplied ? 'LinkedIn Prior Application' : 'LinkedIn Default ATS Resume')),
       description: app.description || ''
     };
 
@@ -214,22 +262,55 @@ class Tracker {
   getStats(limit = 25) {
     const todayCount = this.getTodayAppliedCount();
     const totalApplied = this.data.applications.filter(a => a.status === 'applied').length;
+    const previouslyApplied = this.data.applications.filter(a => a.status === 'previously_applied').length;
     const skipped = this.data.applications.filter(a => a.status === 'skipped').length;
     const failed = this.data.applications.filter(a => a.status === 'failed').length;
+
+    const isWWR = a => a.platform === 'weworkremotely' || (a.url && a.url.includes('weworkremotely'));
+    const isRemoteOK = a => a.platform === 'remoteok' || (a.url && a.url.includes('remoteok'));
+    const isJobicy = a => a.platform === 'jobicy' || (a.url && a.url.includes('jobicy'));
+    const isCuratedATS = a => isWWR(a) || isRemoteOK(a) || isJobicy(a) || a.platform === 'remote_ats' || a.platform === 'greenhouse' || a.platform === 'lever' || a.platform === 'ashby';
+
+    // Platform breakdown
+    const byPlatform = {
+      linkedin: this.data.applications.filter(a => (!a.platform || a.platform === 'linkedin') && a.status === 'applied').length,
+      wellfound: this.data.applications.filter(a => a.platform === 'wellfound' && a.status === 'applied').length,
+      weworkremotely: this.data.applications.filter(a => isWWR(a) && a.status === 'applied').length,
+      remoteok: this.data.applications.filter(a => isRemoteOK(a) && a.status === 'applied').length,
+      jobicy: this.data.applications.filter(a => isJobicy(a) && a.status === 'applied').length,
+      remote_ats: this.data.applications.filter(a => isCuratedATS(a) && a.status === 'applied').length
+    };
 
     return {
       todayApplied: todayCount,
       dailyLimit: limit,
       remainingToday: Math.max(0, limit - todayCount),
       totalApplied,
+      previouslyApplied,
       skipped,
       failed,
-      totalTracked: this.data.applications.length
+      totalTracked: this.data.applications.length,
+      byPlatform
     };
   }
 
-  getAllApplications() {
-    return this.data.applications;
+  getAllApplications(platformFilter = 'all') {
+    if (!platformFilter || platformFilter === 'all') {
+      return this.data.applications;
+    }
+    const isWWR = a => a.platform === 'weworkremotely' || (a.url && a.url.includes('weworkremotely'));
+    const isRemoteOK = a => a.platform === 'remoteok' || (a.url && a.url.includes('remoteok'));
+    const isJobicy = a => a.platform === 'jobicy' || (a.url && a.url.includes('jobicy'));
+    const isCuratedATS = a => isWWR(a) || isRemoteOK(a) || isJobicy(a) || a.platform === 'remote_ats' || a.platform === 'greenhouse' || a.platform === 'lever' || a.platform === 'ashby';
+
+    return this.data.applications.filter(a => {
+      const p = (a.platform || 'linkedin').toLowerCase();
+      if (platformFilter === 'remote_ats') return isCuratedATS(a);
+      if (platformFilter === 'weworkremotely') return isWWR(a);
+      if (platformFilter === 'remoteok') return isRemoteOK(a);
+      if (platformFilter === 'jobicy') return isJobicy(a);
+      return p === platformFilter;
+    });
   }
 }
 

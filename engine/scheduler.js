@@ -57,26 +57,13 @@ class AutopilotScheduler extends EventEmitter {
     if (!this.orchestrator) return;
 
     this.orchestrator.on('cycle_finished', async (data) => {
-      // Send 2-Hour Email Report
-      try {
-        const emailNotifier = require('./emailNotifier');
-        const tracker = require('./tracker');
-        const stats = tracker.getStats(this.orchestrator.settings?.dailyLimit || 50);
-        const appliedCount = data?.batchAppliedCount !== undefined ? data.batchAppliedCount : (data?.applied || 0);
-        const cycleApplied = appliedCount > 0
-          ? allApps.filter(a => a.status === 'applied').slice(0, appliedCount)
-          : [];
-
-        await emailNotifier.sendReport({
-          cycleTime: new Date().toLocaleString(),
-          batchApplied: appliedCount,
-          batchSkipped: stats.skipped,
-          totalAppliedToday: stats.todayApplied,
-          dailyLimit: this.orchestrator.settings?.dailyLimit || 80,
-          appliedJobs: cycleApplied
-        });
-      } catch (err) {
-        console.error('Error sending autopilot email report:', err);
+      // Dispatches report only if orchestrator hasn't already sent it
+      if (!this.orchestrator.reportSentForSession) {
+        try {
+          await this.orchestrator.sendEmailReport(false);
+        } catch (err) {
+          console.error('Error sending autopilot email report:', err);
+        }
       }
 
       if (this.enabled) {
@@ -101,7 +88,7 @@ class AutopilotScheduler extends EventEmitter {
 
       if (this.orchestrator.state === 'idle' || this.orchestrator.state === 'stopped') {
         this.orchestrator.log(
-          `🚀 [Autopilot] 2-Hour Auto-Trigger activated! Searching and applying to next ${this.batchSize} jobs...`,
+          `🚀 [Autopilot] Auto-Trigger activated! Searching and applying to next ${this.batchSize} jobs...`,
           'info'
         );
         await this.orchestrator.start();

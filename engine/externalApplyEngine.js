@@ -71,7 +71,28 @@ class ExternalApplyEngine {
       const targetUrl = externalPage.url();
       update(`✓ External career page loaded: ${targetUrl.slice(0, 90)}...`);
 
-      // 3. Generate tailored ATS vector PDF for this exact job & company
+      if (options.isCancelled && options.isCancelled()) {
+        update('⏹ External apply cancelled by user.');
+        if (externalPage && externalPage !== linkedInPage) await externalPage.close().catch(() => {});
+        return { status: 'cancelled', message: 'Cancelled by user.' };
+      }
+
+      // 3. Detect ATS platform & perform early gate check (Fast-Fail before CV generation)
+      const platform = await this.detectPlatform(externalPage, targetUrl);
+      update(`🔍 Detected Applicant Tracking System (ATS): ${platform.toUpperCase()}`);
+
+      const isAutonomous = options.mode !== 'review' && options.settings?.execution?.pauseForReviewInHybridMode !== true;
+      const hasAuthGate = (await externalPage.$('input[type="password"], a:has-text("Create Account"), button:has-text("Sign In"), a:has-text("Sign In"), button:has-text("Log In")')) !== null;
+      if (hasAuthGate && isAutonomous) {
+        update('⚠️ External portal requires manual account login/password gate. Skipping immediately without wasting time on CV generation.');
+        if (externalPage && externalPage !== linkedInPage) await externalPage.close().catch(() => {});
+        return {
+          status: 'skipped',
+          message: 'External portal requires manual account login/password gate.'
+        };
+      }
+
+      // 4. Generate tailored ATS vector PDF only for viable applications
       let tailoredCV = null;
       try {
         update(`📄 Generating tailored ATS CV for "${jobInfo.title}" at "${jobInfo.company}"...`);
@@ -81,10 +102,6 @@ class ExternalApplyEngine {
       } catch (cvErr) {
         update(`⚠️ Tailored CV generation note: ${cvErr.message}`);
       }
-
-      // 4. Detect ATS platform & dispatch to specialized filler
-      const platform = await this.detectPlatform(externalPage, targetUrl);
-      update(`🔍 Detected Applicant Tracking System (ATS): ${platform.toUpperCase()}`);
 
       let fillResult = null;
       if (platform === 'greenhouse') {
@@ -355,17 +372,25 @@ class ExternalApplyEngine {
     // 3. Detect if portal requires account creation / login (e.g. Workday)
     const hasAuthGate = (await page.$('input[type="password"], a:has-text("Create Account"), button:has-text("Sign In")')) !== null;
 
-    if (hasAuthGate || options.mode === 'hybrid' || options.mode === 'review') {
-      update('⚠️ Complex / Account portal detected. Contact info pre-filled and tailored CV attached. Pausing for candidate review.');
-      return {
-        status: 'needs_review',
-        message: 'Complex portal pre-filled. Ready for user completion / review.',
-        page: page
-      };
+    if (hasAuthGate) {
+      if (options.mode === 'review' && options.settings?.execution?.pauseForReviewInHybridMode === true) {
+        update('⚠️ Complex / Account portal detected. Contact info pre-filled and tailored CV attached. Pausing for candidate review.');
+        return {
+          status: 'needs_review',
+          message: 'Complex portal pre-filled. Ready for user completion / review.',
+          page: page
+        };
+      } else {
+        update('⚠️ External portal requires manual account creation/password login. Skipping to continue autonomous loop.');
+        return {
+          status: 'skipped',
+          message: 'External portal requires manual account login/password gate.'
+        };
+      }
     }
 
-    // 4. If autonomous and standard submit button is visible, submit
-    return await this.finalizeExternalSubmission(page, 'button[type="submit"], input[type="submit"], button:has-text("Submit")', update, options);
+    // 4. Autonomous direct submit
+    return await this.finalizeExternalSubmission(page, 'button[type="submit"], input[type="submit"], button:has-text("Submit"), button:has-text("Apply")', update, options);
   }
 
   /**
@@ -392,18 +417,14 @@ class ExternalApplyEngine {
   }
 
   /**
-   * Finalize submission: either auto-submit or pause for review
+   * Finalize submission: auto-submit directly without requiring approval
    */
   async finalizeExternalSubmission(page, submitSelector, update, options) {
-    const submitBtn = await page.$(submitSelector);
+    const isExplicitReview = (options.mode === 'review' || options.settings?.execution?.mode === 'review') &&
+                             options.settings?.execution?.pauseForReviewInHybridMode === true;
 
-    const isHybrid = options.mode === 'hybrid' ||
-                     options.mode === 'review' ||
-                     options.settings?.externalApply?.autoSubmitStandardATS === false ||
-                     options.settings?.execution?.externalMode === 'hybrid';
-
-    if (isHybrid) {
-      update('Form pre-filled with tailored ATS CV. Pausing for review in Hybrid Mode.');
+    if (isExplicitReview) {
+      update('Form pre-filled with tailored ATS CV. Pausing for review in Review Mode.');
       return {
         status: 'needs_review',
         message: 'External application filled. Waiting for user review.',
@@ -411,9 +432,17 @@ class ExternalApplyEngine {
       };
     }
 
+    // Autonomous submission: search for submit button and click directly
+    let submitBtn = await page.$(submitSelector);
+    if (!submitBtn || !(await submitBtn.isVisible())) {
+      submitBtn = await page.$(
+        'button[type="submit"], input[type="submit"], button:has-text("Submit Application"), button:has-text("Submit application"), button:has-text("Submit"), button:has-text("Send Application"), button:has-text("Complete Application")'
+      );
+    }
+
     if (submitBtn && await submitBtn.isVisible()) {
       update('Autonomous Mode: Clicking "Submit Application"...');
-      await submitBtn.click({ force: true });
+      await submitBtn.click({ force: true }).catch(() => {});
       await this.bridge.humanDelay(3000, 5000);
       return { status: 'applied', message: 'External application submitted successfully.' };
     }
@@ -434,6 +463,66 @@ class ExternalApplyEngine {
         await this.bridge.humanDelay(150, 300);
       }
     } catch (e) {}
+  }
+
+  /**
+   * Apply directly to an external ATS job URL (Greenhouse, Lever, Ashby, Workday, etc.)
+   */
+  async applyDirectUrl(page, jobInfo, options = {}) {
+    const update = (msg) => {
+      if (options.onStatusUpdate) options.onStatusUpdate(msg);
+      console.log(`[ExternalApply] ${msg}`);
+    };
+
+    update(`🌐 Navigating directly to external role: "${jobInfo.title}" at "${jobInfo.company}"...`);
+    try {
+      await page.goto(jobInfo.url, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      await this.bridge.humanDelay(2000, 3500);
+
+      const targetUrl = page.url();
+      update(`✓ External career page loaded: ${targetUrl.slice(0, 90)}...`);
+
+      // 1. Detect ATS platform & perform early gate check (Fast-Fail before CV generation)
+      const platform = await this.detectPlatform(page, targetUrl);
+      update(`🔍 Detected Applicant Tracking System (ATS): ${platform.toUpperCase()}`);
+
+      const isAutonomous = options.mode !== 'review' && options.settings?.execution?.pauseForReviewInHybridMode !== true;
+      const hasAuthGate = (await page.$('input[type="password"], a:has-text("Create Account"), button:has-text("Sign In"), a:has-text("Sign In"), button:has-text("Log In")')) !== null;
+      if (hasAuthGate && isAutonomous) {
+        update('⚠️ External portal requires manual account login/password gate. Skipping immediately without wasting time on CV generation.');
+        return {
+          status: 'skipped',
+          message: 'External portal requires manual account login/password gate.'
+        };
+      }
+
+      // 2. Generate tailored ATS vector PDF only for viable applications
+      let tailoredCV = null;
+      try {
+        update(`📄 Generating tailored ATS CV for "${jobInfo.title}" at "${jobInfo.company}"...`);
+        tailoredCV = await pdfRenderer.renderTailoredCV(jobInfo);
+        jobInfo.tailoredCV = tailoredCV.fileName;
+        update(`✓ Synthesized tailored CV: ${tailoredCV.fileName} (${Math.round(tailoredCV.fileSize / 1024)} KB)`);
+      } catch (cvErr) {
+        update(`⚠️ Tailored CV generation note: ${cvErr.message}`);
+      }
+
+      let fillResult = null;
+      if (platform === 'greenhouse') {
+        fillResult = await this.fillGreenhouse(page, jobInfo, tailoredCV, update, options);
+      } else if (platform === 'lever') {
+        fillResult = await this.fillLever(page, jobInfo, tailoredCV, update, options);
+      } else if (platform === 'ashby') {
+        fillResult = await this.fillAshby(page, jobInfo, tailoredCV, update, options);
+      } else {
+        fillResult = await this.fillGenericOrComplex(page, jobInfo, tailoredCV, update, options);
+      }
+
+      return fillResult;
+    } catch (err) {
+      update(`❌ Error during direct ATS apply: ${err.message}`);
+      return { status: 'failed', message: err.message };
+    }
   }
 }
 

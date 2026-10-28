@@ -12,7 +12,7 @@ if not exist %CHROME_PATH% (
 )
 
 echo Starting Chrome with debugging port 9222...
-start "" %CHROME_PATH% --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\LinkedInAutomationChromeProfile" --no-first-run --no-default-browser-check https://www.linkedin.com/jobs/
+start "" %CHROME_PATH% --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\LinkedInAutomationChromeProfile" --no-first-run --no-default-browser-check --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling https://www.linkedin.com/jobs/
 
 echo.
 echo Chrome has been launched! 

@@ -95,7 +95,7 @@ class SearchEngine {
    */
   async navigateToSearch(keyword, settings, update) {
     const page = await this.bridge.getPage();
-    const maxPages = settings.search?.paginationPages || 3;
+    const maxPages = settings.search?.paginationPages || 6;
     const allJobs = [];
     const seenJobIds = new Set();
 
@@ -104,7 +104,10 @@ class SearchEngine {
       update(`Navigating to search URL (page ${pageNum + 1}): ${url}`);
 
       try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        if (!page || page.isClosed()) {
+          page = await this.bridge.getPage();
+        }
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
       } catch (e) {
         update(`Navigation note: ${e.message}`);
       }
@@ -361,7 +364,7 @@ class SearchEngine {
       if (j.isAppliedOnLinkedIn && !tracker.hasApplied(j)) {
         tracker.record({
           ...j,
-          status: 'applied',
+          status: 'previously_applied',
           notes: 'Already applied on LinkedIn (detected from search history badge)'
         });
         historySyncedCount++;

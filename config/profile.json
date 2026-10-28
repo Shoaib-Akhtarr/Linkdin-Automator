@@ -42,13 +42,14 @@
     "FAISS": 2,
     "NLP": 2,
     "JavaScript": 2,
-    "TypeScript": 1,
+    "TypeScript": 2,
     "Git": 3,
-    "default": 2
+    "default": 2,
+    "data science": 2
   },
   "workAuthorization": {
     "legallyAuthorized": "Yes",
-    "requireSponsorship": "No",
+    "requireSponsorship": "Yes",
     "requireSponsorshipFuture": "No",
     "citizenship": "Pakistan",
     "securityClearance": "No",

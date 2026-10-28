@@ -85,7 +85,14 @@ class EasyApplyModal {
 
     while (stepCount < maxSteps) {
       stepCount++;
-      await this.bridge.humanDelay(1000, 1800);
+
+      if (options.isCancelled && options.isCancelled()) {
+        update('⏹ Modal processing cancelled by user. Dismissing dialog...');
+        await this.dismissModal(page);
+        return { status: 'cancelled', message: 'Cancelled by user.' };
+      }
+
+      await this.bridge.humanDelay(500, 900);
       update(`Processing modal step ${stepCount}...`);
 
       dialog = await this.getActiveDialog(page);
@@ -118,7 +125,7 @@ class EasyApplyModal {
 
       // 2. Fill form inputs in current step with full job intelligence context
       await this.fillCurrentStep(page, dialog, update, jobInfo);
-      await this.bridge.humanDelay(600, 1000);
+      await this.bridge.humanDelay(300, 600);
 
       // 3. Handle resume selection if on a resume step
       if (!resumeHandled) {
@@ -144,7 +151,7 @@ class EasyApplyModal {
         } else {
           update('Autonomous Mode: Clicking "Submit application"...');
           await submitBtn.click({ force: true });
-          await this.bridge.humanDelay(2500, 4500);
+          await this.bridge.humanDelay(1500, 2500);
           await this.closeSuccessModal(page, update);
           return { status: 'applied', message: 'Application submitted successfully.' };
         }
@@ -154,7 +161,7 @@ class EasyApplyModal {
       if (reviewBtn) {
         update('Clicking "Review" button...');
         await reviewBtn.click({ force: true });
-        await this.bridge.humanDelay(1500, 2500);
+        await this.bridge.humanDelay(600, 1000);
         continue;
       }
 
@@ -162,18 +169,18 @@ class EasyApplyModal {
       if (nextBtn) {
         update('Clicking "Next" button...');
         await nextBtn.click({ force: true });
-        await this.bridge.humanDelay(1500, 2500);
+        await this.bridge.humanDelay(600, 1000);
 
         // Check if blocked by validation error
         const hasError = await this.checkForErrors(dialog, page);
         if (hasError) {
           update(`Validation error on step ${stepCount}: "${hasError}". Attempting to fix...`);
           await this.fillCurrentStep(page, dialog, update, jobInfo);
-          await this.bridge.humanDelay(1000, 1500);
+          await this.bridge.humanDelay(400, 700);
           const retryNext = await this.findButtonInDialog(dialog, 'next');
           if (retryNext) {
             await retryNext.click({ force: true });
-            await this.bridge.humanDelay(1500, 2500);
+            await this.bridge.humanDelay(600, 1000);
           }
         }
         continue;

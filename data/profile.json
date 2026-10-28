@@ -1,0 +1,139 @@
+{
+  "personal": {
+    "fullName": "SHOAIB AKHTAR",
+    "targetTitle": "AI Engineer",
+    "location": "Gujrat, Pakistan",
+    "phone": "(+92) 3056054842",
+    "email": "onlyshoaib158@gmail.com",
+    "linkedin": "linkedin.com/in/shoaib-akhtar-133103300",
+    "github": "github.com/Shoaib-Akhtarr",
+    "portfolio": "https://github.com/Shoaib-Akhtarr"
+  },
+  "summary": "BS in Computer Science student and Junior AI Engineer with ~2 years of practical experience developing AI pipelines, LLM workflows, and microservices. Experienced in building RAG systems with FastAPI and Docker, fine-tuning ML models, and deploying reliable agent workflows following clean code standards.",
+  "skills": {
+    "languages": [
+      { "name": "Python", "status": "verified", "evidence": "Primary language at AppEvolve and all open-source projects" },
+      { "name": "SQL", "status": "verified", "evidence": "Relational schema design and data querying in backend services" },
+      { "name": "JavaScript", "status": "verified", "evidence": "Automation scripts and dashboard front-ends" },
+      { "name": "Bash", "status": "verified", "evidence": "Linux server scripting and automation workflows" },
+      { "name": "C++", "status": "familiar", "evidence": "Academic coursework at University of Gujrat" }
+    ],
+    "generativeAI": [
+      { "name": "LLMs", "status": "verified", "evidence": "OpenAI, Anthropic, Hugging Face integrations in production apps" },
+      { "name": "RAG Pipelines", "status": "verified", "evidence": "Built document search engine with hybrid dense-sparse retrieval" },
+      { "name": "Prompt Engineering", "status": "verified", "evidence": "Few-shot prompting, structured outputs, self-consistency" },
+      { "name": "Model Fine-Tuning", "status": "verified", "evidence": "LoRA/PEFT parameter-efficient fine-tuning via Hugging Face" },
+      { "name": "Hugging Face", "status": "verified", "evidence": "Transformers, datasets, and pipeline integration" },
+      { "name": "OpenAI API", "status": "verified", "evidence": "Function calling, embeddings, JSON schema enforcement" },
+      { "name": "Qdrant", "status": "verified", "evidence": "Vector store in Enterprise Multi-Agent AI Platform" },
+      { "name": "ChromaDB", "status": "verified", "evidence": "Local vector search for Document Analysis RAG pipeline" },
+      { "name": "FAISS", "status": "verified", "evidence": "Fast approximate nearest neighbor search at AppEvolve" },
+      { "name": "Pinecone", "status": "familiar", "evidence": "Managed cloud vector DB prototyping and research" },
+      { "name": "Cohere API", "status": "familiar", "evidence": "Reranking API evaluations and testing" }
+    ],
+    "frameworks": [
+      { "name": "LangChain", "status": "verified", "evidence": "Core chains and document loaders at AppEvolve" },
+      { "name": "LangGraph", "status": "verified", "evidence": "Cyclic state graphs in Enterprise Multi-Agent AI Platform" },
+      { "name": "CrewAI", "status": "verified", "evidence": "Multi-agent coordination and tool assignment" },
+      { "name": "FastAPI", "status": "verified", "evidence": "High-throughput asynchronous REST APIs for AI services" },
+      { "name": "PyTorch", "status": "verified", "evidence": "Neural network training and deep learning models" },
+      { "name": "Scikit-Learn", "status": "verified", "evidence": "Classification, regression, and clustering algorithms" },
+      { "name": "Streamlit", "status": "verified", "evidence": "Rapid interactive prototyping for AI demos" },
+      { "name": "Flask", "status": "verified", "evidence": "Lightweight API microservices at AppEvolve" },
+      { "name": "REST APIs", "status": "verified", "evidence": "High-throughput asynchronous RESTful API development" },
+      { "name": "LlamaIndex", "status": "familiar", "evidence": "Data indexing frameworks research and exploration" },
+      { "name": "AutoGen", "status": "familiar", "evidence": "Conversational multi-agent patterns research" },
+      { "name": "TensorFlow", "status": "familiar", "evidence": "Deep learning coursework and tutorials" }
+    ],
+    "mlopsAndCloud": [
+      { "name": "Docker", "status": "verified", "evidence": "Containerization of microservices and agent runtimes" },
+      { "name": "Git", "status": "verified", "evidence": "Version control, branching, code reviews on GitHub" },
+      { "name": "Linux", "status": "verified", "evidence": "Daily CLI server environments and shell operations" },
+      { "name": "CI/CD (GitHub Actions)", "status": "verified", "evidence": "Automated linting, testing, and deployment pipelines" },
+      { "name": "Kubernetes", "status": "familiar", "evidence": "Basic pod and deployment orchestration concepts" },
+      { "name": "AWS (EC2, S3)", "status": "familiar", "evidence": "Virtual server provisioning and cloud storage" },
+      { "name": "Azure AI", "status": "familiar", "evidence": "Cognitive services exploration" },
+      { "name": "MLflow", "status": "familiar", "evidence": "Experiment tracking and model registry concepts" }
+    ],
+    "dataScience": [
+      { "name": "NumPy", "status": "verified", "evidence": "Vector math and tensor manipulations" },
+      { "name": "Pandas", "status": "verified", "evidence": "Data wrangling, cleaning, and tabular ETL" },
+      { "name": "Matplotlib", "status": "verified", "evidence": "Data visualization and error distribution plots" },
+      { "name": "Seaborn", "status": "verified", "evidence": "Statistical correlation heatmaps and distributions" },
+      { "name": "Feature Engineering", "status": "verified", "evidence": "Encoding, scaling, normalization for ML datasets" },
+      { "name": "Model Evaluation", "status": "verified", "evidence": "Precision, recall, F1-score, ROC-AUC, cross-validation" },
+      { "name": "Statistical Analysis", "status": "familiar", "evidence": "Hypothesis testing and academic probability coursework" }
+    ]
+  },
+  "experience": [
+    {
+      "company": "AppEvolve",
+      "role": "AI Intern -> Junior AI Engineer",
+      "type": "Full-time, On-site",
+      "period": "Jun 2024 – Present",
+      "location": "Pakistan",
+      "bullets": [
+        "Develop and deploy LLM applications, multi-agent systems, and workflows using LangChain, LangGraph, and CrewAI to automate task routing.",
+        "Build enterprise retrieval pipelines and document search using vector databases (FAISS, ChromaDB, Qdrant) with source citations, improving retrieval accuracy to [metric].",
+        "Train, fine-tune, and benchmark machine learning models using PyTorch and Scikit-Learn for classification and recommendation pipelines, evaluating performance against test baselines.",
+        "Implement high-throughput REST APIs with FastAPI, containerize microservices using Docker, and configure automated GitHub Actions CI/CD testing."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Enterprise Multi-Agent AI Platform",
+      "techStack": ["LangGraph", "FastAPI", "Docker", "Qdrant", "OpenAI API"],
+      "bullets": [
+        "Designed and deployed an enterprise multi-agent platform orchestrating autonomous domain agents for Operations, Finance, and Customer Support.",
+        "Implemented cyclic self-correction state graphs and persistent memory using LangGraph to evaluate tool outputs and maintain conversational coherence.",
+        "Built an enterprise RAG knowledge engine supporting PDF, DOCX, and Excel ingestion with dense semantic retrieval via Qdrant vector database.",
+        "Containerized microservices using Docker, automated deployment workflows with GitHub Actions, and established unit testing suites."
+      ]
+    },
+    {
+      "name": "Document Analysis & Hybrid RAG Pipeline",
+      "techStack": ["LangChain", "ChromaDB", "OpenAI API", "Python", "FastAPI"],
+      "bullets": [
+        "Engineered an enterprise semantic search workspace deploying context-aware chunking and dense proximity lookups across internal document repositories.",
+        "Parsed and indexed unstructured enterprise documents into semantic vector representations for high-precision retrieval.",
+        "Mitigated hallucination risks by integrating hybrid search frameworks combining keyword (BM25) and dense vector search inside ChromaDB."
+      ]
+    },
+    {
+      "name": "AI Agent Frameworks & Recommendation Engine",
+      "techStack": ["CrewAI", "LangGraph", "Scikit-Learn", "PyTorch", "Pandas"],
+      "bullets": [
+        "Architected an intelligent multi-agent orchestration grid utilizing interconnected state machines for concurrent analytical execution.",
+        "Engineered collaborative filtering and preference data scoring models to surface personalized recommendations.",
+        "Designed automated tool-calling workflows and schema verification mechanisms to ensure structured and predictable agent outputs."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "BS Computer Science",
+      "institution": "University of Gujrat (UOG)",
+      "period": "Oct 2023 – Present (Expected 2027)",
+      "location": "Gujrat, Pakistan",
+      "highlights": "Focus on Artificial Intelligence, Machine Learning, Data Structures, and Software Architecture."
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Generative AI with Large Language Models",
+      "issuer": "DeepLearning.AI",
+      "description": "Instruction fine-tuning, prompt optimization, RAG, and vector database deployments."
+    },
+    {
+      "name": "Generative AI for Software Development",
+      "issuer": "DeepLearning.AI",
+      "description": "Agentic workflows, building LLM applications, and production AI coding assistants."
+    },
+    {
+      "name": "Machine Learning Engineering for Production (MLOps)",
+      "issuer": "DeepLearning.AI",
+      "description": "End-to-end MLOps architectures, CI/CD automated deployment, and monitoring."
+    }
+  ]
+}

@@ -23,7 +23,10 @@ Requirements:
   console.log('✓ Target Title tailored to:', tailored.personal.targetTitle);
   console.log('✓ Summary tailored to:', tailored.summary.slice(0, 120) + '...');
   console.log('✓ Generative AI skills prioritized:', tailored.skills.generativeAI.slice(0, 6));
-  console.log('✓ Cloud / MLOps skills prioritized:', tailored.skills.mlopsAndCloud.slice(0, 5));
+  console.log('✓ Match Weighted Score:', tailored.matchAnalysis.metrics.weightedScore + '%');
+  console.log('✓ Required Coverage:', tailored.matchAnalysis.metrics.requiredCoverage + '%');
+  console.log('✓ Critical Gaps:', tailored.matchAnalysis.gaps.criticalGaps);
+  console.log('✓ Recommendation:', tailored.matchAnalysis.recommendation.rating);
 
   const result = await pdfRenderer.renderTailoredCV(testJob);
   console.log('✓ PDF generated successfully:', result.fileName);

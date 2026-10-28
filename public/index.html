@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LinkedIn Easy Apply Automation Suite</title>
+  <title>Axiom // LinkedIn & ATS Automation Suite</title>
+  
+  <!-- JetBrains Mono Font (Monospaced engine typography) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -11,13 +17,27 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'BerkeleyMono', 'monospace'],
+            sans: ['JetBrains Mono', 'monospace'],
+          },
           colors: {
-            brand: {
-              50: '#eef6ff',
-              100: '#d9eaff',
-              500: '#0a66c2', // LinkedIn blue
-              600: '#004182',
-              700: '#002952',
+            void: '#000000',
+            carbon: '#111111',
+            graphite: '#191919',
+            iron: '#202020',
+            slate: '#3a3a3a',
+            pewter: '#505050',
+            steel: '#606060',
+            ash: '#7e7e7e',
+            fog: '#b4b4b4',
+            chalk: '#d9d9d9',
+            paper: '#eeeeee',
+            ember: {
+              DEFAULT: '#da5c2c',
+              hover: '#e56939',
+              muted: '#da5c2c33',
+              dark: '#a8421b',
             }
           }
         }
@@ -25,232 +45,378 @@
     }
   </script>
   <style>
-    /* Custom scrollbar for logs */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #18181b; }
-    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.01em;
+    }
+    /* Axiom Terminal Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #000000; }
+    ::-webkit-scrollbar-thumb { background: #202020; border-radius: 0px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .cursor-blink {
+      animation: blink 1.1s step-end infinite;
+    }
+
+    /* Subtle terminal scanline or dotted grid accents */
+    .terminal-border-l {
+      border-left: 2px solid #da5c2c;
+    }
+    
+    input, select, textarea {
+      font-family: 'JetBrains Mono', monospace;
+    }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+<body class="bg-void text-paper min-h-screen flex flex-col font-mono selection:bg-ember selection:text-paper antialiased">
 
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-zinc-800 bg-zinc-900/60 backdrop-blur sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20">
-        in
+  <!-- Top Navigation Bar (Void background, hairline Iron border) -->
+  <header class="border-b border-iron bg-void sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3.5">
+      <!-- Terminal Logo glyph -->
+      <div class="w-9 h-9 rounded-[2px] bg-carbon border border-iron flex items-center justify-center font-bold text-sm text-ember select-none">
+        &gt;_
       </div>
       <div>
-        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-          LinkedIn Easy Apply Automator
-          <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">CDP Anti-Detect</span>
-        </h1>
-        <p class="text-xs text-zinc-400">Intelligent screening question answering & authentic session bridge</p>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-steel font-normal">~/automator</span>
+          <span class="text-xs text-iron">/</span>
+          <h1 class="text-sm font-bold tracking-tight text-paper uppercase flex items-center gap-1.5">
+            Axiom Engine
+            <span class="text-ember font-bold cursor-blink">_</span>
+          </h1>
+          <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-[2px] bg-carbon text-steel border border-iron">CDP v2.4</span>
+        </div>
+        <p class="text-[11px] text-ash">Autonomous Easy Apply &amp; ATS Screening Terminal</p>
       </div>
     </div>
 
     <!-- Live Status Indicator & Quick Controls -->
-    <div class="flex items-center space-x-4">
-      <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-        <span class="w-2.5 h-2.5 rounded-full bg-zinc-500 animate-pulse"></span>
+    <div class="flex items-center space-x-3">
+      <!-- Platform Selector Dropdown -->
+      <div class="flex items-center gap-2 bg-carbon border border-iron rounded-[2px] px-2.5 py-1">
+        <span class="text-[11px] text-steel uppercase tracking-wider flex items-center gap-1">
+          <span>&gt;</span> Target:
+        </span>
+        <select id="headerPlatformSelect" class="bg-void border border-iron text-paper text-xs font-medium rounded-[2px] px-2 py-1 focus:outline-none focus:border-ember cursor-pointer">
+          <option value="all">ALL PLATFORMS (AUTO-ROTATE)</option>
+          <option value="linkedin">LINKEDIN (EASY APPLY + ATS)</option>
+          <option value="wellfound">WELLFOUND (ANGELLIST)</option>
+          <option value="weworkremotely">WE WORK REMOTELY</option>
+          <option value="remoteok">REMOTEOK</option>
+          <option value="jobicy">JOBICY (ENGINEERING)</option>
+          <option value="remote_ats">CURATED REMOTE ATS</option>
+        </select>
+      </div>
+
+      <!-- Status Badge -->
+      <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-[2px] border border-iron bg-carbon text-xs font-bold uppercase tracking-wider text-steel">
+        <span class="w-1.5 h-1.5 rounded-full bg-steel animate-pulse"></span>
         <span id="statusText">IDLE</span>
       </div>
 
-      <button id="btnStart" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-md shadow-emerald-700/20 transition flex items-center gap-2">
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        Start
+      <!-- Action Buttons -->
+      <button id="btnStart" class="px-4 py-2 rounded-[2px] bg-ember hover:bg-ember-hover text-paper text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span>Start</span>
+        <span>→</span>
       </button>
 
-      <button id="btnPause" class="px-4 py-2 rounded-lg bg-amber-600/80 hover:bg-amber-600 text-white text-sm font-semibold transition flex items-center gap-2 hidden">
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        Pause
+      <button id="btnPause" class="px-4 py-2 rounded-[2px] bg-carbon hover:bg-graphite border border-slate text-paper text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 hidden cursor-pointer">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        <span>Pause</span>
       </button>
 
-      <button id="btnStop" class="px-4 py-2 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white text-sm font-semibold transition flex items-center gap-2 hidden">
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-        Stop
+      <button id="btnStop" class="px-4 py-2 rounded-[2px] bg-carbon hover:bg-graphite border border-rose-900/60 text-rose-400 text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 hidden cursor-pointer">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+        <span>Stop</span>
       </button>
     </div>
   </header>
 
-  <!-- Review Alert Banner (Hybrid Mode) -->
-  <div id="reviewBanner" class="bg-gradient-to-r from-amber-900/60 via-zinc-900 to-amber-900/60 border-b border-amber-600/40 px-6 py-3 flex items-center justify-between hidden animate-pulse">
+  <!-- Review Alert Banner (Hybrid Mode: 2px solid Ember left border, Graphite background) -->
+  <div id="reviewBanner" class="bg-graphite border-y border-iron border-l-2 border-l-ember px-6 py-3 flex items-center justify-between hidden">
     <div class="flex items-center space-x-3">
-      <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-        ⚠️
+      <div class="w-7 h-7 rounded-[2px] bg-carbon border border-ember/40 text-ember flex items-center justify-center font-bold text-xs">
+        !
       </div>
       <div>
-        <div class="text-sm font-semibold text-amber-200">Human Review Requested</div>
-        <div id="reviewJobTitle" class="text-xs text-zinc-300">Ready to submit application. Inspect answers and approve.</div>
+        <div class="text-xs font-bold text-paper uppercase tracking-wider">[HUMAN_REVIEW_REQUIRED]</div>
+        <div id="reviewJobTitle" class="text-xs text-fog">Ready to submit application. Inspect answers and approve.</div>
       </div>
     </div>
-    <div class="flex items-center space-x-3">
-      <button id="btnSkipReview" class="px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition">
-        Skip This Job
+    <div class="flex items-center space-x-2.5">
+      <button id="btnSkipReview" class="px-3 py-1.5 rounded-[2px] border border-slate bg-carbon hover:bg-graphite text-xs font-medium text-fog transition cursor-pointer">
+        Skip Job [Esc]
       </button>
-      <button id="btnApproveReview" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow transition">
-        ✓ Approve & Submit
+      <button id="btnApproveReview" class="px-4 py-1.5 rounded-[2px] bg-ember hover:bg-ember-hover text-xs font-bold text-paper transition cursor-pointer flex items-center gap-1">
+        <span>Approve &amp; Submit</span>
+        <span>→</span>
       </button>
     </div>
   </div>
 
-  <!-- Main Tabs Header -->
-  <div class="border-b border-zinc-800 bg-zinc-900/40 px-6 flex space-x-8 text-sm font-medium">
-    <button class="tab-btn py-3 border-b-2 border-blue-500 text-blue-400 font-semibold" data-tab="tab-dashboard">Dashboard</button>
-    <button class="tab-btn py-3 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200" data-tab="tab-profile">Profile & Screening Q&A</button>
-    <button class="tab-btn py-3 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200" data-tab="tab-settings">Search & Filters</button>
-    <button class="tab-btn py-3 border-b-2 border-transparent text-zinc-400 hover:text-zinc-200" data-tab="tab-history">Application History</button>
+  <!-- Main Tabs Header (Sharp monospaced border-b tabs) -->
+  <div class="border-b border-iron bg-carbon px-6 flex space-x-8 text-xs font-medium">
+    <button class="tab-btn py-3 border-b-2 border-ember text-paper font-bold cursor-pointer transition" data-tab="tab-dashboard">
+      01 // DASHBOARD
+    </button>
+    <button class="tab-btn py-3 border-b-2 border-transparent text-steel hover:text-fog cursor-pointer transition" data-tab="tab-profile">
+      02 // PROFILE &amp; SCREENING
+    </button>
+    <button class="tab-btn py-3 border-b-2 border-transparent text-steel hover:text-fog cursor-pointer transition" data-tab="tab-settings">
+      03 // SEARCH &amp; FILTERS
+    </button>
+    <button class="tab-btn py-3 border-b-2 border-transparent text-steel hover:text-fog cursor-pointer transition" data-tab="tab-history">
+      04 // APPLICATION LOGS
+    </button>
   </div>
 
   <!-- Active Search Target Bar -->
-  <div class="bg-zinc-900/60 border-b border-zinc-800/80 px-6 py-2 flex items-center justify-between text-xs text-zinc-400">
-    <div class="flex items-center space-x-6">
-      <span>📍 Location: <strong id="barLocation" class="text-white font-semibold">Worldwide</strong></span>
-      <span>🏢 Workplace: <strong id="barWorkplace" class="text-blue-400 font-semibold">Remote</strong></span>
-      <span>⚡ Mode: <strong id="barMode" class="text-emerald-400 font-semibold uppercase">Hybrid</strong></span>
-      <span>🌐 Target: <strong id="barApplyType" class="text-purple-400 font-semibold">All Jobs (Easy Apply + External)</strong></span>
+  <div class="bg-void border-b border-iron px-6 py-2 flex items-center justify-between text-xs text-steel">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
+      <span><span class="text-ember">&gt;</span> TARGET: <strong id="barPlatform" class="text-paper font-semibold">ALL PLATFORMS</strong></span>
+      <span class="text-iron">|</span>
+      <span>LOC: <strong id="barLocation" class="text-paper font-semibold">WORLDWIDE</strong></span>
+      <span class="text-iron">|</span>
+      <span>WORKPLACE: <strong id="barWorkplace" class="text-paper font-semibold">REMOTE</strong></span>
+      <span class="text-iron">|</span>
+      <span>MODE: <strong id="barMode" class="text-paper font-semibold">HYBRID</strong></span>
+      <span class="text-iron">|</span>
+      <span>SCOPE: <strong id="barApplyType" class="text-fog font-medium">ALL JOBS (EASY APPLY + ATS)</strong></span>
     </div>
-    <div class="text-[11px] text-zinc-500">Edit location & filters in <button class="text-blue-400 hover:underline cursor-pointer" onclick="document.querySelector('[data-tab=tab-settings]').click()">Search & Filters</button></div>
+    <div class="text-[11px] text-steel hidden sm:block">
+      CONFIG: <button class="text-ember hover:underline cursor-pointer" onclick="document.querySelector('[data-tab=tab-settings]').click()">SETTINGS →</button>
+    </div>
   </div>
 
   <!-- Content Container -->
-  <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
+  <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
 
     <!-- TAB 1: DASHBOARD -->
     <section id="tab-dashboard" class="tab-content space-y-6">
       
-      <!-- Metrics Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-4">
-          <div class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Applied Today</div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span id="metricToday" class="text-3xl font-black text-white">0</span>
-            <span class="text-xs text-zinc-500" id="metricLimit">/ 25 limit</span>
+      <!-- Metrics Cards (Carbon surface, 2px radius, hairline Iron borders, no shadows) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <!-- Metric 1: Applied Today -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-steel uppercase tracking-wider">APPLIED TODAY</span>
+            <span class="text-[10px] text-ash">24H_CYCLE</span>
           </div>
-          <div class="w-full bg-zinc-800 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div id="metricProgressBar" class="bg-blue-500 h-full w-0 transition-all"></div>
+          <div class="mt-2.5 flex items-baseline gap-2">
+            <span id="metricToday" class="text-3xl font-bold text-paper">0</span>
+            <span class="text-xs text-steel" id="metricLimit">/ 25 LIMIT</span>
+          </div>
+          <!-- Progress bar -->
+          <div class="w-full bg-void border border-iron h-1.5 rounded-[2px] mt-3 overflow-hidden">
+            <div id="metricProgressBar" class="bg-ember h-full w-0 transition-all duration-300"></div>
           </div>
         </div>
 
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-4">
-          <div class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Remaining Safe Quota</div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span id="metricRemaining" class="text-3xl font-black text-emerald-400">25</span>
-            <span class="text-xs text-zinc-500">jobs</span>
+        <!-- Metric 2: Remaining Quota -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-steel uppercase tracking-wider">SAFE QUOTA REMAINING</span>
+            <span class="text-[10px] text-ash">ANTI_SPAM</span>
           </div>
-          <div class="text-xs text-zinc-500 mt-2">Guards LinkedIn account from spam limits</div>
+          <div class="mt-2.5 flex items-baseline gap-2">
+            <span id="metricRemaining" class="text-3xl font-bold text-ember">25</span>
+            <span class="text-xs text-steel">JOBS</span>
+          </div>
+          <div class="text-[11px] text-ash mt-2.5">Guards session and avoids platform cooldowns</div>
         </div>
 
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-4">
-          <div class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Applied Ever</div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span id="metricTotal" class="text-3xl font-black text-blue-400">0</span>
-            <span class="text-xs text-zinc-500">applications</span>
+        <!-- Metric 3: Total Applied Ever -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-steel uppercase tracking-wider">TOTAL SUBMISSIONS</span>
+            <span class="text-[10px] text-ash">SQLITE_DB</span>
           </div>
-          <div class="text-xs text-zinc-500 mt-2">Stored persistently in local database</div>
+          <div class="mt-2.5 flex items-baseline gap-2">
+            <span id="metricTotal" class="text-3xl font-bold text-paper">0</span>
+            <span class="text-xs text-steel">TOTAL</span>
+          </div>
+          <div class="text-[11px] text-ash mt-2.5">Stored persistently in persistent storage</div>
         </div>
 
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-4">
-          <div class="text-xs font-medium text-zinc-400 uppercase tracking-wider">Skipped / Filtered</div>
-          <div class="mt-2 flex items-baseline gap-2">
-            <span id="metricSkipped" class="text-3xl font-black text-zinc-400">0</span>
-            <span class="text-xs text-zinc-500">jobs</span>
+        <!-- Metric 4: Skipped / Filtered -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-steel uppercase tracking-wider">FILTERED / SKIPPED</span>
+            <span class="text-[10px] text-ash">INTELLISENSE</span>
           </div>
-          <div class="text-xs text-zinc-500 mt-2">Blacklisted companies or complex forms</div>
+          <div class="mt-2.5 flex items-baseline gap-2">
+            <span id="metricSkipped" class="text-3xl font-bold text-fog">0</span>
+            <span class="text-xs text-steel">JOBS</span>
+          </div>
+          <div class="text-[11px] text-ash mt-2.5">Blacklist or clearance restrictions skipped</div>
+        </div>
+
+      </div>
+
+      <!-- Axiom Log Bar Histogram & Multi-Platform Breakdown Strip -->
+      <div class="bg-carbon border border-iron rounded-[2px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+        <div class="flex items-center gap-3">
+          <div class="text-steel uppercase tracking-wider font-semibold text-[11px] flex items-center gap-1.5">
+            <span class="text-ember">&gt;</span>
+            <span>PLATFORM_DISTRIBUTION:</span>
+          </div>
+          <!-- Axiom Mini Log-Bar Histogram -->
+          <div class="hidden sm:flex items-end gap-1 h-5 px-2 py-0.5 bg-void border border-iron rounded-[2px]" title="Automation activity histogram">
+            <span class="w-1 bg-ember h-3"></span>
+            <span class="w-1 bg-ember h-4"></span>
+            <span class="w-1 bg-ember h-2"></span>
+            <span class="w-1 bg-steel h-3.5"></span>
+            <span class="w-1 bg-ember h-5"></span>
+            <span class="w-1 bg-ember h-3"></span>
+            <span class="w-1 bg-slate h-1.5"></span>
+            <span class="w-1 bg-ember h-4"></span>
+            <span class="w-1 bg-ember h-2"></span>
+            <span class="w-1 bg-steel h-4.5"></span>
+            <span class="w-1 bg-ember h-3.5"></span>
+          </div>
+        </div>
+
+        <!-- Platform Counters -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">LINKEDIN:</span>
+            <span id="statPlatLinkedIn" class="font-bold text-paper text-xs">0</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">WELLFOUND:</span>
+            <span id="statPlatWellfound" class="font-bold text-paper text-xs">0</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">WWR:</span>
+            <span id="statPlatWWR" class="font-bold text-paper text-xs">0</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">REMOTEOK:</span>
+            <span id="statPlatRemoteOK" class="font-bold text-paper text-xs">0</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">JOBICY:</span>
+            <span id="statPlatJobicy" class="font-bold text-paper text-xs">0</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-void border border-iron text-fog">
+            <span class="text-[11px] text-steel">REMOTE_ATS:</span>
+            <span id="statPlatRemoteAts" class="font-bold text-paper text-xs">0</span>
+          </div>
         </div>
       </div>
 
-      <!-- 24/7 Autopilot Duty Cycle Scheduler Card -->
-      <div class="bg-gradient-to-r from-zinc-900 via-purple-950/20 to-zinc-900 border border-purple-500/30 rounded-2xl p-5 shadow-lg shadow-purple-950/10">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="flex items-center space-x-4">
-            <div class="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-xl border border-purple-500/30">
-              ⏱️
+      <!-- 24/7 Autopilot Scheduler Card (Axiom Style: Graphite background, 2px solid Ember left border) -->
+      <div class="bg-graphite border border-iron border-l-2 border-l-ember rounded-[2px] p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="flex items-start sm:items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-[2px] bg-void border border-iron text-ember flex items-center justify-center font-bold text-base shrink-0">
+              ⏱
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h3 class="text-sm font-bold text-white uppercase tracking-wider">24/7 Autopilot Scheduler</h3>
-                <span id="autopilotBadge" class="text-[11px] px-2.5 py-0.5 rounded-full font-semibold border bg-zinc-800 text-zinc-400 border-zinc-700">INACTIVE</span>
+                <h3 class="text-xs font-bold text-paper uppercase tracking-wider">24/7 Autopilot Daemon</h3>
+                <span id="autopilotBadge" class="text-[10px] px-2 py-0.5 rounded-[2px] font-bold border bg-void text-steel border-iron uppercase">INACTIVE</span>
               </div>
-              <p class="text-xs text-zinc-400 mt-0.5">
-                Automatically triggers every 2 hours, scans fresh postings, applies to 10 matching jobs with tailored ATS CVs, and sleeps.
+              <p class="text-[11px] text-ash mt-1">
+                Background worker scans target listings every interval, applies with tailored ATS CVs, and sleeps.
               </p>
             </div>
           </div>
           
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-300">
-              <span>Next Trigger:</span>
-              <strong id="autopilotCountdown" class="text-purple-400 font-mono font-bold">--</strong>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Next run countdown -->
+            <div class="flex items-center gap-2 bg-void border border-iron rounded-[2px] px-3 py-1.5 text-xs text-steel">
+              <span class="uppercase text-[10px]">NEXT_TRIGGER:</span>
+              <strong id="autopilotCountdown" class="text-ember font-bold">--</strong>
             </div>
 
-            <div class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs">
-              <span class="text-zinc-500">Jobs/Batch:</span>
-              <input id="autoBatchSize" type="number" min="1" max="25" value="10" class="w-12 bg-transparent text-white font-bold text-center focus:outline-none" />
+            <!-- Batch size -->
+            <div class="flex items-center gap-1.5 bg-void border border-iron rounded-[2px] px-2.5 py-1 text-xs">
+              <span class="text-steel text-[11px]">BATCH:</span>
+              <input id="autoBatchSize" type="number" min="1" max="25" value="10" class="w-10 bg-transparent text-paper font-bold text-center focus:outline-none focus:text-ember" />
+              <span class="text-ash text-[10px]">JOBS</span>
             </div>
 
-            <div class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs">
-              <span class="text-zinc-500">Every:</span>
-              <input id="autoIntervalMins" type="number" min="15" max="720" value="120" class="w-14 bg-transparent text-white font-bold text-center focus:outline-none" />
-              <span class="text-zinc-500">min</span>
+            <!-- Interval -->
+            <div class="flex items-center gap-1.5 bg-void border border-iron rounded-[2px] px-2.5 py-1 text-xs">
+              <span class="text-steel text-[11px]">EVERY:</span>
+              <input id="autoIntervalMins" type="number" min="15" max="720" value="120" class="w-12 bg-transparent text-paper font-bold text-center focus:outline-none focus:text-ember" />
+              <span class="text-ash text-[10px]">MIN</span>
             </div>
 
-            <button id="btnToggleAutopilot" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-purple-900/30 cursor-pointer">
+            <!-- Toggle Autopilot Button -->
+            <button id="btnToggleAutopilot" class="px-4 py-2 rounded-[2px] bg-carbon hover:bg-void border border-slate text-paper text-xs font-bold uppercase tracking-wider transition flex items-center gap-1 cursor-pointer">
               <span>Turn Autopilot ON</span>
+              <span>→</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Current Job In Progress Card -->
-      <div id="currentJobCard" class="bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-blue-950/30 border border-zinc-800 rounded-2xl p-4 hidden">
+      <!-- Current Job In Progress Card (Axiom Style: 2px solid Ember left border) -->
+      <div id="currentJobCard" class="bg-carbon border border-iron border-l-2 border-l-ember rounded-[2px] p-4 hidden">
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
-              🎯
+          <div class="flex items-center space-x-3.5">
+            <div class="w-9 h-9 rounded-[2px] bg-void border border-iron text-ember flex items-center justify-center font-bold text-sm shrink-0">
+              &gt;
             </div>
             <div>
-              <div class="text-xs text-blue-400 font-semibold uppercase tracking-wider">Currently Processing</div>
-              <h3 id="currentJobTitle" class="text-base font-bold text-white">Full Stack AI Engineer</h3>
-              <p id="currentJobDetails" class="text-xs text-zinc-400">Company Name • Remote</p>
+              <div class="text-[10px] text-ember font-bold uppercase tracking-wider">[CURRENT_EXECUTION]</div>
+              <h3 id="currentJobTitle" class="text-sm font-bold text-paper">Full Stack AI Engineer</h3>
+              <p id="currentJobDetails" class="text-xs text-ash">Company Name • Remote</p>
             </div>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-medium animate-pulse">Auto-filling form...</span>
+          <span class="text-[11px] px-2.5 py-1 rounded-[2px] bg-void border border-ember/40 text-ember font-semibold animate-pulse">
+            DISPATCHING_FORM...
+          </span>
         </div>
       </div>
 
       <!-- 2-Column Split: Live Screen Preview & Console Logs -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <!-- Live Browser View -->
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-5 flex flex-col">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              Live Browser View
+        <!-- Live Browser View (Carbon surface, flat borders) -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4 flex flex-col">
+          <div class="flex items-center justify-between mb-3 border-b border-iron pb-2.5">
+            <h2 class="text-xs font-bold text-paper uppercase tracking-wider flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-ember animate-pulse"></span>
+              <span>LIVE BROWSER TELEMETRY</span>
             </h2>
-            <span class="text-xs text-zinc-500">Connected to Chrome on port 9222</span>
+            <span class="text-[10px] text-steel">CDP_PORT: 9222</span>
           </div>
-          <div class="flex-1 min-h-[360px] bg-zinc-950 rounded-xl border border-zinc-800/80 flex items-center justify-center overflow-hidden relative">
+          <div class="flex-1 min-h-[360px] bg-void rounded-[2px] border border-iron flex items-center justify-center overflow-hidden relative">
             <img id="liveScreenshot" class="w-full h-full object-contain hidden" alt="Live browser preview" />
-            <div id="liveScreenshotPlaceholder" class="text-center p-6 text-zinc-500">
-              <svg class="w-12 h-12 mx-auto stroke-zinc-700 stroke-1 mb-2" fill="none" viewBox="0 0 24 24"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              <p class="text-sm">Click "Start" to begin applying.</p>
-              <p class="text-xs text-zinc-600 mt-1">Live snapshots will display here in real time.</p>
+            <div id="liveScreenshotPlaceholder" class="text-center p-6 text-steel">
+              <div class="w-10 h-10 mx-auto rounded-[2px] border border-iron text-steel flex items-center justify-center mb-3">
+                &gt;_
+              </div>
+              <p class="text-xs text-fog uppercase">STANDBY FOR DISPATCH</p>
+              <p class="text-[11px] text-ash mt-1">Click "Start →" to launch browser pipeline</p>
             </div>
           </div>
         </div>
 
-        <!-- Terminal Logs -->
-        <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-5 flex flex-col">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span>Terminal & Event Stream</span>
+        <!-- Terminal Logs (Void background, Iron border, pure monospaced CLI stream) -->
+        <div class="bg-carbon border border-iron rounded-[2px] p-4 flex flex-col">
+          <div class="flex items-center justify-between mb-3 border-b border-iron pb-2.5">
+            <h2 class="text-xs font-bold text-paper uppercase tracking-wider flex items-center gap-2">
+              <span class="text-ember">&gt;</span>
+              <span>EVENT STREAM &amp; EXEC_LOGS</span>
             </h2>
-            <button id="btnClearLogs" class="text-xs text-zinc-500 hover:text-zinc-300">Clear</button>
+            <button id="btnClearLogs" class="text-[11px] text-steel hover:text-paper uppercase transition cursor-pointer">
+              [CLEAR]
+            </button>
           </div>
-          <div id="logContainer" class="flex-1 min-h-[360px] max-h-[420px] bg-zinc-950 rounded-xl border border-zinc-800/80 p-4 font-mono text-xs overflow-y-auto space-y-2">
-            <div class="text-zinc-600">Waiting for automation start...</div>
+          <div id="logContainer" class="flex-1 min-h-[360px] max-h-[420px] bg-void rounded-[2px] border border-iron p-3.5 font-mono text-[11px] overflow-y-auto space-y-1.5 leading-relaxed">
+            <div class="text-steel">// Initialized Axiom session... waiting for command.</div>
           </div>
         </div>
 
@@ -260,97 +426,102 @@
 
     <!-- TAB 2: PROFILE & SCREENING Q&A -->
     <section id="tab-profile" class="tab-content hidden space-y-6">
-      <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-6">
-        <div class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
+      <div class="bg-carbon border border-iron rounded-[2px] p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-iron pb-4 mb-6 gap-3">
           <div>
-            <h2 class="text-lg font-bold text-white">Shoaib Akhtar's Auto-Answer Profile</h2>
-            <p class="text-xs text-zinc-400">Used by the question engine to automatically fill LinkedIn Easy Apply screening questions.</p>
+            <h2 class="text-sm font-bold text-paper uppercase tracking-wider">Shoaib Akhtar // Auto-Answer Profile</h2>
+            <p class="text-xs text-ash mt-0.5">Parameters utilized by the NLP engine to answer screening questionnaires.</p>
           </div>
-          <button id="btnSaveProfile" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition">
-            Save Changes
+          <button id="btnSaveProfile" class="px-5 py-2 rounded-[2px] bg-ember hover:bg-ember-hover text-paper font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5">
+            <span>Save Profile</span>
+            <span>→</span>
           </button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Personal Info -->
           <div class="space-y-4">
-            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Contact & Personal</h3>
+            <h3 class="text-xs font-bold text-ember uppercase tracking-wider border-b border-iron pb-1">
+              [01] Contact &amp; Identifiers
+            </h3>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Full Name</label>
-              <input id="profFullName" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Full Legal Name</label>
+              <input id="profFullName" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Email</label>
-              <input id="profEmail" type="email" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Primary Email</label>
+              <input id="profEmail" type="email" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Phone Number</label>
-              <input id="profPhone" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Contact Phone</label>
+              <input id="profPhone" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">City</label>
-                <input id="profCity" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">City</label>
+                <input id="profCity" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">Country</label>
-                <input id="profCountry" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">Country</label>
+                <input id="profCountry" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
             </div>
           </div>
 
           <!-- Work Auth & Compensation -->
           <div class="space-y-4">
-            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Authorization & Salary</h3>
+            <h3 class="text-xs font-bold text-ember uppercase tracking-wider border-b border-iron pb-1">
+              [02] Work Auth &amp; Requirements
+            </h3>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Are you legally authorized to work?</label>
-              <select id="profAuthorized" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Legally Authorized to Work?</label>
+              <select id="profAuthorized" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Will you require visa sponsorship?</label>
-              <select id="profSponsorship" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Require Visa Sponsorship?</label>
+              <select id="profSponsorship" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
                 <option value="No">No</option>
                 <option value="Yes">Yes</option>
               </select>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">Desired Salary (USD Numeric)</label>
-                <input id="profSalaryNumeric" type="number" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">Desired Salary (USD Numeric)</label>
+                <input id="profSalaryNumeric" type="number" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">Notice Period (Weeks)</label>
-                <input id="profNoticeWeeks" type="number" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">Notice Period (Weeks)</label>
+                <input id="profNoticeWeeks" type="number" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">LinkedIn Profile URL</label>
-                <input id="profLinkedin" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">LinkedIn URL</label>
+                <input id="profLinkedin" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-zinc-400 mb-1">GitHub / Portfolio URL</label>
-                <input id="profGithub" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+                <label class="block text-[11px] font-medium text-steel uppercase mb-1">GitHub / Portfolio URL</label>
+                <input id="profGithub" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               </div>
             </div>
           </div>
         </div>
 
         <!-- Skills & Experience Years Editor -->
-        <div class="mt-8 border-t border-zinc-800 pt-6">
+        <div class="mt-8 border-t border-iron pt-6">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h3 class="text-sm font-bold text-white">Skills & Experience Years Table</h3>
-              <p class="text-xs text-zinc-400">When LinkedIn asks "How many years of experience with [Skill]?", these numbers are used.</p>
+              <h3 class="text-xs font-bold text-paper uppercase tracking-wider">Skill Experience Matrix</h3>
+              <p class="text-[11px] text-ash">Evaluated when ATS forms require "Years of experience with [Skill]".</p>
             </div>
-            <button id="btnAddSkill" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 border border-zinc-700">
+            <button id="btnAddSkill" class="px-3 py-1.5 rounded-[2px] bg-void hover:bg-carbon text-xs font-semibold text-fog border border-iron transition cursor-pointer">
               + Add Skill
             </button>
           </div>
-          <div id="skillsTable" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div id="skillsTable" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <!-- Dynamically populated -->
           </div>
         </div>
@@ -360,45 +531,63 @@
 
     <!-- TAB 3: SEARCH & FILTERS -->
     <section id="tab-settings" class="tab-content hidden space-y-6">
-      <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-6">
-        <div class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
+      <div class="bg-carbon border border-iron rounded-[2px] p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-iron pb-4 mb-6 gap-3">
           <div>
-            <h2 class="text-lg font-bold text-white">Job Search Parameters & Safety Settings</h2>
-            <p class="text-xs text-zinc-400">Configure target roles, locations, execution modes, and blacklist filters.</p>
+            <h2 class="text-sm font-bold text-paper uppercase tracking-wider">Search Parameters &amp; Engine Directives</h2>
+            <p class="text-xs text-ash mt-0.5">Control execution mode, platforms, location queries, and company exclusions.</p>
           </div>
-          <button id="btnSaveSettings" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition">
-            Save Settings
+          <button id="btnSaveSettings" class="px-5 py-2 rounded-[2px] bg-ember hover:bg-ember-hover text-paper font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5">
+            <span>Save Settings</span>
+            <span>→</span>
           </button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Execution Mode & Limits -->
           <div class="space-y-4">
-            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Execution Mode & Safety</h3>
+            <h3 class="text-xs font-bold text-ember uppercase tracking-wider border-b border-iron pb-1">
+              [01] Execution &amp; Platform Target
+            </h3>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Execution Mode</label>
-              <select id="setMode" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                <option value="hybrid">Hybrid Mode (Auto-fills, pauses for review on final screen)</option>
-                <option value="autonomous">Fully Autonomous (Auto-submits directly up to daily limit)</option>
-                <option value="review">Review Mode (Always requires manual confirmation)</option>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">
+                Primary Target Platform
+              </label>
+              <select id="setPlatform" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
+                <option value="all">🌐 ALL PLATFORMS (AUTO-ROTATE ALL)</option>
+                <option value="linkedin">💼 LINKEDIN (EASY APPLY + EXTERNAL ATS)</option>
+                <option value="wellfound">✌️ WELLFOUND (ANGELLIST STARTUPS)</option>
+                <option value="weworkremotely">🌍 WE WORK REMOTELY (DIRECT ATS)</option>
+                <option value="remoteok">📡 REMOTEOK (DIRECT ATS)</option>
+                <option value="jobicy">💼 JOBICY (ENGINEERING REMOTE)</option>
+                <option value="remote_ats">⚡ ALL CURATED REMOTE ATS (GREENHOUSE/LEVER/ASHBY)</option>
+              </select>
+              <p class="text-[10px] text-ash mt-1">Platform targeted during manual runs and 24/7 autopilot cycles.</p>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Execution Mode</label>
+              <select id="setMode" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
+                <option value="autonomous">Fully Autonomous (Auto-submits directly without human review)</option>
+                <option value="hybrid">Hybrid Mode (Pre-fills form, requests review on final screen)</option>
+                <option value="review">Review Mode (Manual step-by-step confirmation)</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Job Application Target</label>
-              <select id="setApplyType" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-                <option value="all">🌟 All Jobs (LinkedIn Easy Apply + External Career Sites: Greenhouse, Lever, Ashby, Workday)</option>
-                <option value="easy_apply">⚡ LinkedIn Easy Apply Only</option>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Application Scope Target</label>
+              <select id="setApplyType" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
+                <option value="all">All Jobs (LinkedIn Easy Apply + External ATS: Greenhouse, Lever, Ashby, Workday)</option>
+                <option value="easy_apply">LinkedIn Easy Apply Only</option>
               </select>
-              <p class="text-[11px] text-zinc-500 mt-1">Tiered auto-apply: Fully auto-submits on Greenhouse, Lever & Ashby; pre-fills and assists on Workday/complex portals.</p>
+              <p class="text-[10px] text-ash mt-1">Full auto-submits on Greenhouse, Lever &amp; Ashby; pre-fills on complex portals.</p>
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Daily Application Quota Limit</label>
-              <input id="setDailyLimit" type="number" value="25" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
-              <p class="text-[11px] text-zinc-500 mt-1">Recommended: 20-30 to maintain a completely clean account standing.</p>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Daily Safe Limit Quota</label>
+              <input id="setDailyLimit" type="number" value="25" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
+              <p class="text-[10px] text-ash mt-1">Recommended: 20-30 applications daily to guarantee account safety.</p>
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Date Posted</label>
-              <select id="setDatePosted" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Date Posted Filter</label>
+              <select id="setDatePosted" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
                 <option value="pastWeek">Past Week (Recommended)</option>
                 <option value="past24h">Past 24 Hours</option>
                 <option value="pastMonth">Past Month</option>
@@ -409,37 +598,39 @@
 
           <!-- Search Keywords & Location -->
           <div class="space-y-4">
-            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider">Search Keywords & Location</h3>
+            <h3 class="text-xs font-bold text-ember uppercase tracking-wider border-b border-iron pb-1">
+              [02] Queries, Locations &amp; Exclusions
+            </h3>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Target Keywords (comma-separated)</label>
-              <textarea id="setKeywords" rows="3" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"></textarea>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Target Keywords (comma-separated)</label>
+              <textarea id="setKeywords" rows="3" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember"></textarea>
             </div>
             <!-- Location Input & Quick-Pills -->
             <div>
               <div class="flex items-center justify-between mb-1">
-                <label class="block text-xs font-medium text-zinc-400">Target Search Location</label>
-                <span class="text-[11px] text-zinc-500">Worldwide, United States, Pakistan, etc.</span>
+                <label class="block text-[11px] font-medium text-steel uppercase">Target Search Location</label>
+                <span class="text-[10px] text-ash">Worldwide, US, Europe, Pakistan...</span>
               </div>
-              <input id="setLocation" type="text" placeholder="Worldwide, United States, Pakistan, London..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+              <input id="setLocation" type="text" placeholder="Worldwide, United States, Pakistan, London..." class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
               
-              <!-- Quick Location Selection Pills -->
+              <!-- Location Pills -->
               <div class="flex flex-wrap gap-1.5 mt-2">
-                <span class="text-[11px] text-zinc-500 py-0.5">Quick select:</span>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="Worldwide">Worldwide</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="United States">United States</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="Pakistan">Pakistan</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="India">India</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="United Kingdom">United Kingdom</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="European Union">Europe</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/80 transition cursor-pointer" data-loc="Canada">Canada</button>
-                <button type="button" class="loc-pill text-[11px] px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-zinc-800 transition cursor-pointer" data-loc="">Anywhere / Clear</button>
+                <span class="text-[10px] text-steel py-0.5 uppercase">Quick:</span>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="Worldwide">Worldwide</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="United States">United States</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="Pakistan">Pakistan</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="India">India</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="United Kingdom">United Kingdom</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="European Union">Europe</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-fog border border-iron transition cursor-pointer" data-loc="Canada">Canada</button>
+                <button type="button" class="loc-pill text-[10px] px-2 py-0.5 rounded-[2px] bg-void hover:bg-iron text-steel border border-iron transition cursor-pointer" data-loc="">Clear</button>
               </div>
             </div>
 
             <!-- Workplace Type Filter -->
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Workplace Filter Type</label>
-              <select id="setWorkplaceType" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Workplace Filter Type</label>
+              <select id="setWorkplaceType" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember">
                 <option value="remote">Remote Only (f_WT=2 - Recommended for Global roles)</option>
                 <option value="hybrid">Hybrid Only (f_WT=3)</option>
                 <option value="onsite">On-Site Only (f_WT=1)</option>
@@ -447,38 +638,38 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-zinc-400 mb-1">Blacklisted Companies (comma-separated)</label>
-              <input id="setBlacklist" type="text" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
-              <p class="text-[11px] text-zinc-500 mt-1">Companies you do NOT want to apply for (e.g. CyberCoders, Revature).</p>
+              <label class="block text-[11px] font-medium text-steel uppercase mb-1">Blacklisted Companies (comma-separated)</label>
+              <input id="setBlacklist" type="text" class="w-full bg-void border border-iron rounded-[2px] px-3 py-2 text-xs text-paper focus:outline-none focus:border-ember" />
+              <p class="text-[10px] text-ash mt-1">Companies to automatically bypass (e.g. CyberCoders, Revature).</p>
             </div>
           </div>
 
-          <!-- Intellisense AI Settings Card -->
-          <div class="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-zinc-800">
-            <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>🧠 Intellisense & Full Job Description Analysis</span>
-              <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-medium">Active</span>
+          <!-- Intellisense Settings Card -->
+          <div class="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-iron">
+            <h3 class="text-xs font-bold text-ember uppercase tracking-wider mb-2 flex items-center gap-2">
+              <span>[03] Intellisense &amp; Dynamic ATS CV Engine</span>
+              <span class="text-[10px] bg-void border border-ember/30 text-ember px-2 py-0.5 rounded-[2px]">ACTIVE</span>
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <label class="flex items-center space-x-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 cursor-pointer">
-                <input id="setIntelliReadJD" type="checkbox" checked class="rounded bg-zinc-900 border-zinc-700 text-purple-600 focus:ring-0" />
-                <span class="text-zinc-300">Read Full Description</span>
+              <label class="flex items-center space-x-2.5 bg-void p-3 rounded-[2px] border border-iron cursor-pointer">
+                <input id="setIntelliReadJD" type="checkbox" checked class="rounded-[2px] bg-carbon border-iron text-ember focus:ring-0" />
+                <span class="text-paper">Read Full JD</span>
               </label>
-              <label class="flex items-center space-x-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 cursor-pointer">
-                <input id="setIntelliClearance" type="checkbox" checked class="rounded bg-zinc-900 border-zinc-700 text-purple-600 focus:ring-0" />
-                <span class="text-zinc-300">Pre-filter Clearance</span>
+              <label class="flex items-center space-x-2.5 bg-void p-3 rounded-[2px] border border-iron cursor-pointer">
+                <input id="setIntelliClearance" type="checkbox" checked class="rounded-[2px] bg-carbon border-iron text-ember focus:ring-0" />
+                <span class="text-paper">Pre-filter Clearance</span>
               </label>
-              <label class="flex items-center space-x-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 cursor-pointer">
-                <input id="setIntelliCitizenship" type="checkbox" checked class="rounded bg-zinc-900 border-zinc-700 text-purple-600 focus:ring-0" />
-                <span class="text-zinc-300">Pre-filter US-Only</span>
+              <label class="flex items-center space-x-2.5 bg-void p-3 rounded-[2px] border border-iron cursor-pointer">
+                <input id="setIntelliCitizenship" type="checkbox" checked class="rounded-[2px] bg-carbon border-iron text-ember focus:ring-0" />
+                <span class="text-paper">Pre-filter US-Only</span>
               </label>
-              <label class="flex items-center space-x-2 bg-zinc-950 p-2.5 rounded-lg border border-purple-500/40 bg-purple-950/20 cursor-pointer">
-                <input id="setIntelliDynamicCV" type="checkbox" checked class="rounded bg-zinc-900 border-zinc-700 text-purple-500 focus:ring-0" />
-                <span class="text-purple-300 font-semibold">✨ Dynamic ATS CV Generator</span>
+              <label class="flex items-center space-x-2.5 bg-graphite p-3 rounded-[2px] border border-ember/40 cursor-pointer">
+                <input id="setIntelliDynamicCV" type="checkbox" checked class="rounded-[2px] bg-carbon border-iron text-ember focus:ring-0" />
+                <span class="text-ember font-bold">Dynamic ATS CV</span>
               </label>
             </div>
-            <p class="text-[11px] text-zinc-500 mt-2">
-              Deeply parses target JDs, extracts required libraries/frameworks, dynamically generates a 100% ATS-compliant single-column vector PDF tailored for that company and role, and attaches it automatically.
+            <p class="text-[11px] text-ash mt-2">
+              Parses requirements from target job specifications, creates a tailored 1-column ATS PDF, and attaches it dynamically.
             </p>
           </div>
         </div>
@@ -487,32 +678,47 @@
 
     <!-- TAB 4: APPLICATION HISTORY -->
     <section id="tab-history" class="tab-content hidden space-y-6">
-      <div class="bg-zinc-900/70 border border-zinc-800/80 rounded-2xl p-6">
-        <div class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
+      <div class="bg-carbon border border-iron rounded-[2px] p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-iron pb-4 mb-4 gap-3">
           <div>
-            <h2 class="text-lg font-bold text-white">Tracked Applications</h2>
-            <p class="text-xs text-zinc-400">All applications submitted, skipped, or reviewed by the engine.</p>
+            <h2 class="text-sm font-bold text-paper uppercase tracking-wider">Application Telemetry Log</h2>
+            <p class="text-xs text-ash mt-0.5">Submissions, reviews, and status tracking across all configured ATS platforms.</p>
           </div>
-          <button id="btnExportCsv" class="px-4 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 border border-zinc-700">
-            Export to CSV
+          <button id="btnExportCsv" class="px-4 py-1.5 rounded-[2px] bg-void hover:bg-carbon text-xs font-semibold text-paper border border-iron transition cursor-pointer flex items-center gap-1.5">
+            <span>Export CSV</span>
+            <span>→</span>
           </button>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="text-zinc-400 uppercase bg-zinc-950/50 border-b border-zinc-800">
+        <!-- Platform Filter Bar -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <span class="text-[11px] text-steel uppercase mr-1">FILTER:</span>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-ember text-paper font-bold text-xs transition cursor-pointer" data-platform="all">ALL</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="linkedin">LINKEDIN</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="wellfound">WELLFOUND</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="weworkremotely">WWR</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="remoteok">REMOTEOK</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="jobicy">JOBICY</button>
+          <button class="plat-filter-btn px-3 py-1 rounded-[2px] bg-void border border-iron text-steel hover:text-paper text-xs transition cursor-pointer" data-platform="remote_ats">REMOTE ATS</button>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto border border-iron rounded-[2px]">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="text-steel uppercase bg-void border-b border-iron">
               <tr>
-                <th class="py-3 px-4">Date</th>
-                <th class="py-3 px-4">Job Title</th>
-                <th class="py-3 px-4">Company</th>
-                <th class="py-3 px-4">Location</th>
-                <th class="py-3 px-4">Status</th>
-                <th class="py-3 px-4">CV Used / Details</th>
-                <th class="py-3 px-4">Link</th>
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Platform</th>
+                <th class="py-2.5 px-3">Title</th>
+                <th class="py-2.5 px-3">Company</th>
+                <th class="py-2.5 px-3">Location</th>
+                <th class="py-2.5 px-3">Status</th>
+                <th class="py-2.5 px-3">CV Artifact</th>
+                <th class="py-2.5 px-3">Action</th>
               </tr>
             </thead>
-            <tbody id="historyTableBody" class="divide-y divide-zinc-800/60 text-zinc-300">
-              <tr><td colspan="7" class="py-8 text-center text-zinc-500">No applications recorded yet.</td></tr>
+            <tbody id="historyTableBody" class="divide-y divide-iron text-fog bg-carbon">
+              <tr><td colspan="8" class="py-8 text-center text-steel">// No telemetry events recorded yet.</td></tr>
             </tbody>
           </table>
         </div>

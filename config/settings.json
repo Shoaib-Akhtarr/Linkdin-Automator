@@ -1,21 +1,56 @@
 {
+  "activePlatform": "all",
+  "platforms": {
+    "linkedin": {
+      "enabled": true,
+      "name": "LinkedIn"
+    },
+    "wellfound": {
+      "enabled": true,
+      "name": "Wellfound (AngelList)"
+    },
+    "remote_ats": {
+      "enabled": true,
+      "name": "Curated Remote ATS (Ashby/Greenhouse/Lever)"
+    },
+    "weworkremotely": {
+      "enabled": true,
+      "name": "We Work Remotely"
+    },
+    "remoteok": {
+      "enabled": true,
+      "name": "RemoteOK"
+    },
+    "jobicy": {
+      "enabled": true,
+      "name": "Jobicy"
+    }
+  },
   "search": {
     "keywords": [
       "AI Engineer",
       "Generative AI Engineer",
       "Machine Learning Engineer",
-      "Python Developer",
       "LLM Engineer",
+      "Agentic AI Engineer",
+      "AI Agent Developer",
+      "Python Developer",
+      "Python Engineer",
+      "Backend Engineer",
+      "Software Engineer",
+      "Full Stack Engineer",
+      "Data Scientist",
       "NLP Engineer",
       "Deep Learning Engineer",
-      "MLOps Engineer"
+      "MLOps Engineer",
+      "AI Automation Engineer"
     ],
-    "location": "United Kingdom",
+    "location": "Worldwide",
     "workplaceType": "remote",
     "remoteOnly": true,
     "easyApplyOnly": false,
     "applyType": "all",
-    "datePosted": "pastMonth",
+    "datePosted": "pastWeek",
     "experienceLevels": [],
     "blacklistCompanies": [
       "CyberCoders",
@@ -23,25 +58,25 @@
       "Staffing",
       "TalentBurst"
     ],
-    "paginationPages": 3
+    "paginationPages": 6
   },
   "externalApply": {
     "enabled": true,
-    "mode": "hybrid",
-    "autoSubmitStandardATS": false,
-    "assistComplexPortals": true
+    "autoSubmitStandardATS": true,
+    "assistComplexPortals": false,
+    "mode": "autonomous"
   },
   "execution": {
-    "mode": "hybrid",
+    "mode": "autonomous",
     "easyApplyMode": "autonomous",
-    "externalMode": "hybrid",
-    "dailyApplicationLimit": 80,
-    "minDelayMs": 2500,
-    "maxDelayMs": 5500,
+    "externalMode": "autonomous",
+    "dailyApplicationLimit": 100,
+    "minDelayMs": 800,
+    "maxDelayMs": 1800,
     "cdpPort": 9222,
     "cdpHost": "http://127.0.0.1:9222",
     "autoSubmitInAutonomousMode": true,
-    "pauseForReviewInHybridMode": true,
+    "pauseForReviewInHybridMode": false,
     "skipOnUnmatchedRequiredFields": false
   },
   "intelligence": {
@@ -50,12 +85,34 @@
     "filterCitizenshipRestricted": true,
     "minimumMatchScore": 10,
     "tailorCoverLetter": true,
-    "dynamicCVGeneration": true
+    "dynamicCVGeneration": true,
+    "dynamicProjects": true
   },
   "autopilot": {
-    "enabled": false,
+    "enabled": true,
     "intervalMinutes": 120,
     "batchSize": 10,
-    "nextRunTime": null
+    "nextRunTime": 1793207480049
+  },
+  "aiOptimizer": {
+    "mode": "hybrid",
+    "primary": "groq",
+    "secondary": "ollama",
+    "tertiary": "hf_space",
+    "groq": {
+      "model": "qwen/qwen3.8-27b",
+      "timeoutMs": 15000
+    },
+    "ollama": {
+      "host": "http://127.0.0.1:11434",
+      "model": "qwen2.5:3b-instruct",
+      "timeoutMs": 80000,
+      "probeTimeoutMs": 1500
+    },
+    "hfSpace": {
+      "spaceId": "shoaib158/Space11",
+      "apiEndpoint": "/analyze",
+      "timeoutMs": 45000
+    }
   }
 }

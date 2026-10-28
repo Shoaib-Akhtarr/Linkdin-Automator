@@ -59,6 +59,9 @@ class BrowserBridge {
         '--no-first-run',
         '--no-default-browser-check',
         '--disable-quic',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-background-timer-throttling',
         '--disable-features=OptimizationHints,Translate,WebUIOmniboxPopup',
         'https://www.linkedin.com/jobs/'
       ],
@@ -211,7 +214,7 @@ class BrowserBridge {
     return this.page;
   }
 
-  async humanDelay(min = 1500, max = 3500) {
+  async humanDelay(min = 600, max = 1400) {
     const delay = Math.floor(Math.random() * (max - min + 1)) + min;
     await new Promise(r => setTimeout(r, delay));
   }
@@ -222,16 +225,22 @@ class BrowserBridge {
       if (!this.cdpSession) {
         this.cdpSession = await this.context.newCDPSession(this.page);
       }
-      // Instant native CDP GPU screenshot (doesn't hang on font loading!)
-      const { data } = await this.cdpSession.send('Page.captureScreenshot', {
+      // Instant native CDP GPU screenshot with strict 1200ms timeout race (prevents hang on minimized windows)
+      const cdpPromise = this.cdpSession.send('Page.captureScreenshot', {
         format: 'jpeg',
-        quality: 70
-      });
+        quality: 65
+      }).then(res => res?.data);
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('CDP screenshot timeout')), 1200)
+      );
+
+      const data = await Promise.race([cdpPromise, timeoutPromise]);
       return data;
     } catch (e) {
-      // Fallback
+      // Rapid fallback with 800ms timeout, or return null cleanly without halting execution loop
       try {
-        const buf = await this.page.screenshot({ timeout: 2000, animations: 'disabled' });
+        const buf = await this.page.screenshot({ timeout: 800, animations: 'disabled' });
         return buf.toString('base64');
       } catch (err) {
         return null;
@@ -240,7 +249,19 @@ class BrowserBridge {
   }
 
   async isLinkedInLoggedIn() {
-    if (!this.page) return false;
+    try {
+      if (!this.page || this.page.isClosed()) {
+        await this.getPage();
+      }
+      if (this.context) {
+        const pages = this.context.pages().filter(p => !p.isClosed());
+        const liPage = pages.find(p => p.url().includes('linkedin.com'));
+        if (liPage) {
+          this.page = liPage;
+        }
+      }
+    } catch (_) {}
+    if (!this.page || this.page.isClosed()) return false;
     const url = this.page.url();
     if (url.includes('linkedin.com/login') || url.includes('linkedin.com/checkpoint')) {
       return false;

@@ -1,16 +1,18 @@
-# 🚀 LinkedIn-Automator
+# 🚀 Multi-Platform Job Application Suite (LinkedIn • Wellfound • Remote ATS)
 
 An autonomous, intelligent, anti-detection job application engine built with Playwright, Chrome DevTools Protocol (CDP), and an AI-driven CV synthesizer.
 
-Supports **both LinkedIn Easy Apply and External Company Portals** (Greenhouse, Lever, Ashby, Workday) with on-the-fly ATS CV customization and a 24/7 Autopilot Scheduler.
+Supports **LinkedIn Easy Apply & External Portals**, **Wellfound (AngelList Startups with AI Pitch Notes)**, and **Curated Remote ATS (Greenhouse, Lever, Ashby)** with on-the-fly ATS CV customization and a 24/7 Autopilot Scheduler.
 
 ---
 
 ## ✨ Features
 
-- **🌐 Universal Apply (Easy Apply + External ATS)**:
-  - **LinkedIn Easy Apply**: Full modal navigation, screening question evaluation, and resume upload.
-  - **External Modern ATS**: Full autonomous auto-fill and submission for **Greenhouse**, **Lever**, and **Ashby**.
+- **🌐 Multi-Platform Selector & Autopilot**:
+  - **Platform Chooser in Dashboard**: Toggle on-the-fly between **All Platforms (Auto-Rotate)**, **LinkedIn**, **Wellfound**, or **Curated Remote ATS**.
+  - **LinkedIn Easy Apply & Universal ATS**: Full modal navigation, screening question evaluation, and resume upload.
+  - **Wellfound (AngelList)**: Autonomously applies to tech & AI startups with dynamic personalized pitch notes addressing the founders.
+  - **Curated Remote ATS**: Direct ingestion of high-paying remote roles auto-submitted directly to Greenhouse, Lever, and Ashby portals.
   - **Complex Portals (Workday, etc.)**: Pre-fills contact details, attaches tailored CVs, and pauses for 1-click review/login.
 
 - **📄 Dynamic On-the-Fly ATS CV Generator**:

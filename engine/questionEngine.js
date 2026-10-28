@@ -320,6 +320,36 @@ class QuestionEngine {
     const nonPlaceholder = options.find(o => !/select an option|choose|please select/i.test(o));
     return nonPlaceholder || options[0];
   }
+
+  /**
+   * Synthesize a concise, tailored pitch note for startup founders / Wellfound
+   */
+  generatePitchNote(jobInfo = {}) {
+    const p = this.profile.personal || {};
+    const name = p.firstName || p.fullName || 'Candidate';
+    const company = jobInfo.company || 'your team';
+    const title = jobInfo.title || 'the role';
+
+    // Extract matched skills
+    let matched = [];
+    if (jobInfo.description) {
+      const skills = Object.keys(this.profile.workExperienceYears || {}).filter(s => s !== 'total');
+      const descLower = jobInfo.description.toLowerCase();
+      matched = skills.filter(s => descLower.includes(s.toLowerCase()));
+    }
+    const keySkills = matched.slice(0, 3).join(', ') || 'Python, LLMs, and Multi-Agent AI systems';
+
+    let projectMention = '';
+    try {
+      const cvTailor = require('./cvTailor');
+      const projects = cvTailor.generateSuggestedProjects(jobInfo);
+      if (projects && projects.length > 0) {
+        projectMention = ` Most recently, I engineered a ${projects[0].name.toLowerCase()} leveraging ${projects[0].techStack.slice(0, 3).join(', ')}.`;
+      }
+    } catch (_) {}
+
+    return `Hi ${company} team,\n\nI'm ${name}, an engineer specialized in ${keySkills}. I noticed your opening for ${title} and love what you're building.${projectMention} I've designed and deployed robust AI workflows in production and would love to bring that momentum to ${company}.\n\nLooking forward to speaking with the team!`;
+  }
 }
 
 module.exports = new QuestionEngine();

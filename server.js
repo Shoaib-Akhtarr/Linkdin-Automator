@@ -1,3 +1,6 @@
+const dns = require('dns');
+try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
+
 // Load local .env credentials
 require('./engine/envLoader');
 
@@ -75,9 +78,13 @@ app.post('/api/pause', (req, res) => {
   res.json({ success: true, state: orchestrator.state });
 });
 
-app.post('/api/stop', (req, res) => {
-  orchestrator.stop();
-  res.json({ success: true, state: orchestrator.state });
+app.post('/api/stop', async (req, res) => {
+  try {
+    await orchestrator.stop();
+    res.json({ success: true, state: orchestrator.state });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/approve', async (req, res) => {
@@ -148,9 +155,32 @@ app.post('/api/settings', (req, res) => {
   }
 });
 
+// Platform endpoints
+app.get('/api/platform', (req, res) => {
+  res.json({ activePlatform: orchestrator.settings.activePlatform || 'all' });
+});
+
+app.post('/api/platform', (req, res) => {
+  try {
+    const { platform } = req.body;
+    if (platform) {
+      const data = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+      data.activePlatform = platform;
+      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
+      orchestrator.reloadSettings();
+      broadcastEvent('platform_change', { activePlatform: platform });
+      return res.json({ success: true, activePlatform: platform });
+    }
+    res.status(400).json({ error: 'Platform name required' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Applications history
 app.get('/api/applications', (req, res) => {
-  res.json(tracker.getAllApplications());
+  const platform = req.query.platform || 'all';
+  res.json(tracker.getAllApplications(platform));
 });
 
 app.listen(PORT, () => {
@@ -163,5 +193,11 @@ app.listen(PORT, () => {
   try {
     const { exec } = require('child_process');
     exec(`start http://localhost:${PORT}`);
+  } catch (e) {}
+
+  // Auto-launch local Ollama engine in background if not already active
+  try {
+    const aiOptimizer = require('./engine/aiCvOptimizer');
+    aiOptimizer.launchOllamaIfNeeded().catch(() => {});
   } catch (e) {}
 });
