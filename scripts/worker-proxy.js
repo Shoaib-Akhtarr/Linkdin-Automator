@@ -33,9 +33,24 @@ function connectToRelay() {
     console.log('✅ Connected to Cloud Relay! 4G Phone Tunnel is ready for Playwright.');
   });
 
+  // Keep connection alive with periodic heartbeat
+  const heartbeatTimer = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ type: 'heartbeat' })); } catch (_) {}
+    }
+  }, 15000);
+
   ws.on('message', (raw) => {
     try {
       const msg = JSON.parse(raw);
+      if (msg.type === 'ping') {
+        try { ws.send(JSON.stringify({ type: 'pong' })); } catch (_) {}
+        return;
+      }
+      if (msg.type === 'pong' || msg.type === 'heartbeat_ack') {
+        return;
+      }
+
       const tunnel = activeTunnels.get(msg.id);
       if (!tunnel) return;
 
@@ -63,6 +78,7 @@ function connectToRelay() {
   });
 
   ws.on('close', () => {
+    clearInterval(heartbeatTimer);
     isConnected = false;
     console.warn('⚠️ Disconnected from Cloud Relay. Reconnecting in 3s...');
     setTimeout(connectToRelay, 3000);
