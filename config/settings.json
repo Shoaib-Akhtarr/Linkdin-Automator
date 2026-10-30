@@ -84,7 +84,7 @@
     "readFullDescription": true,
     "filterSecurityClearance": true,
     "filterCitizenshipRestricted": false,
-    "minimumMatchScore": 10,
+    "minimumMatchScore": 75,
     "tailorCoverLetter": true,
     "dynamicCVGeneration": true,
     "dynamicProjects": true
@@ -93,7 +93,7 @@
     "enabled": true,
     "intervalMinutes": 120,
     "batchSize": 80,
-    "nextRunTime": 1793337243959
+    "nextRunTime": 1793355493819
   },
   "aiOptimizer": {
     "mode": "hybrid",
