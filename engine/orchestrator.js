@@ -214,12 +214,21 @@ class Orchestrator extends EventEmitter {
         this.log(`🚀 [Round ${round}] Starting comprehensive application sweep across platforms...`, 'info');
         let roundAppliedCount = 0;
 
-        // 0. Direct Company ATS Scan (Ashby, Greenhouse, Lever) - Alert-First Pipeline
-        try {
-          this.log('🔍 [Direct Company ATS] Scanning verified companies for direct career postings...', 'info');
-          await this.companyAtsEngine.scanAllCompanies(this.settings, msg => this.log(msg, 'info'));
-        } catch (atsScanErr) {
-          this.log(`⚠️ Direct ATS scan note: ${atsScanErr.message}`, 'warn');
+        // 0. Direct Company ATS Scan & Autonomous Apply (Ashby, Greenhouse, Lever)
+        if (!this.isStopped && (this.settings.directCompanyAts?.enabled !== false)) {
+          try {
+            this.log('🔍 [Direct Company ATS] Sourcing verified company career listings via ATS endpoints...', 'info');
+            await this.companyAtsEngine.scanAllCompanies(this.settings, msg => this.log(msg, 'info'));
+
+            // If autoApply is active, auto-apply to eligible queued roles
+            if (this.settings.directCompanyAts?.autoApply !== false && !this.isLimitReached(totalSessionApplied)) {
+              const count = await this.runDirectCompanyAtsLoop(page, totalSessionApplied);
+              roundAppliedCount += count;
+              totalSessionApplied += count;
+            }
+          } catch (atsScanErr) {
+            this.log(`⚠️ Direct ATS note: ${atsScanErr.message}`, 'warn');
+          }
         }
 
         // 1. Curated Remote ATS Loop (WeWorkRemotely, RemoteOK, Jobicy, Greenhouse, Lever, Ashby)
@@ -305,6 +314,93 @@ class Orchestrator extends EventEmitter {
       this.emit('current_job', null);
       this.emit('cycle_finished', { batchAppliedCount: finalCount });
     }
+  }
+
+  /**
+   * Direct Company ATS Autonomous Apply Loop (Greenhouse, Lever, Ashby)
+   */
+  async runDirectCompanyAtsLoop(page, currentBatch) {
+    let count = 0;
+    const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
+
+    const atsData = this.companyAtsEngine.loadAtsJobs();
+    const queuedJobs = (atsData.jobs || []).filter(j => 
+      j.status === 'auto_queued_for_apply' || j.status === 'approved_queued_for_apply'
+    );
+
+    if (queuedJobs.length === 0) {
+      return 0;
+    }
+
+    this.log(`⚡ [Direct Company ATS] Found ${queuedJobs.length} queued matching role(s). Executing autonomous applications...`, 'info');
+
+    for (const job of queuedJobs) {
+      if (maxPerCat > 0 && count >= maxPerCat) {
+        this.log(`🎯 Reached category quota (${count}/${maxPerCat}) for Direct Company ATS.`, 'info');
+        break;
+      }
+      if (this.isLimitReached(currentBatch + count)) break;
+
+      while (this.state === 'paused') {
+        await new Promise(r => setTimeout(r, 1000));
+        if (this.state === 'stopped' || this.isStopped) break;
+      }
+      if (this.state === 'stopped' || this.isStopped) break;
+
+      try {
+        const priorApp = tracker.findPriorApplication(job);
+        if (priorApp && (priorApp.status === 'applied' || priorApp.status === 'previously_applied')) {
+          job.status = 'applied';
+          this.companyAtsEngine.saveAtsJobs(atsData);
+          continue;
+        }
+
+        this.currentJob = job;
+        this.emit('current_job', job);
+        this.log(`👉 [Direct ATS Auto-Apply] Applying autonomously: "${job.title}" at "${job.company}" (${job.platform.toUpperCase()})`, 'info');
+
+        try {
+          if (!page || page.isClosed()) {
+            page = await browserBridge.getPage();
+          }
+        } catch (_) {
+          page = await browserBridge.getPage();
+        }
+
+        const result = await this.companyAtsEngine.approveAndApply(job.jobId, page, {
+          mode: 'autonomous',
+          settings: this.settings,
+          onStatusUpdate: msg => this.log(msg)
+        });
+
+        if (result && result.status === 'applied') {
+          const entry = tracker.record({
+            ...job,
+            status: 'applied',
+            notes: job.tailoredCV ? `Direct ATS Tailored CV: ${job.tailoredCV}` : (result.message || 'Direct ATS Auto-Applied')
+          });
+          this.sessionAppliedJobs.push(entry);
+          count++;
+          this.log(`✓ Successfully auto-applied to "${job.title}" at "${job.company}" on ${job.platform.toUpperCase()}!`, 'success');
+        } else if (result && result.status === 'needs_user_login') {
+          this.log(`⚠️ Workday/Taleo auth required for "${job.title}" at "${job.company}". CV saved in data/tailored_cvs/.`, 'warn');
+        } else {
+          this.log(`⚠️ Auto-apply attempt completed with status: ${result?.status || 'skipped'} (${result?.message || 'form not submitted'})`, 'warn');
+        }
+
+        this.emit('stats_update', tracker.getStats(dailyLimit));
+        this.currentJob = null;
+        this.emit('current_job', null);
+
+        const delay = Math.floor(Math.random() * 2500) + 2500;
+        await this.interruptibleDelay(delay);
+      } catch (jobErr) {
+        this.log(`⚠️ Note on direct ATS "${job.title}": ${jobErr.message}. Continuing...`, 'warn');
+      }
+    }
+
+    return count;
   }
 
   /**

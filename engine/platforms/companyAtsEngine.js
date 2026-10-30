@@ -614,6 +614,7 @@ class CompanyAtsEngine {
       const calibratedScore = this.calibrateScore(analysis, expEval);
       matchedCount++;
 
+      const isAutoApply = settings.directCompanyAts?.autoApply !== false;
       const jobRecord = {
         ...job,
         score: calibratedScore,
@@ -623,7 +624,9 @@ class CompanyAtsEngine {
         recommendation: analysis?.recommendation || 'MATCH',
         criticalGaps: analysis?.skills?.required?.missing || [],
         verifiedSkills: (analysis?.skills?.required?.verified || []).map(s => s.name),
-        status: calibratedScore >= minScore ? 'alerted_pending_approval' : 'scored_below_threshold',
+        status: calibratedScore >= minScore
+          ? (isAutoApply ? 'auto_queued_for_apply' : 'alerted_pending_approval')
+          : 'scored_below_threshold',
         discoveredAt: new Date().toISOString()
       };
 
@@ -634,8 +637,9 @@ class CompanyAtsEngine {
       // 7. Dispatch Alert only if score meets threshold
       if (calibratedScore >= minScore) {
         newAlertsCount++;
-        logCallback(`🎯 [GENUINE MATCH ${calibratedScore}%] "${job.title}" at "${job.company}" (${job.location || 'Remote'})! Dispatching alert...`);
-        await this.dispatchAlert(jobRecord, logCallback);
+        const modeLabel = isAutoApply ? 'AUTO-APPLY TRIGGERED' : 'ALERT DISPATCHED';
+        logCallback(`🎯 [${modeLabel} ${calibratedScore}%] "${job.title}" at "${job.company}" (${job.location || 'Remote'})!`);
+        await this.dispatchAlert(jobRecord, logCallback, isAutoApply);
       }
     }
 
@@ -653,9 +657,10 @@ class CompanyAtsEngine {
 
   /**
    * Step 4: Dispatch Safe Alert (Telegram Bot + Instant Email)
-   * The link points to a GET Confirmation/Review Screen with a secure POST form.
+   * If autoApply is active: notifies user that application is queued for autonomous submission.
+   * If manual mode: link points to a GET Confirmation/Review Screen with a secure POST form.
    */
-  async dispatchAlert(job, logCallback = () => {}) {
+  async dispatchAlert(job, logCallback = () => {}, isAutoApply = false) {
     const baseUrl = this.getBaseUrl();
     const token = this.generateApprovalToken(job.jobId);
     const reviewUrl = `${baseUrl}/api/ats/review?id=${encodeURIComponent(job.jobId)}&token=${token}`;
@@ -666,21 +671,47 @@ class CompanyAtsEngine {
 
     if (tgToken && tgChatId) {
       try {
-        const text = [
-          `🎯 *Direct Company Job Alert!*`,
-          ``,
-          `🏢 *Company:* ${job.company}`,
-          `💼 *Role:* ${job.title}`,
-          `📍 *Location:* ${job.location || 'Worldwide Remote'}`,
-          `⚡ *ATS Platform:* ${job.platform.toUpperCase()}`,
-          `📊 *Calibrated Score:* ${job.score}%`,
-          `⏳ *Experience Required:* ${job.requiredYears ? `${job.requiredYears} years` : 'Entry / Unspecified'}`,
-          ``,
-          `✅ *Verified Skills:* ${job.verifiedSkills.slice(0, 5).join(', ') || 'N/A'}`,
-          job.criticalGaps.length > 0 ? `⚠️ *Missing Prerequisites:* ${job.criticalGaps.join(', ')}` : '',
-          ``,
-          `🔗 [Review & Confirm Application](${reviewUrl})`
-        ].filter(Boolean).join('\n');
+        const text = isAutoApply
+          ? [
+              `🚀 *Direct ATS Auto-Apply Triggered!*`,
+              ``,
+              `🏢 *Company:* ${job.company}`,
+              `💼 *Role:* ${job.title}`,
+              `📍 *Location:* ${job.location || 'Worldwide Remote'}`,
+              `⚡ *ATS Platform:* ${job.platform.toUpperCase()}`,
+              `📊 *Calibrated Score:* ${job.score}%`,
+              `⏳ *Experience Required:* ${job.requiredYears ? `${job.requiredYears} years` : 'Entry / Unspecified'}`,
+              ``,
+              `✅ *Verified Skills:* ${job.verifiedSkills.slice(0, 5).join(', ') || 'N/A'}`,
+              job.criticalGaps.length > 0 ? `⚠️ *Missing Prerequisites:* ${job.criticalGaps.join(', ')}` : '',
+              ``,
+              `🤖 *Mode:* Autonomous Auto-Apply (Submitting with tailored ATS CV)`,
+              `🔗 [View Career Portal](${job.url})`
+            ].filter(Boolean).join('\n')
+          : [
+              `🎯 *Direct Company Job Alert!*`,
+              ``,
+              `🏢 *Company:* ${job.company}`,
+              `💼 *Role:* ${job.title}`,
+              `📍 *Location:* ${job.location || 'Worldwide Remote'}`,
+              `⚡ *ATS Platform:* ${job.platform.toUpperCase()}`,
+              `📊 *Calibrated Score:* ${job.score}%`,
+              `⏳ *Experience Required:* ${job.requiredYears ? `${job.requiredYears} years` : 'Entry / Unspecified'}`,
+              ``,
+              `✅ *Verified Skills:* ${job.verifiedSkills.slice(0, 5).join(', ') || 'N/A'}`,
+              job.criticalGaps.length > 0 ? `⚠️ *Missing Prerequisites:* ${job.criticalGaps.join(', ')}` : '',
+              ``,
+              `🔗 [Review & Confirm Application](${reviewUrl})`
+            ].filter(Boolean).join('\n');
+
+        const keyboard = isAutoApply
+          ? [[{ text: '🌐 View Career Portal', url: job.url }]]
+          : [
+              [
+                { text: '🔍 Review & Confirm', url: reviewUrl },
+                { text: '🌐 View Portal', url: job.url }
+              ]
+            ];
 
         await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
           method: 'POST',
@@ -690,12 +721,7 @@ class CompanyAtsEngine {
             text,
             parse_mode: 'Markdown',
             reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: '🔍 Review & Confirm', url: reviewUrl },
-                  { text: '🌐 View Portal', url: job.url }
-                ]
-              ]
+              inline_keyboard: keyboard
             }
           })
         });
@@ -711,40 +737,59 @@ class CompanyAtsEngine {
       if (transporter) {
         const recipient = process.env.EMAIL_TO || process.env.EMAIL_USER;
 
+        const emailTitle = isAutoApply
+          ? `🚀 Direct ATS Auto-Apply: ${job.company}`
+          : `🎯 Direct Career Alert: ${job.company}`;
+
+        const emailSubtitle = isAutoApply
+          ? `Autonomous ATS Application (${job.platform.toUpperCase()}) &bull; Verified Remote`
+          : `Direct ATS Sourced Role (${job.platform.toUpperCase()}) &bull; Verified Remote`;
+
+        const actionButtons = isAutoApply
+          ? `
+            <div style="margin: 24px 0; text-align: center;">
+              <a href="${job.url}" style="background: #16a34a; color: white; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);">🌐 View Career Portal</a>
+            </div>
+          `
+          : `
+            <div style="margin: 24px 0; text-align: center;">
+              <a href="${reviewUrl}" style="background: #2563eb; color: white; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">🔍 Review & Confirm Application</a>
+              <a href="${job.url}" style="background: #e2e8f0; color: #334155; padding: 13px 20px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block; margin-left: 8px; font-size: 14px;">🌐 View Career Portal</a>
+            </div>
+          `;
+
         const html = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-            <div style="background: #4338ca; color: white; padding: 18px 24px; border-radius: 8px; margin-bottom: 20px;">
-              <h2 style="margin: 0; font-size: 20px;">🎯 Direct Career Alert: ${job.company}</h2>
-              <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;">Direct ATS Sourced Role (${job.platform.toUpperCase()}) &bull; Verified Remote</p>
+            <div style="background: ${isAutoApply ? '#059669' : '#4338ca'}; color: white; padding: 18px 24px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="margin: 0; font-size: 20px;">${emailTitle}</h2>
+              <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;">${emailSubtitle}</p>
             </div>
 
             <div style="padding: 0 4px;">
               <h3 style="margin: 0 0 8px; color: #1e293b; font-size: 18px;">${job.title}</h3>
               <p style="margin: 0 0 16px; color: #64748b; font-size: 14px;">🏢 <strong>${job.company}</strong> | 📍 ${job.location || 'Worldwide Remote'}</p>
 
-              <div style="background: #f8fafc; border-left: 4px solid #4338ca; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px;">
-                <div style="font-size: 15px; font-weight: 600; color: #334155;">Calibrated Match Score: <span style="color: #4338ca; font-size: 18px;">${job.score}%</span></div>
+              <div style="background: #f8fafc; border-left: 4px solid ${isAutoApply ? '#059669' : '#4338ca'}; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px;">
+                <div style="font-size: 15px; font-weight: 600; color: #334155;">Calibrated Match Score: <span style="color: ${isAutoApply ? '#059669' : '#4338ca'}; font-size: 18px;">${job.score}%</span></div>
                 <div style="font-size: 13px; color: #475569; margin-top: 4px;"><strong>Experience Alignment:</strong> ${job.experienceVerdict}</div>
                 <div style="font-size: 13px; color: #475569; margin-top: 4px;"><strong>Verified Skills:</strong> ${job.verifiedSkills.join(', ') || 'N/A'}</div>
                 ${job.criticalGaps.length ? `<div style="font-size: 12px; color: #b45309; margin-top: 4px;"><strong>Prerequisite Gaps:</strong> ${job.criticalGaps.join(', ')}</div>` : ''}
+                ${isAutoApply ? `<div style="font-size: 13px; color: #047857; margin-top: 8px; font-weight: 600;">🤖 Action: Auto-queued for autonomous submission. No manual action required.</div>` : ''}
               </div>
 
-              <div style="margin: 24px 0; text-align: center;">
-                <a href="${reviewUrl}" style="background: #2563eb; color: white; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">🔍 Review & Confirm Application</a>
-                <a href="${job.url}" style="background: #e2e8f0; color: #334155; padding: 13px 20px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block; margin-left: 8px; font-size: 14px;">🌐 View Career Portal</a>
-              </div>
+              ${actionButtons}
 
               <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-                Sent by LinkedIn & ATS Automation Suite &bull; Anti-Prefetch Protected (POST required to submit)
+                Sent by LinkedIn & ATS Automation Suite &bull; ${isAutoApply ? 'Autonomous Mode' : 'Anti-Prefetch Protected (POST required to submit)'}
               </p>
             </div>
           </div>
         `;
 
         await transporter.sendMail({
-          from: `"Career ATS Alerts" <${process.env.EMAIL_USER}>`,
+          from: `"Career ATS Automation" <${process.env.EMAIL_USER}>`,
           to: recipient,
-          subject: `🎯 [Score ${job.score}%] ${job.title} at ${job.company}`,
+          subject: `${isAutoApply ? '🚀 [Auto-Apply' : '🎯 [Score'} ${job.score}%] ${job.title} at ${job.company}`,
           html
         });
         logCallback(`✓ Dispatched Email alert for ${job.title} to ${recipient}`);
@@ -755,7 +800,7 @@ class CompanyAtsEngine {
   }
 
   /**
-   * Step 5: Execute Approved Application
+   * Step 5: Execute Approved / Autonomous Application
    */
   async approveAndApply(jobId, page, options = {}) {
     const atsData = this.loadAtsJobs();
@@ -766,7 +811,7 @@ class CompanyAtsEngine {
     }
 
     const update = options.onStatusUpdate || console.log;
-    update(`🚀 User Approved application for: "${job.title}" at "${job.company}" on ${job.platform.toUpperCase()}`);
+    update(`🚀 Auto-Applying for: "${job.title}" at "${job.company}" on ${job.platform.toUpperCase()}`);
 
     try {
       const applyResult = await this.externalApply.applyDirectUrl(page, job, {
@@ -777,22 +822,33 @@ class CompanyAtsEngine {
       if (applyResult.status === 'applied') {
         job.status = 'applied';
         job.appliedAt = new Date().toISOString();
-        tracker.trackApplication({
+        tracker.record({
           jobId: job.jobId,
           title: job.title,
           company: job.company,
           location: job.location,
           url: job.url,
           status: 'applied',
-          source: job.source,
-          notes: `Approved direct ATS application (${job.platform})`
+          platform: 'remote_ats',
+          notes: `Direct ATS auto-applied (${job.platform})`,
+          description: job.description
         });
+        this.saveAtsJobs(atsData);
+      } else if (applyResult.status === 'needs_user_login') {
+        job.status = 'needs_user_login';
+        this.saveAtsJobs(atsData);
+      } else {
+        job.status = applyResult.status || 'failed';
+        job.failureReason = applyResult.message || 'Apply execution returned unapplied status';
         this.saveAtsJobs(atsData);
       }
 
       return applyResult;
     } catch (err) {
-      update(`❌ Error applying to approved role: ${err.message}`);
+      update(`❌ Error applying to ATS role: ${err.message}`);
+      job.status = 'failed';
+      job.failureReason = err.message;
+      this.saveAtsJobs(atsData);
       return { status: 'failed', message: err.message };
     }
   }
