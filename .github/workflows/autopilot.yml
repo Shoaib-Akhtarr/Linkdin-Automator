@@ -21,7 +21,9 @@ concurrency:
 jobs:
   run-autopilot:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 240
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -57,6 +59,8 @@ jobs:
           HEADLESS_MODE: 'true'
           RUN_IN_CLOUD: 'true'
           PROXY_SERVER: 'http://127.0.0.1:9050'
+          TIMEOUT_MINUTES: '235'
+          MAX_PER_CATEGORY: '1'
           BATCH_SIZE: ${{ github.event.inputs.batch_size || '10' }}
           # Automatically uses the client app's li_at input, with fallback to secret
           LI_AT_COOKIE: ${{ github.event.inputs.li_at_cookie || secrets.LI_AT_COOKIE }}
@@ -75,5 +79,6 @@ jobs:
             echo "No new application records to commit."
           else
             git commit -m "chore(tracker): update applications tracking history [skip ci]"
+            git pull --rebase origin main
             git push origin main
           fi

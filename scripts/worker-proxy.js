@@ -91,8 +91,23 @@ function connectToRelay() {
 
 connectToRelay();
 
-// Local HTTP Proxy Server for Playwright
+// Local HTTP Proxy Server for Playwright & Local Telemetry Forwarder
 const proxyServer = http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url === '/telemetry') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'telemetry', payload }));
+        }
+      } catch (_) {}
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
   res.writeHead(405, { 'Content-Type': 'text/plain' });
   res.end('Only HTTPS CONNECT supported.\n');
 });

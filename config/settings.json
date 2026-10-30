@@ -70,6 +70,7 @@
     "mode": "autonomous",
     "easyApplyMode": "autonomous",
     "externalMode": "autonomous",
+    "maxPerCategory": 1,
     "dailyApplicationLimit": 100,
     "minDelayMs": 800,
     "maxDelayMs": 1800,
@@ -82,7 +83,7 @@
   "intelligence": {
     "readFullDescription": true,
     "filterSecurityClearance": true,
-    "filterCitizenshipRestricted": true,
+    "filterCitizenshipRestricted": false,
     "minimumMatchScore": 10,
     "tailorCoverLetter": true,
     "dynamicCVGeneration": true,
@@ -91,8 +92,8 @@
   "autopilot": {
     "enabled": true,
     "intervalMinutes": 120,
-    "batchSize": 10,
-    "nextRunTime": 1793207480049
+    "batchSize": 80,
+    "nextRunTime": 1793337243959
   },
   "aiOptimizer": {
     "mode": "hybrid",

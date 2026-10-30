@@ -267,7 +267,13 @@ btnClearLogs.addEventListener('click', () => {
 
 // Control Button Actions
 btnStart.addEventListener('click', async () => {
-  await fetch('/api/start', { method: 'POST' });
+  btnStart.disabled = true;
+  btnStart.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin fill-current" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> <span>Starting...</span>`;
+  try {
+    await fetch('/api/start', { method: 'POST' });
+  } catch (e) {
+    btnStart.disabled = false;
+  }
 });
 
 btnPause.addEventListener('click', async () => {

@@ -9,6 +9,7 @@ const ExternalApplyEngine = require('./externalApplyEngine');
 const eligibilityEngine = require('./eligibilityEngine');
 const RemoteBoardsEngine = require('./platforms/remoteBoardsEngine');
 const WellfoundEngine = require('./platforms/wellfoundEngine');
+const CompanyAtsEngine = require('./platforms/companyAtsEngine');
 
 class Orchestrator extends EventEmitter {
   constructor() {
@@ -21,6 +22,7 @@ class Orchestrator extends EventEmitter {
     this.externalApplyEngine = new ExternalApplyEngine(browserBridge);
     this.remoteBoardsEngine = new RemoteBoardsEngine(browserBridge, this.externalApplyEngine);
     this.wellfoundEngine = new WellfoundEngine(browserBridge);
+    this.companyAtsEngine = new CompanyAtsEngine(browserBridge, this.externalApplyEngine);
     this.currentJob = null;
     this.reviewPromiseResolve = null;
     this.logs = [];
@@ -212,6 +214,14 @@ class Orchestrator extends EventEmitter {
         this.log(`🚀 [Round ${round}] Starting comprehensive application sweep across platforms...`, 'info');
         let roundAppliedCount = 0;
 
+        // 0. Direct Company ATS Scan (Ashby, Greenhouse, Lever) - Alert-First Pipeline
+        try {
+          this.log('🔍 [Direct Company ATS] Scanning verified companies for direct career postings...', 'info');
+          await this.companyAtsEngine.scanAllCompanies(this.settings, msg => this.log(msg, 'info'));
+        } catch (atsScanErr) {
+          this.log(`⚠️ Direct ATS scan note: ${atsScanErr.message}`, 'warn');
+        }
+
         // 1. Curated Remote ATS Loop (WeWorkRemotely, RemoteOK, Jobicy, Greenhouse, Lever, Ashby)
         if (!this.isStopped && (activePlatform === 'all' || activePlatform === 'remote_ats' || activePlatform === 'weworkremotely' || activePlatform === 'remoteok' || activePlatform === 'jobicy')) {
           if (!this.isLimitReached(totalSessionApplied)) {
@@ -304,6 +314,7 @@ class Orchestrator extends EventEmitter {
     let count = 0;
     let alreadyAppliedCount = 0;
     const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
 
     this.log('⚡ [Curated Remote ATS] Sourcing fresh remote developer/AI listings...', 'info');
     let jobs = [];
@@ -315,6 +326,10 @@ class Orchestrator extends EventEmitter {
     }
 
     for (const job of jobs) {
+      if (maxPerCat > 0 && count >= maxPerCat) {
+        this.log(`🎯 Reached category quota (${count}/${maxPerCat}) for Curated Remote ATS.`, 'info');
+        break;
+      }
       if (this.isLimitReached(currentBatch + count)) break;
 
       while (this.state === 'paused') {
@@ -413,6 +428,7 @@ class Orchestrator extends EventEmitter {
   async runWellfoundLoop(page, currentBatch) {
     let appliedCount = 0;
     const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
     const keywords = this.settings.search?.keywords || ['AI Engineer'];
 
     this.log('🚀 [Wellfound] Connecting to startup jobs stream...', 'info');
@@ -447,6 +463,10 @@ class Orchestrator extends EventEmitter {
       }
 
       for (const job of jobs) {
+        if (maxPerCat > 0 && appliedCount >= maxPerCat) {
+          this.log(`🎯 Reached category quota (${appliedCount}/${maxPerCat}) for Wellfound.`, 'info');
+          break;
+        }
         if (this.isLimitReached(currentBatch + appliedCount)) break;
 
         while (this.state === 'paused') {
@@ -531,6 +551,7 @@ class Orchestrator extends EventEmitter {
    */
   async runLinkedInLoop(page, currentBatch, round = 1) {
     let batchAppliedCount = 0;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
     this.log('Verifying LinkedIn login status...', 'info');
     try {
       page = await browserBridge.getPage();
@@ -572,6 +593,7 @@ class Orchestrator extends EventEmitter {
 
     for (const keyword of keywords) {
       if (this.isStopped || this.isLimitReached(currentBatch + batchAppliedCount)) break;
+      if (maxPerCat > 0 && batchAppliedCount >= maxPerCat) break;
 
       this.log(`🔍 Searching LinkedIn jobs for keyword: "${keyword}"...`, 'info');
       let jobs = [];
@@ -585,6 +607,10 @@ class Orchestrator extends EventEmitter {
       this.log(`Found ${jobs.length} candidate listings for "${keyword}".`, 'info');
 
       for (const job of jobs) {
+        if (maxPerCat > 0 && batchAppliedCount >= maxPerCat) {
+          this.log(`🎯 Reached category quota (${batchAppliedCount}/${maxPerCat}) for LinkedIn.`, 'info');
+          break;
+        }
         if (this.isLimitReached(currentBatch + batchAppliedCount)) break;
 
         while (this.state === 'paused') {

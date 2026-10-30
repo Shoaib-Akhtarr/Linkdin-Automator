@@ -84,11 +84,20 @@ class ExternalApplyEngine {
       const isAutonomous = options.mode !== 'review' && options.settings?.execution?.pauseForReviewInHybridMode !== true;
       const hasAuthGate = (await externalPage.$('input[type="password"], a:has-text("Create Account"), button:has-text("Sign In"), a:has-text("Sign In"), button:has-text("Log In")')) !== null;
       if (hasAuthGate && isAutonomous) {
-        update('⚠️ External portal requires manual account login/password gate. Skipping immediately without wasting time on CV generation.');
-        if (externalPage && externalPage !== linkedInPage) await externalPage.close().catch(() => {});
+        let tailoredCV = null;
+        try {
+          update(`📄 Pre-generating tailored ATS CV for "${jobInfo.title}" at "${jobInfo.company}"...`);
+          tailoredCV = await pdfRenderer.renderTailoredCV(jobInfo);
+          jobInfo.tailoredCV = tailoredCV.fileName;
+          update(`✓ Synthesized tailored CV for handoff: ${tailoredCV.fileName}`);
+        } catch (_) {}
+
+        update(`⚠️ External portal requires manual account login (${jobInfo.company}). Saved tailored CV for candidate handoff.`);
         return {
-          status: 'skipped',
-          message: 'External portal requires manual account login/password gate.'
+          status: 'needs_user_login',
+          message: 'External portal requires manual account login/password gate. Tailored CV ready.',
+          tailoredCV: tailoredCV?.fileName,
+          portalUrl: targetUrl
         };
       }
 
@@ -123,9 +132,39 @@ class ExternalApplyEngine {
   }
 
   /**
-   * Find external apply button on LinkedIn details view
+   * Normalize ATS links to point directly to the application form
+   */
+  normalizeAtsUrl(url) {
+    if (!url || typeof url !== 'string') return url;
+    let clean = url.trim();
+
+    // Ashby direct application URL
+    if (clean.includes('jobs.ashbyhq.com') && !clean.includes('/application')) {
+      clean = `${clean.replace(/\/+$/, '')}/application`;
+    }
+    // Lever direct apply URL
+    else if (clean.includes('jobs.lever.co') && !clean.includes('/apply')) {
+      clean = `${clean.replace(/\/+$/, '')}/apply`;
+    }
+    // Greenhouse direct app anchor
+    else if (clean.includes('boards.greenhouse.io') && !clean.includes('#app')) {
+      clean = `${clean}#app`;
+    }
+
+    return clean;
+  }
+
+  /**
+   * Find external apply button on LinkedIn details view or external career pages
+   * Supports auto-scroll, comprehensive ATS selectors, and cross-iframe traversal
    */
   async findApplyButton(page) {
+    // 1. Scroll slightly down to trigger lazy-loaded buttons
+    try {
+      await page.evaluate(() => window.scrollBy(0, 350));
+      await this.bridge.humanDelay(300, 500);
+    } catch (_) {}
+
     const selectors = [
       'button.jobs-apply-button',
       'a.jobs-apply-button',
@@ -133,10 +172,22 @@ class ExternalApplyEngine {
       'a[aria-label*="Apply to"]',
       'button:has-text("Apply on company website")',
       'a:has-text("Apply on company website")',
+      'a[data-automation-id="adventureButton"]', // Workday primary apply button
+      'a[data-automation-id="applyManually"]',   // Workday manual apply
+      'button:has-text("Apply Manually")',
+      'button:has-text("I\'m interested")',      // SmartRecruiters
+      'a:has-text("I\'m interested")',
+      'a:has-text("Apply for this job")',
+      'button:has-text("Apply for this job")',
+      'button:has-text("Apply Now")',
+      'a:has-text("Apply Now")',
+      'a[href*="/apply"]',
+      'a[href*="#app"]',
       'button:has-text("Apply")',
       'a:has-text("Apply")'
     ];
 
+    // 2. Search main document
     for (const sel of selectors) {
       try {
         const el = await page.$(sel);
@@ -148,6 +199,25 @@ class ExternalApplyEngine {
         }
       } catch (e) {}
     }
+
+    // 3. Search across all frames / iframes (BambooHR, embedded Greenhouse widgets, etc.)
+    try {
+      const frames = page.frames();
+      for (const frame of frames) {
+        if (frame === page.mainFrame()) continue;
+        for (const sel of selectors) {
+          try {
+            const frameEl = await frame.$(sel);
+            if (frameEl && await frameEl.isVisible()) {
+              const text = (await frameEl.innerText()).trim().toLowerCase();
+              if (text.includes('applied')) return null;
+              return frameEl;
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
     return null;
   }
 
@@ -381,10 +451,11 @@ class ExternalApplyEngine {
           page: page
         };
       } else {
-        update('⚠️ External portal requires manual account creation/password login. Skipping to continue autonomous loop.');
+        update('⚠️ External portal requires manual account creation/password login. Saved tailored CV for candidate handoff.');
         return {
-          status: 'skipped',
-          message: 'External portal requires manual account login/password gate.'
+          status: 'needs_user_login',
+          message: 'External portal requires manual account login/password gate. Tailored CV ready.',
+          tailoredCV: tailoredCV?.fileName
         };
       }
     }
@@ -474,6 +545,8 @@ class ExternalApplyEngine {
       console.log(`[ExternalApply] ${msg}`);
     };
 
+    // 0. Normalize ATS URL to point directly to application form
+    jobInfo.url = this.normalizeAtsUrl(jobInfo.url);
     update(`🌐 Navigating directly to external role: "${jobInfo.title}" at "${jobInfo.company}"...`);
     try {
       await page.goto(jobInfo.url, { waitUntil: 'domcontentloaded', timeout: 35000 });
@@ -489,10 +562,20 @@ class ExternalApplyEngine {
       const isAutonomous = options.mode !== 'review' && options.settings?.execution?.pauseForReviewInHybridMode !== true;
       const hasAuthGate = (await page.$('input[type="password"], a:has-text("Create Account"), button:has-text("Sign In"), a:has-text("Sign In"), button:has-text("Log In")')) !== null;
       if (hasAuthGate && isAutonomous) {
-        update('⚠️ External portal requires manual account login/password gate. Skipping immediately without wasting time on CV generation.');
+        let tailoredCV = null;
+        try {
+          update(`📄 Pre-generating tailored ATS CV for "${jobInfo.title}" at "${jobInfo.company}"...`);
+          tailoredCV = await pdfRenderer.renderTailoredCV(jobInfo);
+          jobInfo.tailoredCV = tailoredCV.fileName;
+          update(`✓ Synthesized tailored CV for handoff: ${tailoredCV.fileName}`);
+        } catch (_) {}
+
+        update(`⚠️ Portal requires manual login account (${jobInfo.company}). Saved tailored CV for candidate handoff.`);
         return {
-          status: 'skipped',
-          message: 'External portal requires manual account login/password gate.'
+          status: 'needs_user_login',
+          message: 'External portal requires manual account login/password gate. Tailored CV ready.',
+          tailoredCV: tailoredCV?.fileName,
+          portalUrl: targetUrl
         };
       }
 
