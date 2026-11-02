@@ -158,34 +158,39 @@ class ExternalApplyEngine {
     let externalPage = null;
 
     try {
-      // 1. Locate and click external apply button on LinkedIn
-      const applyBtn = await this.findApplyButton(linkedInPage);
-      if (!applyBtn) {
-        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_APPLY_BUTTON', message: 'No apply button on LinkedIn' }, options);
-        return { status: 'failed', code: 'CODE_NO_APPLY_BUTTON', message: 'No external Apply button found on LinkedIn.' };
-      }
+      // Check if page is already on external career portal (e.g. via direct ATS apply)
+      const currentUrl = linkedInPage.url();
+      if (!currentUrl.includes('linkedin.com')) {
+        externalPage = linkedInPage;
+      } else {
+        // 1. Locate and click external apply button on LinkedIn
+        const applyBtn = await this.findApplyButton(linkedInPage);
+        if (!applyBtn) {
+          this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_APPLY_BUTTON', message: 'No apply button on LinkedIn' }, options);
+          return { status: 'failed', code: 'CODE_NO_APPLY_BUTTON', message: 'No external Apply button found on LinkedIn.' };
+        }
 
-      const directHref = await applyBtn.getAttribute('href').catch(() => null);
-      const newPagePromise = context.waitForEvent('page', { timeout: 15000 }).catch(() => null);
+        const directHref = await applyBtn.getAttribute('href').catch(() => null);
+        const newPagePromise = context.waitForEvent('page', { timeout: 15000 }).catch(() => null);
 
-      await applyBtn.click({ force: true }).catch(() => {});
-      await this.bridge.humanDelay(1500, 2500);
-      await this.handleLinkedInRedirectModal(linkedInPage, update);
+        await applyBtn.click({ force: true }).catch(() => {});
+        await this.bridge.humanDelay(1500, 2500);
+        await this.handleLinkedInRedirectModal(linkedInPage, update);
 
-      externalPage = await newPagePromise;
-      if (!externalPage && directHref && !directHref.startsWith('#')) {
-        update(`Opening direct career URL in new tab...`);
-        externalPage = await context.newPage();
-        await externalPage.goto(directHref, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
-      }
+        externalPage = await newPagePromise;
+        if (!externalPage && directHref && !directHref.startsWith('#')) {
+          update(`Opening direct career URL in new tab...`);
+          externalPage = await context.newPage();
+          await externalPage.goto(directHref, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        }
 
-      if (!externalPage) {
-        const currentUrl = linkedInPage.url();
-        if (!currentUrl.includes('linkedin.com/jobs')) {
-          externalPage = linkedInPage;
-        } else {
-          this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab' }, options);
-          return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab.' };
+        if (!externalPage) {
+          if (!linkedInPage.url().includes('linkedin.com/jobs')) {
+            externalPage = linkedInPage;
+          } else {
+            this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab' }, options);
+            return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab.' };
+          }
         }
       }
 
