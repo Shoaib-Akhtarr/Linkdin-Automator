@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apply pipeline: fixed flow</title>
+<style>
+:root{--bg:#fafaf9;--fg:#1c1917;--mut:#57534e;--line:#d6d3d1;--hdr:#f0efed;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#18181b;--fg:#f4f4f5;--mut:#a1a1aa;--line:#3f3f46;--hdr:#27272a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#18181b;--fg:#f4f4f5;--mut:#a1a1aa;--line:#3f3f46;--hdr:#27272a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 56px}
+h1{font-size:1.6rem;margin:0 0 6px}
+h2{font-size:1.15rem;margin:40px 0 4px}
+p{margin:4px 0 12px;color:var(--mut);max-width:70ch}
+.box{overflow-x:auto;border:1px solid var(--line);border-radius:6px;padding:12px;text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--hdr)}
+code{font-size:.85rem;word-break:break-word}
+.tw{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>Apply pipeline: fixed flow</h1>
+<p>Four diagrams, linked by blue hand-off nodes. Red nodes are exits, each with a status code from the table at the bottom.</p>
+
+<h2>1. Entry and routing</h2>
+<p>Pre-flight uses status classes. A form that is already open (Greenhouse, Lever, Ashby) now skips the guest and auth checks.</p>
+<div class="box"><pre class="mermaid">
+flowchart TD
+S([Start: Job URL]) --> P{Preflight status?}
+P -->|DONE within 90d| X1([SKIP: ALREADY_APPLIED]):::ex
+P -->|HOLD| X2([SKIP: HOLD_PENDING_USER]):::ex
+P -->|COOLDOWN or attempts 3+| X3([SKIP: COOLDOWN]):::ex
+P -->|Clear| CK[Dismiss cookie and GDPR overlays]
+CK --> T{Page type?}
+T -->|Job description| AB[Click Apply, capture redirect or new tab]
+AB --> CK2[Dismiss post-redirect cookies]
+CK2 --> F
+T -->|Direct form| F{Form reachable?}
+F -->|404 or broken| X4([FAIL: PORTAL_UNREACHABLE]):::ex
+F -->|Yes| C{Interactive CAPTCHA visible?}
+C -->|Yes| X5([BLOCK: CAPTCHA, stage=landing]):::ex
+C -->|No| O{Form fields visible without login?}
+O -->|Yes| U([to 3: Upload and Wizard]):::go
+O -->|No| G{Guest apply option?}
+G -->|Yes| GC[Click Apply as Guest]
+GC --> GV{Guest form loaded?}
+GV -->|Yes| U
+GV -->|No| X6([FAIL: GUEST_APPLY_LOAD]):::ex
+G -->|No| A([to 2: Auth and 2FA]):::go
+classDef ex stroke:#d9534f,stroke-width:2px
+classDef go stroke:#4a90d9,stroke-width:2px
+</pre></div>
+
+<h2>2. Auth and 2FA</h2>
+<p>2FA is checked before the landing check. Registration saves a pending vault entry before it clicks Register. Push and link timeouts exit as a timeout instead of asking for a code.</p>
+<div class="box"><pre class="mermaid">
+flowchart TD
+I([from 1: Auth wall]):::go --> K{Auth type?}
+K -->|Enterprise SSO or SAML| X1([BLOCK: SSO_ONLY]):::ex
+K -->|Unsupported or proprietary| X2([BLOCK: UNSUPPORTED_AUTH]):::ex
+K -->|Social OAuth| OA[Social login popup, 10s]
+K -->|Email and password form| V
+OA --> OK{OAuth done?}
+OK -->|Yes| TFA
+OK -->|No or blocked| FB{Password form also exists?}
+FB -->|No| X3([FAIL: OAUTH_NO_FALLBACK]):::ex
+FB -->|Yes| V{Vault creds for exact tenant?}
+V -->|Yes| SI[Decrypt, fill, sign in]
+SI --> SC{CAPTCHA?}
+SC -->|Yes| XC([BLOCK: CAPTCHA, stage=signin]):::ex
+SC -->|No| SO{Sign-in result?}
+SO -->|Success| TFA
+SO -->|Locked or bad password| X4([FAIL: CREDS_REJECTED]):::ex
+SO -->|Account missing| CB{toggleCount below 1?}
+CB -->|No| X5([FAIL: AUTH_CYCLE]):::ex
+CB -->|Yes| INC[toggleCount++]
+INC --> R
+V -->|No| R[Save PENDING creds to vault, then register]
+R --> RC{CAPTCHA?}
+RC -->|Yes| XD([BLOCK: CAPTCHA, stage=register]):::ex
+RC -->|No| RO{Register result?}
+RO -->|Policy error| X6([FAIL: REG_POLICY]):::ex
+RO -->|Success| CONF[Confirm vault entry]
+RO -->|Email exists| MP[Sign in with master password]
+MP --> MC{CAPTCHA?}
+MC -->|Yes| XE([BLOCK: CAPTCHA, stage=master]):::ex
+MC -->|No| MO{Master sign-in OK?}
+MO -->|Yes| CONF
+MO -->|No| X7([FAIL: MASTER_PASSWORD_REJECTED]):::ex
+CONF --> AB{Email activation required?}
+AB -->|Yes| X8([BLOCK: ACTIVATION_PENDING]):::ex
+AB -->|No| TFA
+TFA{2FA screen active?}
+TFA -->|No| LAND
+TFA -->|Yes| M{2FA type?}
+M -->|TOTP| TS{TOTP seed in vault?}
+TS -->|Yes| GT[Generate TOTP, inject, verify]
+GT --> AU
+TS -->|No| PT[Alert user for TOTP, 120s plus 30s per keystroke]
+PT --> W
+M -->|SMS or email OTP| PO[Chime and alert: OTP sent, 120s]
+PO --> W
+M -->|Magic link or push| PP[Alert user to approve, 120s]
+PP --> LS[Listen: new tab or spinner gone]
+LS --> AU
+W{Code entered?}
+W -->|No, 120s| X9([TIMEOUT: 2FA_TIMEOUT]):::ex
+W -->|Yes| IJ[Type code, verify]
+IJ --> AU
+AU{2FA result?}
+AU -->|Verified| LAND
+AU -->|Timeout| X9
+AU -->|Invalid code| RT{otpRetries below 2?}
+RT -->|No| X10([FAIL: 2FA_EXHAUSTED]):::ex
+RT -->|Yes| NR[Warn user, restart timer, otpRetries++]
+NR --> W
+LAND{Application form still reachable?}
+LAND -->|No| X11([FAIL: POST_AUTH_FORM_LOST]):::ex
+LAND -->|Yes| U([to 3: Upload and Wizard]):::go
+classDef ex stroke:#d9534f,stroke-width:2px
+classDef go stroke:#4a90d9,stroke-width:2px
+</pre></div>
+
+<h2>3. Upload and wizard</h2>
+<p>The step counter is set once and never reset by a loop. The heal counter resets only after a clean step. Certifications are ticked only if the profile has an opt-in flag.</p>
+<div class="box"><pre class="mermaid">
+flowchart TD
+I([from 1 or 2: Form ready]):::go --> UP[Upload tailored resume]
+UP --> PS{Spinner gone and inputs settled, 15s?}
+PS -->|Stalled| X1([FAIL: RESUME_UPLOAD]):::ex
+PS -->|Yes| IN[Init wizard ONCE: stepCounter=0, healAttempts=0]
+IN --> SL{Session still valid?}
+SL -->|Expired| X2([FAIL: SESSION_EXPIRED]):::ex
+SL -->|Yes| CAP{stepCounter below 12?}
+CAP -->|No| X3([FAIL: WIZARD_LOOP]):::ex
+CAP -->|Yes| EX[Scan visible fields]
+EX --> TR[Split into Tier 1 deterministic and Tier 2 generative]
+TR --> T1[Tier 1 from profile.json: sanitize phone and date, work auth, salary, years of exp, EEO, certifications with opt-in flag]
+T1 --> TC{Mandatory Tier 1 field missing?}
+TC -->|Yes| X4([HOLD: MISSING_LEGAL_CONFIG]):::ex
+TC -->|No| T2[Tier 2 LLM: essays, motivation, cover letter, grounded in CV facts]
+T2 --> BT{Primary button?}
+BT -->|None or unknown| X5([FAIL: NO_ACTION_BUTTON]):::ex
+BT -->|Submit or Complete| SUB([to 4: Submit and Verify]):::go
+BT -->|Next or Continue| NX[Click Next]
+NX --> CP{CAPTCHA on transition?}
+CP -->|Yes| XC([BLOCK: CAPTCHA, stage=step]):::ex
+CP -->|No| VE{Validation errors?}
+VE -->|None| AD[stepCounter++, healAttempts=0]
+AD --> SL
+VE -->|Errors| HC{healAttempts below 1?}
+HC -->|No| X6([FAIL: STEP_VALIDATION]):::ex
+HC -->|Yes| LT{Failed field is Tier 1?}
+LT -->|Yes| X7([HOLD: LEGAL_FIELD_REJECTED]):::ex
+LT -->|No| HR[healAttempts++, re-select or re-format]
+HR --> T2
+classDef ex stroke:#d9534f,stroke-width:2px
+classDef go stroke:#4a90d9,stroke-width:2px
+</pre></div>
+
+<h2>4. Submit and verify</h2>
+<p>Every unconfirmed outcome is recorded as HOLD, so the pre-flight check never retries it automatically.</p>
+<div class="box"><pre class="mermaid">
+flowchart TD
+I([from 3: Submit page]):::go --> MG{Execution mode?}
+MG -->|Autonomous| CP
+MG -->|Review or Hybrid| PR[Chime and alert: ready for review, 300s]
+PR --> HD{Decision?}
+HD -->|Approve| CP
+HD -->|Reject| X1([HOLD: CANCELLED_BY_USER]):::ex
+HD -->|Edit or takeover| X2([HOLD: HANDED_OFF_TO_USER]):::ex
+HD -->|Timeout 300s| X3([FAIL: TIMEOUT_USER_REVIEW]):::ex
+CP{CAPTCHA before submit?}
+CP -->|Yes| X4([BLOCK: CAPTCHA, stage=submit]):::ex
+CP -->|No| SB[Click Submit once]
+SB --> ER{Inline validation errors?}
+ER -->|Yes| X5([FAIL: STEP_VALIDATION]):::ex
+ER -->|No| OB[Wait for network idle 15s, watch DOM]
+OB --> RC{Proof: URL pattern, submitted header, reference ID?}
+RC -->|Confirmed| OKR[Record APPLIED_CONFIRMED with attempts, time, CV path]
+OKR --> DN([DONE: APPLIED]):::ok
+RC -->|Unconfirmed or network drop| SE{Portal or email API confirms?}
+SE -->|Yes| OKR
+SE -->|No| UV[Record UNVERIFIED_MANUAL_CHECK]
+UV --> X6([HOLD: SUBMISSION_UNVERIFIED]):::ex
+classDef ex stroke:#d9534f,stroke-width:2px
+classDef go stroke:#4a90d9,stroke-width:2px
+classDef ok stroke:#3fa86b,stroke-width:2px
+</pre></div>
+
+<h2>Status classes</h2>
+<p>Pre-flight reads the class of the last record in applications.json. Every failure increments attemptsCount.</p>
+<div class="tw"><table>
+<tr><th>Class</th><th>Pre-flight rule</th><th>Statuses</th></tr>
+<tr><td>DONE</td><td>Skip for 90 days</td><td><code>APPLIED_CONFIRMED</code></td></tr>
+<tr><td>HOLD</td><td>Never retry automatically; the user clears it</td><td><code>UNVERIFIED_MANUAL_CHECK</code>, <code>CANCELLED_BY_USER</code>, <code>HANDED_OFF_TO_USER</code>, <code>BLOCKED_SSO_ONLY</code>, <code>BLOCKED_UNSUPPORTED_AUTH</code>, <code>FAILED_MISSING_LEGAL_CONFIG</code>, <code>FAILED_LEGAL_FIELD_REJECTED</code></td></tr>
+<tr><td>COOLDOWN</td><td>Skip for 7 days; at attemptsCount 3 it becomes HOLD</td><td><code>BLOCKED_CAPTCHA</code> (with stage), <code>BLOCKED_ACTIVATION_PENDING</code>, <code>TIMEOUT_2FA</code>, <code>TIMEOUT_USER_REVIEW</code>, <code>FAILED_PORTAL_UNREACHABLE</code>, <code>FAILED_GUEST_APPLY_LOAD</code>, <code>FAILED_OAUTH_NO_FALLBACK</code>, <code>FAILED_CREDENTIALS_REJECTED</code>, <code>FAILED_AUTH_CYCLE</code>, <code>FAILED_REG_POLICY</code>, <code>FAILED_MASTER_PASSWORD_REJECTED</code>, <code>FAILED_2FA_EXHAUSTED</code>, <code>FAILED_POST_AUTH_FORM_LOST</code>, <code>FAILED_RESUME_UPLOAD</code>, <code>FAILED_SESSION_EXPIRED</code>, <code>FAILED_WIZARD_CYCLIC_LOOP</code>, <code>FAILED_WIZARD_NO_BUTTON</code>, <code>FAILED_STEP_VALIDATION</code></td></tr>
+</table></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+</script>
+</body>
+</html>

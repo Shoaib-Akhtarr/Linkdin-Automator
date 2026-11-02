@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -311,6 +311,110 @@ class Tracker {
       if (platformFilter === 'jobicy') return isJobicy(a);
       return p === platformFilter;
     });
+  }
+
+  /**
+   * Pre-flight Status Classifier based on the 3-Tier Status Classes
+   * @param {Object} job
+   * @returns {{ action: 'PROCEED'|'SKIP', class: 'DONE'|'HOLD'|'COOLDOWN'|'CLEAR', reason: string, attemptsCount: number }}
+   */
+  evaluatePreFlightClass(job) {
+    if (!job) return { action: 'PROCEED', class: 'CLEAR', attemptsCount: 0 };
+    const prior = this.findPriorApplication(job);
+    if (!prior) return { action: 'PROCEED', class: 'CLEAR', attemptsCount: 0 };
+
+    const status = String(prior.status || '').toUpperCase();
+    const attempts = prior.attemptsCount || 1;
+    const now = Date.now();
+    const lastDate = prior.appliedAt || prior.detectedAt || prior.timestamp ? new Date(prior.appliedAt || prior.detectedAt || prior.timestamp).getTime() : now;
+    const daysSince = (now - lastDate) / (1000 * 60 * 60 * 24);
+
+    // 1. DONE Class: Skip for 90 days
+    if (status === 'APPLIED' || status === 'APPLIED_CONFIRMED' || status === 'PREVIOUSLY_APPLIED') {
+      if (daysSince <= 90) {
+        return { action: 'SKIP', class: 'DONE', reason: 'CODE_PREFLIGHT_ALREADY_APPLIED', attemptsCount: attempts };
+      }
+    }
+
+    // 2. HOLD Class: Never retry automatically; user must clear
+    const holdStatuses = [
+      'UNVERIFIED_MANUAL_CHECK',
+      'CANCELLED_BY_USER',
+      'HANDED_OFF_TO_USER',
+      'BLOCKED_SSO_ONLY',
+      'BLOCKED_UNSUPPORTED_AUTH',
+      'FAILED_MISSING_LEGAL_CONFIG',
+      'FAILED_LEGAL_FIELD_REJECTED'
+    ];
+    if (holdStatuses.includes(status)) {
+      return { action: 'SKIP', class: 'HOLD', reason: status, attemptsCount: attempts };
+    }
+
+    // 3. COOLDOWN Class: 7-day cooldown window, or promote to HOLD if attemptsCount >= 3
+    const cooldownStatuses = [
+      'BLOCKED_CAPTCHA',
+      'BLOCKED_ACTIVATION_PENDING',
+      'TIMEOUT_2FA',
+      'TIMEOUT_USER_REVIEW',
+      'FAILED_PORTAL_UNREACHABLE',
+      'FAILED_GUEST_APPLY_LOAD',
+      'FAILED_OAUTH_NO_FALLBACK',
+      'FAILED_CREDENTIALS_REJECTED',
+      'FAILED_AUTH_CYCLE',
+      'FAILED_REG_POLICY',
+      'FAILED_MASTER_PASSWORD_REJECTED',
+      'FAILED_2FA_EXHAUSTED',
+      'FAILED_POST_AUTH_FORM_LOST',
+      'FAILED_RESUME_UPLOAD',
+      'FAILED_SESSION_EXPIRED',
+      'FAILED_WIZARD_CYCLIC_LOOP',
+      'FAILED_WIZARD_NO_BUTTON',
+      'FAILED_STEP_VALIDATION'
+    ];
+
+    if (cooldownStatuses.some(s => status.startsWith(s))) {
+      if (attempts >= 3) {
+        return { action: 'SKIP', class: 'HOLD', reason: 'CODE_MAX_ATTEMPTS_EXCEEDED', attemptsCount: attempts };
+      }
+      if (daysSince < 7) {
+        return { action: 'SKIP', class: 'COOLDOWN', reason: `CODE_COOLDOWN_ACTIVE_${status}`, attemptsCount: attempts, daysLeft: Math.ceil(7 - daysSince) };
+      }
+      return { action: 'PROCEED', class: 'CLEAR', attemptsCount: attempts };
+    }
+
+    // 4. Safe Default for UNRECOGNIZED prior status: Default to HOLD (never accidentally clear/retry)
+    return { action: 'SKIP', class: 'HOLD', reason: `CODE_UNKNOWN_STATUS_HOLD_${status}`, attemptsCount: attempts };
+  }
+
+  /**
+   * Record structured outcome with explicit status classes, attempts, and audit metadata
+   */
+  recordOutcome(job, status, metadata = {}) {
+    const prior = this.findPriorApplication(job);
+    const attempts = (prior?.attemptsCount || 0) + 1;
+
+    const entry = {
+      jobId: String(job.jobId || Date.now()),
+      platform: job.platform || 'external',
+      title: job.title || 'Unknown Title',
+      company: job.company || 'Unknown Company',
+      location: job.location || 'Unknown Location',
+      url: job.url || '',
+      status: status, // APPLIED_CONFIRMED, UNVERIFIED_MANUAL_CHECK, BLOCKED_CAPTCHA, etc.
+      stage: metadata.stage || undefined,
+      code: metadata.code || status,
+      attemptsCount: attempts,
+      appliedAt: status === 'APPLIED_CONFIRMED' || status === 'applied' ? new Date().toISOString() : null,
+      lastAttempt: new Date().toISOString(),
+      notes: metadata.notes || metadata.message || '',
+      cvUsed: metadata.cvUsed || job.tailoredCV || 'LinkedIn Default ATS Resume',
+      description: job.description || ''
+    };
+
+    this.data.applications = this.data.applications.filter(a => !this.isSameJob(a, entry));
+    this.data.applications.unshift(entry);
+    this.saveData();
+    return entry;
   }
 }
 

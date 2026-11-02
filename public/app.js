@@ -127,6 +127,8 @@ function syncPlatformUI(platform) {
       all: 'ALL PLATFORMS (AUTO-ROTATE)',
       linkedin: 'LINKEDIN',
       wellfound: 'WELLFOUND STARTUPS',
+      ycombinator: 'Y COMBINATOR',
+      otta: 'OTTA TECH',
       weworkremotely: 'WE WORK REMOTELY',
       remoteok: 'REMOTEOK',
       jobicy: 'JOBICY',
@@ -213,6 +215,10 @@ function updateStatsUI(stats) {
     const elAt = document.getElementById('statPlatRemoteAts');
     if (elIn) elIn.textContent = stats.byPlatform.linkedin || 0;
     if (elWf) elWf.textContent = stats.byPlatform.wellfound || 0;
+    const elYc = document.getElementById('statPlatYC');
+    const elOt = document.getElementById('statPlatOtta');
+    if (elYc) elYc.textContent = stats.byPlatform.ycombinator || 0;
+    if (elOt) elOt.textContent = stats.byPlatform.otta || 0;
     if (elWwr) elWwr.textContent = stats.byPlatform.weworkremotely || 0;
     if (elRok) elRok.textContent = stats.byPlatform.remoteok || 0;
     if (elJbc) elJbc.textContent = stats.byPlatform.jobicy || 0;

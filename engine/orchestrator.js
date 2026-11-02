@@ -10,12 +10,15 @@ const eligibilityEngine = require('./eligibilityEngine');
 const RemoteBoardsEngine = require('./platforms/remoteBoardsEngine');
 const WellfoundEngine = require('./platforms/wellfoundEngine');
 const CompanyAtsEngine = require('./platforms/companyAtsEngine');
+const YCombinatorEngine = require('./platforms/ycombinatorEngine');
+const OttaEngine = require('./platforms/ottaEngine');
 
 class Orchestrator extends EventEmitter {
   constructor() {
     super();
     this.state = 'idle'; // 'idle' | 'running' | 'paused' | 'stopped' | 'awaiting_review'
     this.isStopped = false;
+    this.skippedAuthPlatforms = new Set();
     this.activeLoopPromise = null;
     this.searchEngine = new SearchEngine(browserBridge);
     this.easyApplyModal = new EasyApplyModal(browserBridge);
@@ -23,6 +26,8 @@ class Orchestrator extends EventEmitter {
     this.remoteBoardsEngine = new RemoteBoardsEngine(browserBridge, this.externalApplyEngine);
     this.wellfoundEngine = new WellfoundEngine(browserBridge);
     this.companyAtsEngine = new CompanyAtsEngine(browserBridge, this.externalApplyEngine);
+    this.ycombinatorEngine = new YCombinatorEngine(browserBridge);
+    this.ottaEngine = new OttaEngine(browserBridge, this.externalApplyEngine);
     this.currentJob = null;
     this.reviewPromiseResolve = null;
     this.logs = [];
@@ -78,6 +83,7 @@ class Orchestrator extends EventEmitter {
     }
     if (this.state === 'paused') {
       this.state = 'running';
+    if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.clear();
       this.emit('state_change', this.state);
       this.log('Resumed automation loop.', 'info');
       return;
@@ -240,6 +246,32 @@ class Orchestrator extends EventEmitter {
               totalSessionApplied += count;
             } catch (atsErr) {
               this.log(`⚠️ Remote ATS sweep error: ${atsErr.message}. Continuing...`, 'warn');
+            }
+          }
+        }
+
+        // 2.5 Y Combinator Startup Loop (Work at a Startup)
+        if (!this.isStopped && (activePlatform === 'all' || activePlatform === 'ycombinator')) {
+          if (!this.isLimitReached(totalSessionApplied)) {
+            try {
+              const count = await this.runYCombinatorLoop(page, totalSessionApplied);
+              roundAppliedCount += count;
+              totalSessionApplied += count;
+            } catch (ycErr) {
+              this.log(`⚠️ Y Combinator sweep error: ${ycErr.message}. Continuing...`, 'warn');
+            }
+          }
+        }
+
+        // 2.6 Otta Tech Scaleup Loop (Welcome to the Jungle)
+        if (!this.isStopped && (activePlatform === 'all' || activePlatform === 'otta')) {
+          if (!this.isLimitReached(totalSessionApplied)) {
+            try {
+              const count = await this.runOttaLoop(page, totalSessionApplied);
+              roundAppliedCount += count;
+              totalSessionApplied += count;
+            } catch (ottaErr) {
+              this.log(`⚠️ Otta sweep error: ${ottaErr.message}. Continuing...`, 'warn');
             }
           }
         }
@@ -528,28 +560,46 @@ class Orchestrator extends EventEmitter {
     const keywords = this.settings.search?.keywords || ['AI Engineer'];
 
     this.log('🚀 [Wellfound] Connecting to startup jobs stream...', 'info');
+    if (this.skippedAuthPlatforms && this.skippedAuthPlatforms.has('wellfound')) {
+      return 0;
+    }
     let isLogged = await this.wellfoundEngine.isLoggedIn(page);
     if (!isLogged) {
-      this.log('⚠️ Please log in to Wellfound in the opened Chrome window. The automation will continue once logged in (waiting up to 120s)...', 'warn');
-      let waited = 0;
-      while (waited < 120) {
-        await new Promise(r => setTimeout(r, 3000));
-        waited += 3;
-        if (this.state === 'stopped' || this.isStopped) return 0;
-        isLogged = await this.wellfoundEngine.isLoggedIn(page);
-        if (isLogged) break;
-      }
-      if (!isLogged) {
-        this.log('⚠️ Wellfound login timed out (120s). Skipping Wellfound for this cycle.', 'warn');
+      const isAutonomous = this.settings.execution?.mode === 'autonomous';
+      if (isAutonomous) {
+        this.log('ℹ️ [Wellfound] No active session found. Skipping in autonomous mode without blocking.', 'info');
+        if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('wellfound');
         return 0;
+      } else {
+        this.log('⚠️ Wellfound login required. Waiting up to 10s...', 'warn');
+        let waited = 0;
+        while (waited < 10) {
+          await new Promise(r => setTimeout(r, 2000));
+          waited += 2;
+          if (this.state === 'stopped' || this.isStopped) return 0;
+          isLogged = await this.wellfoundEngine.isLoggedIn(page);
+          if (isLogged) break;
+        }
+        if (!isLogged) {
+          this.log('ℹ️ Skipping Wellfound for this cycle.', 'info');
+          if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('wellfound');
+          return 0;
+        }
       }
     }
     this.log('✓ Successfully verified Wellfound active session!', 'success');
 
+    const seenSlugs = new Set();
     for (const keyword of keywords) {
       if (this.isLimitReached(currentBatch + appliedCount)) break;
 
-      this.log(`🔍 [Wellfound] Searching startup roles for: "${keyword}"...`, 'info');
+      const roleSlug = this.wellfoundEngine.getRoleSlug(keyword);
+      if (seenSlugs.has(roleSlug)) {
+        continue;
+      }
+      seenSlugs.add(roleSlug);
+
+      this.log(`🔍 [Wellfound] Searching startup roles for: "${keyword}" (/role/r/${roleSlug})...`, 'info');
       let jobs = [];
       try {
         jobs = await this.wellfoundEngine.searchJobs(page, keyword, this.settings, msg => this.log(msg));
@@ -558,6 +608,7 @@ class Orchestrator extends EventEmitter {
         continue;
       }
 
+      let unappliedCount = 0;
       for (const job of jobs) {
         if (maxPerCat > 0 && appliedCount >= maxPerCat) {
           this.log(`🎯 Reached category quota (${appliedCount}/${maxPerCat}) for Wellfound.`, 'info');
@@ -576,6 +627,7 @@ class Orchestrator extends EventEmitter {
           if (priorApp && (priorApp.status === 'applied' || priorApp.status === 'previously_applied')) {
             continue;
           }
+          unappliedCount++;
 
           this.currentJob = job;
           this.emit('current_job', job);
@@ -638,7 +690,291 @@ class Orchestrator extends EventEmitter {
           tracker.record({ ...job, status: 'failed', notes: jobErr.message });
         }
       }
+      if (jobs.length > 0 && unappliedCount === 0) {
+        this.log(`ℹ️ [Wellfound] All ${jobs.length} listings for "${roleSlug}" were already applied to previously in your tracker.`, 'info');
+      }
     }
+    return appliedCount;
+  }
+
+
+  /**
+   * Y Combinator Startup Loop (Work at a Startup)
+   */
+  async runYCombinatorLoop(page, currentBatch) {
+    let appliedCount = 0;
+    const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
+    const keywords = this.settings.search?.keywords || ['AI Engineer'];
+
+    this.log('🚀 [Y Combinator] Connecting to YC Work at a Startup...', 'info');
+    if (this.skippedAuthPlatforms && this.skippedAuthPlatforms.has('ycombinator')) {
+      return 0;
+    }
+    let isLogged = await this.ycombinatorEngine.isLoggedIn(page);
+    if (!isLogged) {
+      const isAutonomous = this.settings.execution?.mode === 'autonomous';
+      if (isAutonomous) {
+        this.log('ℹ️ [Y Combinator] No active session found. Skipping in autonomous mode without blocking.', 'info');
+        if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('ycombinator');
+        return 0;
+      } else {
+        this.log('⚠️ Y Combinator login required. Waiting up to 10s...', 'warn');
+        let waited = 0;
+        while (waited < 10) {
+          await new Promise(r => setTimeout(r, 2000));
+          waited += 2;
+          if (this.state === 'stopped' || this.isStopped) return 0;
+          isLogged = await this.ycombinatorEngine.isLoggedIn(page);
+          if (isLogged) break;
+        }
+        if (!isLogged) {
+          this.log('ℹ️ Skipping YC for this cycle.', 'info');
+          if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('ycombinator');
+          return 0;
+        }
+      }
+    }
+    this.log('✓ Successfully verified Y Combinator active session!', 'success');
+
+    const seenUrls = new Set();
+    for (const keyword of keywords) {
+      if (this.isLimitReached(currentBatch + appliedCount)) break;
+
+      this.log(`🔍 [Y Combinator] Searching roles for: "${keyword}"...`, 'info');
+      let jobs = [];
+      try {
+        jobs = await this.ycombinatorEngine.searchJobs(page, keyword, this.settings, msg => this.log(msg));
+      } catch (e) {
+        this.log(`YC search error for "${keyword}": ${e.message}`, 'warn');
+        continue;
+      }
+
+      let unappliedCount = 0;
+      for (const job of jobs) {
+        if (maxPerCat > 0 && appliedCount >= maxPerCat) {
+          this.log(`🎯 Reached category quota (${appliedCount}/${maxPerCat}) for Y Combinator.`, 'info');
+          break;
+        }
+        if (this.isLimitReached(currentBatch + appliedCount)) break;
+
+        while (this.state === 'paused') {
+          await new Promise(r => setTimeout(r, 1000));
+          if (this.state === 'stopped' || this.isStopped) break;
+        }
+        if (this.state === 'stopped' || this.isStopped) break;
+
+        if (seenUrls.has(job.url)) continue;
+        seenUrls.add(job.url);
+
+        try {
+          const priorApp = tracker.findPriorApplication(job);
+          if (priorApp && (priorApp.status === 'applied' || priorApp.status === 'previously_applied')) {
+            continue;
+          }
+          unappliedCount++;
+
+          this.currentJob = job;
+          this.emit('current_job', job);
+          this.log(`👉 [Y Combinator] Reviewing: "${job.title}" at "${job.company}"`, 'info');
+
+          try {
+            if (!page || page.isClosed()) {
+              page = await browserBridge.getPage();
+            }
+          } catch (pErr) {
+            page = await browserBridge.getPage();
+          }
+
+          const result = await this.ycombinatorEngine.applyJob(page, job, {
+            mode: this.settings.execution?.mode || 'autonomous',
+            settings: this.settings,
+            onStatusUpdate: msg => this.log(msg),
+            onScreenshot: ss => this.emit('screenshot', ss)
+          });
+
+          if (result && result.status === 'needs_review') {
+            this.state = 'awaiting_review';
+            this.emit('state_change', this.state);
+            const decision = await new Promise(r => { this.reviewPromiseResolve = r; });
+            if (decision === 'submit') {
+              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
+              this.sessionAppliedJobs.push(entry);
+              appliedCount++;
+              this.log(`✓ Submitted YC application for ${job.title}!`, 'success');
+            } else {
+              tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
+            }
+            this.state = 'running';
+            this.emit('state_change', this.state);
+          } else if (result && result.status === 'applied') {
+            const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : result.message });
+            this.sessionAppliedJobs.push(entry);
+            appliedCount++;
+            this.log(`✓ Successfully applied to "${job.title}" at "${job.company}" on Y Combinator!`, 'success');
+          } else if (result && result.status === 'previously_applied') {
+            tracker.record({ ...job, status: 'previously_applied', notes: result.message });
+          } else {
+            tracker.record({ ...job, status: 'failed', notes: result?.message || 'Failed' });
+          }
+
+          this.emit('stats_update', tracker.getStats(dailyLimit));
+          this.currentJob = null;
+          this.emit('current_job', null);
+
+          const delay = Math.floor(Math.random() * 2500) + 2500;
+          await this.interruptibleDelay(delay);
+        } catch (jobErr) {
+          this.log(`⚠️ Note on YC "${job.title}": ${jobErr.message}. Continuing...`, 'warn');
+          tracker.record({ ...job, status: 'failed', notes: jobErr.message });
+        }
+      }
+
+      if (jobs.length > 0 && unappliedCount === 0) {
+        this.log(`ℹ️ [Y Combinator] All ${jobs.length} listings for "${keyword}" were already applied to previously.`, 'info');
+      }
+    }
+
+    return appliedCount;
+  }
+
+  /**
+   * Otta Tech Scaleup Loop (Welcome to the Jungle)
+   */
+  async runOttaLoop(page, currentBatch) {
+    let appliedCount = 0;
+    const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
+    const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
+    const keywords = this.settings.search?.keywords || ['AI Engineer'];
+
+    this.log('🚀 [Otta] Connecting to Otta tech stream...', 'info');
+    if (this.skippedAuthPlatforms && this.skippedAuthPlatforms.has('otta')) {
+      return 0;
+    }
+    let isLogged = await this.ottaEngine.isLoggedIn(page);
+    if (!isLogged) {
+      const isAutonomous = this.settings.execution?.mode === 'autonomous';
+      if (isAutonomous) {
+        this.log('ℹ️ [Otta] No active session found. Skipping in autonomous mode without blocking.', 'info');
+        if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('otta');
+        return 0;
+      } else {
+        this.log('⚠️ Otta login required. Waiting up to 10s...', 'warn');
+        let waited = 0;
+        while (waited < 10) {
+          await new Promise(r => setTimeout(r, 2000));
+          waited += 2;
+          if (this.state === 'stopped' || this.isStopped) return 0;
+          isLogged = await this.ottaEngine.isLoggedIn(page);
+          if (isLogged) break;
+        }
+        if (!isLogged) {
+          this.log('ℹ️ Skipping Otta for this cycle.', 'info');
+          if (this.skippedAuthPlatforms) this.skippedAuthPlatforms.add('otta');
+          return 0;
+        }
+      }
+    }
+    this.log('✓ Successfully verified Otta active session!', 'success');
+
+    const seenUrls = new Set();
+    for (const keyword of keywords) {
+      if (this.isLimitReached(currentBatch + appliedCount)) break;
+
+      this.log(`🔍 [Otta] Searching scaleup roles for: "${keyword}"...`, 'info');
+      let jobs = [];
+      try {
+        jobs = await this.ottaEngine.searchJobs(page, keyword, this.settings, msg => this.log(msg));
+      } catch (e) {
+        this.log(`Otta search error for "${keyword}": ${e.message}`, 'warn');
+        continue;
+      }
+
+      let unappliedCount = 0;
+      for (const job of jobs) {
+        if (maxPerCat > 0 && appliedCount >= maxPerCat) {
+          this.log(`🎯 Reached category quota (${appliedCount}/${maxPerCat}) for Otta.`, 'info');
+          break;
+        }
+        if (this.isLimitReached(currentBatch + appliedCount)) break;
+
+        while (this.state === 'paused') {
+          await new Promise(r => setTimeout(r, 1000));
+          if (this.state === 'stopped' || this.isStopped) break;
+        }
+        if (this.state === 'stopped' || this.isStopped) break;
+
+        if (seenUrls.has(job.url)) continue;
+        seenUrls.add(job.url);
+
+        try {
+          const priorApp = tracker.findPriorApplication(job);
+          if (priorApp && (priorApp.status === 'applied' || priorApp.status === 'previously_applied')) {
+            continue;
+          }
+          unappliedCount++;
+
+          this.currentJob = job;
+          this.emit('current_job', job);
+          this.log(`👉 [Otta] Inspecting: "${job.title}" at "${job.company}"`, 'info');
+
+          try {
+            if (!page || page.isClosed()) {
+              page = await browserBridge.getPage();
+            }
+          } catch (pErr) {
+            page = await browserBridge.getPage();
+          }
+
+          const result = await this.ottaEngine.applyJob(page, job, {
+            mode: this.settings.execution?.mode || 'autonomous',
+            settings: this.settings,
+            onStatusUpdate: msg => this.log(msg),
+            onScreenshot: ss => this.emit('screenshot', ss)
+          });
+
+          if (result && result.status === 'needs_review') {
+            this.state = 'awaiting_review';
+            this.emit('state_change', this.state);
+            const decision = await new Promise(r => { this.reviewPromiseResolve = r; });
+            if (decision === 'submit') {
+              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
+              this.sessionAppliedJobs.push(entry);
+              appliedCount++;
+              this.log(`✓ Submitted Otta application for ${job.title}!`, 'success');
+            } else {
+              tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
+            }
+            this.state = 'running';
+            this.emit('state_change', this.state);
+          } else if (result && result.status === 'applied') {
+            const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : result.message });
+            this.sessionAppliedJobs.push(entry);
+            appliedCount++;
+            this.log(`✓ Successfully applied to "${job.title}" at "${job.company}" on Otta!`, 'success');
+          } else if (result && result.status === 'previously_applied') {
+            tracker.record({ ...job, status: 'previously_applied', notes: result.message });
+          } else {
+            tracker.record({ ...job, status: 'failed', notes: result?.message || 'Failed' });
+          }
+
+          this.emit('stats_update', tracker.getStats(dailyLimit));
+          this.currentJob = null;
+          this.emit('current_job', null);
+
+          const delay = Math.floor(Math.random() * 2500) + 2500;
+          await this.interruptibleDelay(delay);
+        } catch (jobErr) {
+          this.log(`⚠️ Note on Otta "${job.title}": ${jobErr.message}. Continuing...`, 'warn');
+          tracker.record({ ...job, status: 'failed', notes: jobErr.message });
+        }
+      }
+
+      if (jobs.length > 0 && unappliedCount === 0) {
+        this.log(`ℹ️ [Otta] All ${jobs.length} listings for "${keyword}" were already applied to previously.`, 'info');
+      }
+    }
+
     return appliedCount;
   }
 

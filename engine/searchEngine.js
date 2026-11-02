@@ -176,152 +176,135 @@ class SearchEngine {
         return m ? m[1] : null;
       };
 
-      // Strategy A: Modern React UI with LazyColumn
-      const lazyColumn = document.querySelector('[data-testid="lazy-column"], [data-component-type="LazyColumn"]');
-      if (lazyColumn) {
-        const cards = Array.from(lazyColumn.querySelectorAll('div[role="button"]'));
-        for (let i = 0; i < cards.length; i++) {
-          const card = cards[i];
-          const text = (card.innerText || '').trim();
-          if (!text || text.includes('Privacy & Terms') || text.includes('Business Services')) continue;
+      const cleanTitleText = (raw) => {
+        if (!raw) return '';
+        return raw
+          .replace(/^Selected,\s*/i, '')
+          .replace(/\s*\(Verified\s*job\)/gi, '')
+          .replace(/\s*\(Verified\)/gi, '')
+          .replace(/\s*·\s*Verified\s*job/gi, '')
+          .replace(/\s*·\s*Easy\s*Apply/gi, '')
+          .replace(/\s*Easy\s*Apply/gi, '')
+          .replace(/\s*Promoted/gi, '')
+          .replace(/\s*Actively\s*hiring/gi, '')
+          .replace(/[\r\n]+/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+      };
 
-          const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-          if (lines.length < 2) continue;
+      const cleanCompanyText = (raw) => {
+        if (!raw) return '';
+        return raw
+          .replace(/\s*·\s*Verified/gi, '')
+          .replace(/\s*\(Verified\)/gi, '')
+          .replace(/\s*·\s*Easy\s*Apply/gi, '')
+          .replace(/\s*Easy\s*Apply/gi, '')
+          .replace(/[\r\n]+/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+      };
 
-          // Lines typically: [0] Title, [1] Title or Company, [2] Company or Location
-          let title = lines[0].replace(/^Selected,\s*/i, '');
-          let company = lines[1] || 'Unknown Company';
-          if (lines[0] === lines[1] && lines[2]) {
-            company = lines[2];
-          }
+      const parseCardMetadata = (card, i) => {
+        const text = (card.innerText || '').trim();
+        if (!text || text.includes('Privacy & Terms') || text.includes('Business Services')) return null;
 
-          let location = lines[2] || lines[3] || '';
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return null;
 
-          // 1. Extract Real Numeric Job ID from all available anchors and attributes
-          let jobId = '';
-          const rawJobId = card.getAttribute('data-job-id') ||
-                           card.getAttribute('data-occludable-job-id') ||
-                           card.querySelector('[data-job-id]')?.getAttribute('data-job-id') ||
-                           card.querySelector('[data-occludable-job-id]')?.getAttribute('data-occludable-job-id');
-          if (rawJobId && /^\d+$/.test(rawJobId)) {
-            jobId = rawJobId;
-          }
-
-          if (!jobId) {
-            const links = Array.from(card.querySelectorAll('a[href]'));
-            for (const a of links) {
-              const href = a.href || '';
-              const m1 = href.match(/\/jobs\/view\/(\d+)/);
-              if (m1) { jobId = m1[1]; break; }
-              const m2 = href.match(/[?&]currentJobId=(\d+)/);
-              if (m2) { jobId = m2[1]; break; }
-              const m3 = href.match(/[?&]jobId=(\d+)/);
-              if (m3) { jobId = m3[1]; break; }
-            }
-          }
-
-          if (!jobId) {
-            const urnMatch = (card.outerHTML || '').match(/urn:li:(?:fsd_)?jobPosting:(\d+)/);
-            if (urnMatch) jobId = urnMatch[1];
-          }
-
-          // Deterministic fallback (Never use index i!)
-          if (!jobId) {
-            const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-            const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
-            jobId = `hash_${cleanC}_${cleanT}`;
-          }
-
-          // 2. Detect if LinkedIn search card shows "Applied" badge or status
-          let isAppliedOnLinkedIn = false;
-          const nonTitleLines = lines.filter(l => l.toLowerCase() !== title.toLowerCase());
-          for (const line of nonTitleLines) {
-            const l = line.trim().toLowerCase();
-            if (
-              l === 'applied' ||
-              l === 'application submitted' ||
-              /^applied\s*[·•-]\s*easy apply/i.test(l) ||
-              /^applied\s+\d+[mhdwy]\s+ago/i.test(l) ||
-              /^applied\s+on\s+/i.test(l) ||
-              /^applied\s+(today|yesterday)/i.test(l)
-            ) {
-              isAppliedOnLinkedIn = true;
-              break;
-            }
-          }
-
-          if (!isAppliedOnLinkedIn) {
-            const appliedBadge = card.querySelector(
-              '.job-card-container__footer-item--highlighted, [class*="applied-date"], [class*="application-date"], .artdeco-inline-feedback--success, [aria-label*="Applied"]'
-            );
-            if (appliedBadge) {
-              const bText = (appliedBadge.innerText || appliedBadge.getAttribute('aria-label') || '').toLowerCase();
-              if (bText.includes('applied')) {
-                isAppliedOnLinkedIn = true;
-              }
-            }
-          }
-
-          const hasEasyApply = text.toLowerCase().includes('easy apply');
-
-          results.push({
-            index: i,
-            jobId: String(jobId),
-            title,
-            company,
-            location,
-            hasEasyApply,
-            isAppliedOnLinkedIn
-          });
+        // 1. Direct DOM extraction for Title
+        const titleEl = card.querySelector(
+          '.job-card-list__title, a.job-card-container__link, [data-view-name*="job-card-title"], [class*="job-card-title"], strong'
+        );
+        let title = titleEl ? cleanTitleText(titleEl.innerText) : '';
+        if (!title && lines.length > 0) {
+          title = cleanTitleText(lines[0]);
         }
 
-        if (results.length > 0) return results;
-      }
+        // 2. Direct DOM extraction for Company:
+        // Priority: Anchor linking to /company/ or /school/ (100% accurate)
+        const companyLink = card.querySelector('a[href*="/company/"], a[href*="/school/"]');
+        const companyEl = card.querySelector(
+          '.job-card-container__company-name, [class*="company-name"], .artdeco-entity-lockup__subtitle, span.job-card-container__primary-description, [data-view-name*="job-card-company"]'
+        );
+        let company = companyLink ? cleanCompanyText(companyLink.innerText) :
+                      (companyEl ? cleanCompanyText(companyEl.innerText) : '');
 
-      // Strategy B: Classic LinkedIn layout
-      const classicCards = Array.from(
-        document.querySelectorAll('li[data-occludable-job-id], div.job-card-container, div[data-job-id]')
-      );
-      for (let i = 0; i < classicCards.length; i++) {
-        const card = classicCards[i];
-        let jobId =
-          card.getAttribute('data-occludable-job-id') ||
-          card.getAttribute('data-job-id') ||
-          card.querySelector('[data-job-id]')?.getAttribute('data-job-id');
+        // 3. Fallback: filter lines if company is missing or matches title
+        const isBadCompany = !company ||
+                             company.toLowerCase() === 'unknown company' ||
+                             company.toLowerCase() === title.toLowerCase() ||
+                             title.toLowerCase().startsWith(company.toLowerCase());
 
-        if (!jobId || !/^\d+$/.test(jobId)) {
+        if (isBadCompany) {
+          const nonTitleLines = lines.filter(l => {
+            const cleanedL = cleanTitleText(l).toLowerCase();
+            const cleanedT = title.toLowerCase();
+            if (!cleanedL) return false;
+            if (cleanedL === cleanedT || cleanedT.includes(cleanedL) || cleanedL.includes(cleanedT)) return false;
+            if (/^(selected|verified|verified job|promoted|easy apply|actively hiring|\d+[mhdwy]\s+ago)$/i.test(l)) return false;
+            return true;
+          });
+
+          if (nonTitleLines.length > 0) {
+            company = cleanCompanyText(nonTitleLines[0]);
+          }
+        }
+
+        if (!company) company = 'Unknown Company';
+
+        // 4. Location extraction
+        const locEl = card.querySelector(
+          '.job-card-container__metadata-item, [class*="metadata-item"], .artdeco-entity-lockup__caption, [class*="job-card-location"]'
+        );
+        let location = locEl ? locEl.innerText.trim() : '';
+        if (!location) {
+          const afterCompanyLines = lines.filter(l => {
+            const cl = l.trim().toLowerCase();
+            return cl !== title.toLowerCase() &&
+                   cl !== company.toLowerCase() &&
+                   !/^(selected|verified|verified job|promoted|easy apply|actively hiring|\d+[mhdwy]\s+ago)$/i.test(l);
+          });
+          location = afterCompanyLines.length > 0 ? afterCompanyLines[0] : '';
+        }
+
+        // 5. Numeric Job ID extraction
+        let jobId = '';
+        const rawJobId = card.getAttribute('data-job-id') ||
+                         card.getAttribute('data-occludable-job-id') ||
+                         card.querySelector('[data-job-id]')?.getAttribute('data-job-id') ||
+                         card.querySelector('[data-occludable-job-id]')?.getAttribute('data-occludable-job-id') ||
+                         card.closest('[data-job-id], [data-occludable-job-id]')?.getAttribute('data-job-id');
+        if (rawJobId && /^\d+$/.test(rawJobId)) {
+          jobId = rawJobId;
+        }
+
+        if (!jobId) {
           const links = Array.from(card.querySelectorAll('a[href]'));
           for (const a of links) {
             const href = a.href || '';
-            const m = href.match(/\/jobs\/view\/(\d+)/) || href.match(/[?&]currentJobId=(\d+)/);
-            if (m) { jobId = m[1]; break; }
+            const m1 = href.match(/\/jobs\/view\/(\d+)/);
+            if (m1) { jobId = m1[1]; break; }
+            const m2 = href.match(/[?&]currentJobId=(\d+)/);
+            if (m2) { jobId = m2[1]; break; }
+            const m3 = href.match(/[?&]jobId=(\d+)/);
+            if (m3) { jobId = m3[1]; break; }
           }
         }
 
-        const titleEl = card.querySelector(
-          '.job-card-list__title, a.job-card-container__link, strong'
-        );
-        const title = titleEl ? titleEl.innerText.trim() : 'Unknown Title';
-
-        const companyEl = card.querySelector(
-          '.job-card-container__company-name, .artdeco-entity-lockup__subtitle, span.job-card-container__primary-description'
-        );
-        const company = companyEl ? companyEl.innerText.trim() : 'Unknown Company';
-
-        const locEl = card.querySelector(
-          '.job-card-container__metadata-item, .artdeco-entity-lockup__caption'
-        );
-        const location = locEl ? locEl.innerText.trim() : '';
-
         if (!jobId) {
-          const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-          const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+          const urnMatch = (card.outerHTML || '').match(/urn:li:(?:fsd_)?jobPosting:(\d+)/);
+          if (urnMatch) jobId = urnMatch[1];
+        }
+
+        // Deterministic fallback (safe and unique)
+        if (!jobId) {
+          const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'company';
+          const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'role';
           jobId = `hash_${cleanC}_${cleanT}`;
         }
 
-        const cardText = (card.innerText || '').trim();
+        // 6. Check applied status
         let isAppliedOnLinkedIn = false;
-        const lines = cardText.split('\n').map(l => l.trim()).filter(Boolean);
         const nonTitleLines = lines.filter(l => l.toLowerCase() !== title.toLowerCase());
         for (const line of nonTitleLines) {
           const l = line.trim().toLowerCase();
@@ -338,11 +321,23 @@ class SearchEngine {
           }
         }
 
+        if (!isAppliedOnLinkedIn) {
+          const appliedBadge = card.querySelector(
+            '.job-card-container__footer-item--highlighted, [class*="applied-date"], [class*="application-date"], .artdeco-inline-feedback--success, [aria-label*="Applied"]'
+          );
+          if (appliedBadge) {
+            const bText = (appliedBadge.innerText || appliedBadge.getAttribute('aria-label') || '').toLowerCase();
+            if (bText.includes('applied')) {
+              isAppliedOnLinkedIn = true;
+            }
+          }
+        }
+
         const hasEasyApply = !!card.querySelector(
           '.job-card-container__apply-method, [aria-label*="Easy Apply"], .job-card-list__easy-apply-label'
-        ) || cardText.toLowerCase().includes('easy apply');
+        ) || text.toLowerCase().includes('easy apply');
 
-        results.push({
+        return {
           index: i,
           jobId: String(jobId),
           title,
@@ -350,7 +345,28 @@ class SearchEngine {
           location,
           hasEasyApply,
           isAppliedOnLinkedIn
-        });
+        };
+      };
+
+      // Strategy A: Modern React UI with LazyColumn
+      const lazyColumn = document.querySelector('[data-testid="lazy-column"], [data-component-type="LazyColumn"]');
+      if (lazyColumn) {
+        const cards = Array.from(lazyColumn.querySelectorAll('div[role="button"]'));
+        for (let i = 0; i < cards.length; i++) {
+          const parsed = parseCardMetadata(cards[i], i);
+          if (parsed) results.push(parsed);
+        }
+
+        if (results.length > 0) return results;
+      }
+
+      // Strategy B: Classic LinkedIn layout
+      const classicCards = Array.from(
+        document.querySelectorAll('li[data-occludable-job-id], div.job-card-container, div[data-job-id]')
+      );
+      for (let i = 0; i < classicCards.length; i++) {
+        const parsed = parseCardMetadata(classicCards[i], i);
+        if (parsed) results.push(parsed);
       }
 
       return results;
@@ -416,22 +432,10 @@ class SearchEngine {
 
     let selected = false;
 
-    // 1. In modern LazyColumn, click card by index
-    try {
-      const cards = await page.$$('[data-testid="lazy-column"] div[role="button"]');
-      if (cards && cards.length > job.index && job.index !== undefined) {
-        await cards[job.index].scrollIntoViewIfNeeded();
-        await this.bridge.humanDelay(300, 600);
-        await cards[job.index].click();
-        await this.bridge.humanDelay(1500, 2500);
-        selected = true;
-      }
-    } catch (e) {}
-
-    // 2. Try classic selector by jobId
-    if (!selected && job.jobId && /^\d+$/.test(job.jobId)) {
+    // 1. Direct navigation if ID is numeric (most reliable, avoids virtual DOM list recycling)
+    if (job.jobId && /^\d+$/.test(job.jobId)) {
       try {
-        const cardSelector = `[data-occludable-job-id="${job.jobId}"], [data-job-id="${job.jobId}"]`;
+        const cardSelector = `[data-occludable-job-id="${job.jobId}"], [data-job-id="${job.jobId}"], a[href*="/jobs/view/${job.jobId}/"], a[href*="currentJobId=${job.jobId}"]`;
         const card = await page.$(cardSelector);
         if (card) {
           await card.scrollIntoViewIfNeeded();
@@ -441,7 +445,6 @@ class SearchEngine {
         }
       } catch (e) {}
 
-      // 3. Direct navigation fallback if ID is numeric
       if (!selected) {
         try {
           update(`Navigating directly to job ID ${job.jobId}...`);
@@ -455,7 +458,71 @@ class SearchEngine {
       }
     }
 
+    // 2. Search card by exact or fuzzy text match (not blindly by virtual index!)
+    if (!selected) {
+      try {
+        const cardHandles = await page.$$('[data-testid="lazy-column"] div[role="button"], li[data-occludable-job-id], div.job-card-container');
+        for (const card of cardHandles) {
+          const cardText = (await card.innerText()).toLowerCase();
+          const matchesTitle = job.title && cardText.includes(job.title.toLowerCase().slice(0, 25));
+          const matchesCompany = job.company && job.company !== 'Unknown Company' && cardText.includes(job.company.toLowerCase());
+          if (matchesTitle || (matchesCompany && cardText.includes('easy apply'))) {
+            await card.scrollIntoViewIfNeeded();
+            await this.bridge.humanDelay(200, 400);
+            await card.click();
+            await this.bridge.humanDelay(1500, 2500);
+            selected = true;
+            break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Fallback: index click only if cards still match bounds and hasn't selected
+    if (!selected && job.index !== undefined) {
+      try {
+        const cards = await page.$$('[data-testid="lazy-column"] div[role="button"]');
+        if (cards && cards.length > job.index) {
+          await cards[job.index].scrollIntoViewIfNeeded();
+          await this.bridge.humanDelay(200, 400);
+          await cards[job.index].click();
+          await this.bridge.humanDelay(1500, 2500);
+          selected = true;
+        }
+      } catch (e) {}
+    }
+
+    // 4. CRITICAL: Re-sync verified metadata from the loaded right-hand details pane!
     if (selected) {
+      try {
+        const paneMetadata = await page.evaluate(() => {
+          const titleEl = document.querySelector(
+            '.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, h1.t-24, h1'
+          );
+          const companyEl = document.querySelector(
+            '.job-details-jobs-unified-top-card__company-name a, .jobs-unified-top-card__company-name a, .job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name, a[href*="/company/"]'
+          );
+          const locEl = document.querySelector(
+            '.job-details-jobs-unified-top-card__primary-description-container, .jobs-unified-top-card__bullet'
+          );
+          return {
+            title: titleEl ? titleEl.innerText.trim() : null,
+            company: companyEl ? companyEl.innerText.trim() : null,
+            location: locEl ? locEl.innerText.trim() : null
+          };
+        });
+
+        if (paneMetadata.title) {
+          job.title = paneMetadata.title.replace(/^Selected,\s*/i, '').replace(/\s*\(Verified\s*job\)/gi, '').trim();
+        }
+        if (paneMetadata.company && paneMetadata.company.toLowerCase() !== 'unknown company') {
+          job.company = paneMetadata.company.replace(/\s*·\s*Verified/gi, '').replace(/\s*\(Verified\)/gi, '').trim();
+        }
+        if (paneMetadata.location) {
+          job.location = paneMetadata.location.trim();
+        }
+      } catch (_) {}
+
       job.description = await this.extractJobDescription(page, update);
     }
 

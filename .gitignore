@@ -4,6 +4,10 @@ node_modules/
 # Environment & Local Secrets
 .env
 .env.local
+data/vault.json
+data/vault.key
+data/applications.backup.json
+data/pending_manual_applications.json
 
 # Chrome User Profile & Remote Debugging sessions
 LinkedInAutomationChromeProfile/

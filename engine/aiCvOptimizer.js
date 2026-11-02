@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI CV Optimizer & Truthful Rewrite Engine (Hybrid Architecture)
  * 
  * Supports:
@@ -284,29 +284,35 @@ Your duty is to truthfully tailor a candidate's resume for a specific job openin
 CRITICAL INTEGRITY & TRUTH RULES:
 1. STRICT HONESTY: Absolutely NO fabrication of any kind. Never invent technologies, databases, frameworks, metrics, or employers.
 2. VERIFIED SKILLS ONLY: The candidate ONLY has the verified skills listed below. You must NEVER claim skills from the "CRITICAL GAPS / DO NOT CLAIM" list.
-3. DYNAMIC TARGETED PROJECT SUGGESTIONS (MANDATORY): Do NOT repeat the exact same static projects in every resume. Based on the target job requirements (${job.title} at ${job.company}), generate 2 to 3 tailored project suggestions with creative, professional titles and action-oriented bullet points. Each suggested project's techStack must draw strictly from the candidate's verified skills list.
+3. DYNAMIC TARGETED PROJECT SUGGESTIONS (MANDATORY): Do NOT repeat the exact same static projects in every resume. Based on the target job requirements (${job.title} at ${job.company}), generate 2 to 3 tailored project suggestions with creative, professional titles and action-oriented bullet points. Each suggested project techStack must draw strictly from the candidate verified skills list.
 4. REFRAME, DO NOT INVENT: Reframe existing verified bullet points to highlight aspects relevant to the target job without changing the underlying truth.
 5. ATS FRIENDLY & CONCISE: Produce clear, professional, active-voice descriptions. Max 25 words per bullet.
-6. METRICS: Use a number only if it is in the background. Otherwise use defensible qualitative phrasing ("improved recall", "reduced lookup latency") or a placeholder like [X%] or [N] for the candidate to fill in. Never invent unverified metrics.
-7. JUNIOR SENIORITY: Keep seniority realistic for a junior engineer ("built", "implemented", "developed", "trained", "integrated"; avoid "led" or "architected" unless in the background).
-8. TENSE: Present tense for the current role ("Build", "Develop", "Implement"), past tense for earlier work.
-9. FORBIDDEN WORDS: Do not use these words: proven, robust, seamless, rigorous, cutting-edge, production-grade, architected.
-10. NO REPETITION ACROSS SECTIONS: Experience bullets and projects must not repeat the same tools or the same accomplishment. If a tool (e.g. LangGraph or Qdrant) already appears in the experience section, projects should highlight different verified skills supported by the JD (e.g. PyTorch model evaluation, computer vision, tabular data science, or MLOps CI/CD).
-11. BULLET STRUCTURE: Every bullet follows: action → method/tool → result. If no result exists in the background, end with a placeholder like [metric].
-12. SUMMARY REQUIREMENTS: The summary must state years of experience (~2 years) and degree/student status (BS in Computer Science student).
-13. HEADER TITLE: Must match candidate's real job title (Junior AI Engineer), optionally followed by a focus area (e.g., "Junior AI Engineer (LLM Systems)").
+6. METRICS: Use a number only if it is in the background. Otherwise use defensible qualitative phrasing or a placeholder like [X%] for the candidate to fill in. Never invent unverified metrics.
+7. JUNIOR SENIORITY: Keep seniority realistic ("built", "implemented", "developed", "trained", "integrated"; avoid "led" or "architected" unless in the background).
+8. TENSE: Present tense for the current role, past tense for earlier work.
+9. FORBIDDEN WORDS: Do not use: proven, robust, seamless, rigorous, cutting-edge, production-grade, architected.
+10. NO REPETITION ACROSS SECTIONS: Experience bullets and projects must not repeat the same tools or accomplishment.
+11. BULLET STRUCTURE: Every bullet follows: action -> method/tool -> result. End with [metric] if no real result exists.
+12. PROFESSIONAL SUMMARY (3 sentences, no buzzwords):
+    - Sentence 1: Who the candidate is - BS Computer Science student, ~2 years experience, core specialization aligned to THIS role.
+    - Sentence 2: Key technical accomplishments or strongest verified skills most relevant to THIS specific job.
+    - Sentence 3: What specific value they bring to THIS company and role. Handwritten for this exact job.
+13. HEADER TITLE: Must match candidate real job title (Junior AI Engineer), optionally followed by a focus area.
+14. PROGRESSION TITLE (tailoredProgressionRole): Suggest the upgraded title to show after "AI Intern ->" in the experience section. Must reflect the target role domain (e.g., "Junior LLM Engineer", "Junior ML Engineer", "Junior AI Automation Engineer"). Must start with "Junior". Max 5 words.
+15. EXPERIENCE BULLETS: Rewrite ALL 4 bullets specifically for THIS job. Front-load most relevant verified skills for THIS role.
 
 Return ONLY a valid JSON object matching the requested schema. No conversational preamble or postscript.`;
 
     const userPrompt = `TARGET JOB:
 - Title: ${job.title || 'AI Engineer'}
 - Company: ${job.company || 'Target Company'}
+- Description Excerpt: ${(job.description || '').slice(0, 600)}
 - Key Verified Overlapping Skills: ${[...verifiedRequired, ...verifiedPreferred].join(', ') || 'AI, Python, FastAPI'}
 - CRITICAL GAPS / DO NOT CLAIM: ${criticalGaps.length > 0 ? criticalGaps.join(', ') : 'None'}
 
 CANDIDATE VERIFIED PROFILE:
-- Real Title: Junior AI Engineer
-- Experience: ~2 years hands-on AI engineering at AppEvolve (Jun 2024 – Present)
+- Real Title: Junior AI Engineer (progressed from AI Intern)
+- Experience: ~2 years hands-on AI engineering at AppEvolve (Jun 2024 - Present)
 - Education: BS in Computer Science student at University of Gujrat
 - Current Summary: ${masterProfile.summary}
 - Verified Experience Bullets (AppEvolve - Current Role):
@@ -316,19 +322,25 @@ ${masterProfile.experience[0]?.bullets.map((b, i) => `  [${i + 1}] ${b}`).join('
 ${(masterProfile.getAllVerifiedSkills ? masterProfile.getAllVerifiedSkills() : []).join(', ')}
 
 TASK:
-1. "tailoredTitle": Match candidate's real job title (Junior AI Engineer), optionally followed by target focus area (e.g., "Junior AI Engineer (LLM Systems)").
-2. "tailoredSummary": Write a concise, impactful 2-sentence summary tailored specifically for ${job.title} at ${job.company}. Must state ~2 years experience and BS Computer Science student status, highlighting ONLY verified overlapping competencies without buzzwords.
-3. "tailoredExperienceBullets": Reframe the 4 verified bullets in PRESENT TENSE using action → method/tool → result/[metric]. Max 25 words per bullet. Zero buzzwords.
-4. "selectedProjects": Generate 2 distinct role-targeted project suggestions tailored to ${job.title} at ${job.company}:
-   - CRITICAL: Do NOT repeat the primary tools already featured in the experience section. Projects must show different verified skills (e.g. PyTorch model evaluation/fine-tuning, computer vision, tabular machine learning/feature engineering, or MLOps CI/CD).
+1. "tailoredTitle": Match candidate real job title (Junior AI Engineer), optionally add focus area (e.g., "Junior AI Engineer (LLM Systems)").
+2. "tailoredProgressionRole": A specific junior-level title to replace "Junior AI Engineer" after "AI Intern ->" in the experience line. Must reflect the target job domain. Examples: "Junior LLM Engineer", "Junior ML Engineer", "Junior AI Automation Engineer", "Junior RAG Engineer". Must start with "Junior". Max 5 words.
+3. "tailoredSummary": Write a 3-sentence professional summary SPECIFICALLY tailored for ${job.title} at ${job.company}:
+   - Sentence 1: BS CS student, ~2 years experience, core specialization for THIS role.
+   - Sentence 2: Key technical strengths and verified accomplishments most relevant to THIS job.
+   - Sentence 3: What value you bring specifically to ${job.company} and this ${job.title} role.
+   No buzzwords. Max 80 words total.
+4. "tailoredExperienceBullets": Rewrite ALL 4 experience bullets targeting THIS specific job. Front-load most relevant skills for this role. PRESENT TENSE. action -> method/tool -> result/[metric]. Max 25 words each.
+5. "selectedProjects": Generate 2 distinct role-targeted project suggestions for ${job.title} at ${job.company}:
+   - CRITICAL: Do NOT repeat primary tools already in experience bullets. Show different verified skills.
    - Each project has:
      "name": Concise, professional project title
-     "techStack": [Array of verified technologies only - differentiated from main experience tools]
-     "bullets": [2 concise bullets, max 25 words each, following action → method/tool → result/[metric]]
+     "techStack": [Array of verified technologies only]
+     "bullets": [2 concise bullets, max 25 words each, action -> method/tool -> result/[metric]]
 
 OUTPUT JSON SCHEMA:
 {
   "tailoredTitle": "string",
+  "tailoredProgressionRole": "string",
   "tailoredSummary": "string",
   "tailoredExperienceBullets": ["string", "string", "string", "string"],
   "selectedProjects": [
@@ -342,7 +354,6 @@ OUTPUT JSON SCHEMA:
 
     return { systemPrompt, userPrompt };
   }
-
   /**
    * Direct call to Groq Cloud API with Auto-Cooldown & Token Capping
    */
@@ -608,6 +619,19 @@ OUTPUT JSON SCHEMA:
   /**
    * Post-generation guard: Scans for forbidden unverified skills and verifies project tech stacks
    */
+  isSkillInText(text, skill) {
+    if (!text || !skill || typeof skill !== 'string') return false;
+    const cleanSkill = skill.trim();
+    if (cleanSkill.length < 2) return false;
+    const escaped = cleanSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      const rx = new RegExp('(?:^|[^a-zA-Z0-9_])' + escaped + '(?:$|[^a-zA-Z0-9_])', 'i');
+      return rx.test(text);
+    } catch (_) {
+      return text.toLowerCase().includes(cleanSkill.toLowerCase());
+    }
+  }
+
   enforceIntegrity(llmOutput, masterProfile, matchAnalysis, provider = 'hybrid', model = 'auto', job = null) {
     const criticalGaps = (matchAnalysis.gaps?.criticalGaps || []).map(g => g.toLowerCase());
     const familiarGaps = (matchAnalysis.gaps?.familiarGaps || []).map(g => g.toLowerCase().replace(/\s*\(.*?\)/, ''));
@@ -641,7 +665,7 @@ OUTPUT JSON SCHEMA:
     // 1. Guard Summary
     let tailoredSummary = llmOutput.tailoredSummary || masterProfile.summary;
     for (const badSkill of forbidden) {
-      if (badSkill.length > 2 && new RegExp(`\\b${badSkill}\\b`, 'i').test(tailoredSummary)) {
+      if (this.isSkillInText(tailoredSummary, badSkill)) {
         console.warn(`🛡️ [Integrity Guard] LLM attempted to include unverified skill "${badSkill}" in summary. Falling back to verified summary.`);
         tailoredSummary = masterProfile.summary;
         break;
@@ -655,7 +679,7 @@ OUTPUT JSON SCHEMA:
 
     tailoredExperienceBullets = tailoredExperienceBullets.map((bullet, idx) => {
       for (const badSkill of forbidden) {
-        if (badSkill.length > 2 && new RegExp(`\\b${badSkill}\\b`, 'i').test(bullet)) {
+        if (this.isSkillInText(bullet, badSkill)) {
           console.warn(`🛡️ [Integrity Guard] LLM included unverified "${badSkill}" in experience bullet. Reverting bullet #${idx + 1}.`);
           return masterProfile.experience[0]?.bullets[idx] || bullet;
         }
@@ -678,7 +702,7 @@ OUTPUT JSON SCHEMA:
           // Existing master project: freeze techStack to master profile
           const cleanBullets = (Array.isArray(proj.bullets) && proj.bullets.length > 0 ? proj.bullets : original.bullets).map((b, i) => {
             for (const badSkill of forbidden) {
-              if (badSkill.length > 2 && new RegExp(`\\b${badSkill}\\b`, 'i').test(b)) {
+              if (this.isSkillInText(b, badSkill)) {
                 console.warn(`🛡️ [Integrity Guard] LLM included unverified "${badSkill}" in project "${original.name}". Reverting bullet.`);
                 return original.bullets[i] || b;
               }
@@ -700,7 +724,7 @@ OUTPUT JSON SCHEMA:
           // Sanitize dynamic bullets: remove bullets referencing critical gaps
           const cleanBullets = proj.bullets.filter(b => {
             for (const badSkill of forbidden) {
-              if (badSkill.length > 2 && new RegExp(`\\b${badSkill}\\b`, 'i').test(b)) {
+              if (this.isSkillInText(b, badSkill)) {
                 return false;
               }
             }
@@ -726,8 +750,25 @@ OUTPUT JSON SCHEMA:
       selectedProjects = cvTailor.generateSuggestedProjects(targetJob, targetKws);
     }
 
+    // 0b. Guard Progression Role (must start with "Junior", max 5 words, no forbidden tools)
+    let tailoredProgressionRole = llmOutput.tailoredProgressionRole || '';
+    if (tailoredProgressionRole) {
+      // Must start with Junior
+      if (!/^junior\s/i.test(tailoredProgressionRole.trim())) {
+        tailoredProgressionRole = `Junior ${tailoredProgressionRole.trim()}`;
+      }
+      // Must not contain forbidden tools
+      const hasForbidenInRole = forbidden.some(f => f.length > 3 && this.isSkillInText(tailoredProgressionRole, f));
+      if (hasForbidenInRole) {
+        tailoredProgressionRole = 'Junior AI Engineer';
+      }
+      // Sanitize buzzwords
+      tailoredProgressionRole = sanitizeBuzzwords(tailoredProgressionRole);
+    }
+
     return {
       tailoredTitle,
+      tailoredProgressionRole: tailoredProgressionRole || null,
       tailoredSummary: sanitizeBuzzwords(tailoredSummary),
       tailoredExperienceBullets: tailoredExperienceBullets.map(sanitizeBuzzwords),
       selectedProjects: selectedProjects.map(p => ({

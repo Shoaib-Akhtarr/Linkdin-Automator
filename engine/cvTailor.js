@@ -54,12 +54,19 @@ class CVTailor {
       targetKeywords.push(...this.extractJDKeywords(desc));
     }
 
-    // 4. FACTUAL SUMMARY (Includes ~2 years experience & BS CS student status, zero buzzwords)
+    // 4. PROFESSIONAL SUMMARY — 3 sentences, tailored to the specific job & company
     const topOverlap = targetKeywords.slice(0, 3).join(', ');
-    const companyMention = company ? ` at ${company}` : '';
 
     if (topOverlap) {
-      tailored.summary = `BS in Computer Science student and Junior AI Engineer with ~2 years of practical experience developing AI pipelines, LLM workflows, and microservices. Experienced in building RAG systems with FastAPI and Docker, fine-tuning ML models, and deploying reliable agent workflows. Hands-on experience in ${topOverlap}, focused on delivering scalable software solutions${companyMention}.`;
+      const companyTarget = company ? `${company}` : 'the target organization';
+      const roleLabel = title
+        ? title.replace(/\(verified job\)/i, '').replace(/\[.*?\]/g, '').trim()
+        : 'AI engineering';
+      tailored.summary = (
+        `BS in Computer Science student and Junior AI Engineer with ~2 years of hands-on experience building AI pipelines, LLM workflows, and multi-agent systems, specializing in ${topOverlap}. ` +
+        `Developed enterprise RAG pipelines, fine-tuned ML models with PyTorch and Hugging Face, and deployed containerized FastAPI microservices aligned with ${roleLabel} requirements. ` +
+        `Eager to bring verified skills in ${topOverlap} to ${companyTarget} and deliver reliable, impactful AI solutions from day one.`
+      );
     }
 
     // 5. PRIORITIZE VERIFIED SKILLS (Zero injection — strictly re-ordering)
@@ -95,14 +102,30 @@ class CVTailor {
         if (aiResult.tailoredTitle) {
           tailored.personal.targetTitle = aiResult.tailoredTitle;
         }
+
+        // ── NEW: AI-suggested progression role shown after "AI Intern →" ──
+        // The AI picks the best junior role title for this specific job (e.g. "Junior LLM Engineer")
+        if (aiResult.tailoredProgressionRole) {
+          if (tailored.experience[0]) {
+            const baseRole = tailored.experience[0].role || 'AI Intern → Junior AI Engineer';
+            // Handle both unicode arrow (→) and ASCII (->) in the stored role string
+            const internPart = baseRole.split(/\s*[-→>]{1,2}\s*/)[0].trim();
+            tailored.experience[0].role = `${internPart} → ${aiResult.tailoredProgressionRole}`;
+          }
+        }
+
+        // ── NEW: AI-tailored 3-sentence Professional Summary per job ──
         if (aiResult.tailoredSummary) {
           tailored.summary = aiResult.tailoredSummary;
         }
+
+        // ── NEW: AI-rewritten experience bullets targeted to THIS job ──
         if (Array.isArray(aiResult.tailoredExperienceBullets) && aiResult.tailoredExperienceBullets.length > 0) {
           if (tailored.experience[0]) {
             tailored.experience[0].bullets = aiResult.tailoredExperienceBullets;
           }
         }
+
         if (Array.isArray(aiResult.selectedProjects) && aiResult.selectedProjects.length > 0) {
           tailored.projects = aiResult.selectedProjects;
         }
@@ -376,6 +399,22 @@ class CVTailor {
       font-weight: 700;
       color: #0f172a;
     }
+    .role-from {
+      font-size: 9pt;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .role-arrow {
+      font-size: 9pt;
+      color: #2563eb;
+      font-weight: 700;
+      margin: 0 3px;
+    }
+    .role-to {
+      font-size: 9.8pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
     .job-company {
       color: #2563eb;
       font-weight: 600;
@@ -446,19 +485,19 @@ class CVTailor {
         <div class="skills-value">${escapeHTML(tailoredData.skills.languages.join(', '))}</div>
       </div>
       <div class="skills-row">
-        <div class="skills-label">Generative AI & LLMs:</div>
+        <div class="skills-label">Generative AI &amp; LLMs:</div>
         <div class="skills-value">${escapeHTML(tailoredData.skills.generativeAI.join(', '))}</div>
       </div>
       <div class="skills-row">
-        <div class="skills-label">Frameworks & APIs:</div>
+        <div class="skills-label">Frameworks &amp; APIs:</div>
         <div class="skills-value">${escapeHTML(tailoredData.skills.frameworks.join(', '))}</div>
       </div>
       <div class="skills-row">
-        <div class="skills-label">MLOps & Cloud:</div>
+        <div class="skills-label">MLOps &amp; Cloud:</div>
         <div class="skills-value">${escapeHTML(tailoredData.skills.mlopsAndCloud.join(', '))}</div>
       </div>
       <div class="skills-row">
-        <div class="skills-label">Data Science & Tools:</div>
+        <div class="skills-label">Data Science &amp; Tools:</div>
         <div class="skills-value">${escapeHTML(tailoredData.skills.dataScience.join(', '))}</div>
       </div>
     </div>
@@ -467,11 +506,23 @@ class CVTailor {
   <!-- Professional Experience -->
   <div class="section">
     <div class="section-title">Work Experience</div>
-    ${tailoredData.experience.map(exp => `
+    ${tailoredData.experience.map(exp => {
+      // Render the role with styled arrow if it contains a progression (→ or ->)
+      const roleHasArrow = (exp.role || '').match(/\s*[-→>]{1,2}\s*/);
+      let roleHTML;
+      if (roleHasArrow) {
+        const parts = (exp.role || '').split(/\s*[-→>]{1,2}\s*/);
+        const from = escapeHTML((parts[0] || '').trim());
+        const to = escapeHTML((parts[1] || '').trim());
+        roleHTML = `<span class="role-from">${from}</span><span class="role-arrow">&#8594;</span><span class="role-to">${to}</span>`;
+      } else {
+        roleHTML = `<span>${escapeHTML(exp.role)}</span>`;
+      }
+      return `
       <div class="job-item">
         <div class="job-header">
           <div class="job-title-company">
-            <span>${escapeHTML(exp.role)}</span> &nbsp;—&nbsp; <span class="job-company">${escapeHTML(exp.company)}</span>
+            ${roleHTML} &nbsp;—&nbsp; <span class="job-company">${escapeHTML(exp.company)}</span>
           </div>
           <div class="job-date-loc">${escapeHTML(exp.period)} &nbsp;|&nbsp; ${escapeHTML(exp.location)}</div>
         </div>
@@ -479,19 +530,20 @@ class CVTailor {
           ${exp.bullets.map(b => `<li>${escapeHTML(b)}</li>`).join('')}
         </ul>
       </div>
-    `).join('')}
+    `;
+    }).join('')}
   </div>
 
   <!-- Key AI Projects -->
   <div class="section">
-    <div class="section-title">Key AI & Machine Learning Projects</div>
+    <div class="section-title">Key AI &amp; Machine Learning Projects</div>
     ${tailoredData.projects.map(proj => `
       <div class="project-item">
         <div class="job-header">
           <div class="job-title-company">
             <span>${escapeHTML(proj.name)}</span>
           </div>
-          <div class="job-date-loc tech-badge">${escapeHTML(proj.techStack.join(' • '))}</div>
+          <div class="job-date-loc tech-badge">${escapeHTML(proj.techStack.join(' \u2022 '))}</div>
         </div>
         <ul class="bullet-list">
           ${proj.bullets.map(b => `<li>${escapeHTML(b)}</li>`).join('')}
@@ -502,7 +554,7 @@ class CVTailor {
 
   <!-- Education & Certifications (Compact Bottom) -->
   <div class="section">
-    <div class="section-title">Education & Certifications</div>
+    <div class="section-title">Education &amp; Certifications</div>
     ${tailoredData.education.map(edu => `
       <div class="edu-item">
         <div class="job-title-company">

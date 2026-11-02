@@ -39,7 +39,7 @@ class WellfoundEngine {
   /**
    * Search for jobs on Wellfound matching keywords (pure JSON extraction, zero stale DOM handles)
    */
-  async searchJobs(page, keyword, settings, logCallback = () => {}) {
+  getRoleSlug(keyword) {
     const slugMap = {
       'ai engineer': 'ai-engineer',
       'generative ai engineer': 'ai-engineer',
@@ -59,7 +59,14 @@ class WellfoundEngine {
       'ai automation engineer': 'ai-engineer'
     };
     const cleanK = (keyword || '').toLowerCase().trim();
-    const roleSlug = slugMap[cleanK] || cleanK.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'ai-engineer';
+    return slugMap[cleanK] || cleanK.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'ai-engineer';
+  }
+
+  /**
+   * Search for jobs on Wellfound matching keywords (pure JSON extraction, zero stale DOM handles)
+   */
+  async searchJobs(page, keyword, settings, logCallback = () => {}) {
+    const roleSlug = this.getRoleSlug(keyword);
 
     logCallback(`🚀 Wellfound: Navigating to startup roles for "${keyword}" (/role/r/${roleSlug})...`);
     const primaryUrl = `https://wellfound.com/role/r/${roleSlug}`;

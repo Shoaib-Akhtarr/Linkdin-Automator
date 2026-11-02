@@ -29,6 +29,14 @@
     "jobicy": {
       "enabled": true,
       "name": "Jobicy"
+    },
+    "ycombinator": {
+      "enabled": true,
+      "name": "Y Combinator (Work at a Startup)"
+    },
+    "otta": {
+      "enabled": true,
+      "name": "Otta (Welcome to the Jungle)"
     }
   },
   "search": {
@@ -98,7 +106,7 @@
     "enabled": true,
     "intervalMinutes": 120,
     "batchSize": 80,
-    "nextRunTime": 1793355493819
+    "nextRunTime": 1793615812858
   },
   "aiOptimizer": {
     "mode": "hybrid",

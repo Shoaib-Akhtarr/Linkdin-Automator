@@ -290,8 +290,9 @@ class CompanyAtsEngine {
   passesLevelFilter(title, settings = {}) {
     const t = title.toLowerCase();
 
-    // 1. Exclude non-software / physical / sales domains
-    const nonTechExclusions = [
+    // 1. Exclude non-software / non-engineering / management / product domains
+    const nonEngineeringExclusions = [
+      // Physical / Non-tech trades
       /\bdata center\b/i,
       /\belectrical\b/i,
       /\bhardware\b/i,
@@ -299,27 +300,60 @@ class CompanyAtsEngine {
       /\bcooling\b/i,
       /\bmechanical\b/i,
       /\bpower\b/i,
-      /\baccount executive\b/i,
-      /\bsales\b/i,
-      /\brecruiter\b/i,
-      /\btalent\b/i,
-      /\blegal\b/i,
-      /\bfinance\b/i,
-      /\bpayroll\b/i,
-      /\bmarketing\b/i,
-      /\bcommunications\b/i,
-      /\boffice manager\b/i,
       /\bsecurity guard\b/i,
       /\bnurse\b/i,
-      /\bcounsel\b/i
+
+      // Product Management
+      /\b(?:product manager|group product manager|principal product manager|lead product manager|technical product manager|head of product|director of product|vp of product|apm)\b/i,
+      /\bproduct management\b/i,
+
+      // Economics / Finance / Accounting
+      /\b(?:economist|economic research|financial analyst|accountant|auditor|payroll|trader|treasury)\b/i,
+
+      // Non-technical & Operations Management
+      /\b(?:transformation manager|change manager|scrum master|agile coach|operations manager|office manager|business operations|strategy & ops)\b/i,
+      /\b(?:professional services manager|alliances manager|partner manager|partnerships manager|solution architecture manager)\b/i,
+      /\b(?:engineering manager|director of engineering|vp of engineering|head of engineering|general manager)\b/i,
+
+      // Sales, Marketing, Customer Success, & Recruiting
+      /\b(?:account executive|sales\b|sales engineer|alliances engineer|bdr\b|sdr\b|customer success|client success|business development)\b/i,
+      /\b(?:marketing|communications|growth marketer|content creator|copywriter|pr manager)\b/i,
+      /\b(?:recruiter|talent acquisition|people partner|human resources|hr manager|people operations)\b/i,
+      /\b(?:legal|counsel|attorney|paralegal|compliance officer)\b/i,
+
+      // Non-developer Analyst roles & domain exclusions
+      /\b(?:product quality analyst|business analyst|qa analyst|quality assurance analyst)\b/i,
+      /\b(?:solutions architect for automotive)\b/i
     ];
 
-    for (const rx of nonTechExclusions) {
+    for (const rx of nonEngineeringExclusions) {
       if (rx.test(t)) return false;
     }
 
-    // 2. Exclude Senior / Staff / Principal levels
-    const excludeSenior = settings.excludeSeniorLevels !== false;
+    // 2. Must match core technical / engineering / research role keywords
+    const technicalRolePatterns = [
+      /\bengineer\b/i,
+      /\bdeveloper\b/i,
+      /\bscientist\b/i,
+      /\bresearcher\b/i,
+      /\barchitect\b/i,
+      /\bprogrammer\b/i,
+      /\btechnical staff\b/i,
+      /\bmts\b/i,
+      /\bai\b/i,
+      /\bml\b/i,
+      /\bdata\b/i,
+      /\bsoftware\b/i,
+      /\bdevops\b/i,
+      /\bmlops\b/i,
+      /\bcloud\b/i
+    ];
+
+    const isTechnicalRole = technicalRolePatterns.some(p => p.test(t));
+    if (!isTechnicalRole) return false;
+
+    // 3. Exclude Senior / Staff / Principal levels ONLY if explicitly configured by user
+    const excludeSenior = settings.excludeSeniorLevels === true;
     if (excludeSenior) {
       const seniorPatterns = [
         /\bsenior\b/i,
@@ -331,14 +365,11 @@ class CompanyAtsEngine {
         /\bdirector\b/i,
         /\bvp\b/i,
         /\bvice president\b/i,
-        /\bengineering manager\b/i,
-        /\bmanager\b/i,
         /\barchitect\b/i
       ];
 
       for (const p of seniorPatterns) {
         if (p.test(t)) {
-          // If title has "associate" or "intern" despite containing one of the above, keep it
           if (!/\bassociate\b|\bintern\b|\bjunior\b|\bentry\b/i.test(t)) {
             return false;
           }
@@ -352,12 +383,14 @@ class CompanyAtsEngine {
   /**
    * Filter 2: Air-Tight Location & Remote Viability Filter
    * Discards US-only, Hybrid, physical office cities, and non-visa/citizenship restricted jobs.
+   * Ensures roles are genuinely accessible to a candidate based in Pakistan (Worldwide / APAC / EMEA / Global Remote).
    */
   passesLocationFilter(job, settings = {}) {
     const loc = (job.location || '').toLowerCase();
     const workplace = (job.workplaceType || '').toLowerCase();
     const country = (job.country || '').toLowerCase();
     const secondary = (job.secondaryLocations || []).map(s => s.toLowerCase()).join(' ');
+    const allLocationText = `${loc} ${secondary} ${country}`.toLowerCase();
     const desc = (job.description || '').toLowerCase();
 
     // 1. REJECT if workplaceType explicitly says Hybrid or On-Site
@@ -365,71 +398,80 @@ class CompanyAtsEngine {
       return false;
     }
 
-    // 2. REJECT if travel is required or physical office attendance
-    if (/travel required|in-person|in person|office based/i.test(loc)) {
+    // 2. REJECT if travel is required or physical office attendance / relocation
+    if (/travel required|travel-required|in-person|in person|office based|relocation required/i.test(loc) ||
+        /travel required|travel-required|relocation required/i.test(allLocationText)) {
       return false;
     }
 
-    // 3. REJECT any physical tech hub city unless explicitly marked Worldwide
-    const strictCityBlockers = [
-      'san francisco', 'seattle', 'new york', 'nyc', 'austin', 'boston',
-      'chicago', 'los angeles', 'sunnyvale', 'mountain view', 'palo alto',
-      'london', 'dublin', 'berlin', 'paris', 'toronto', 'vancouver'
+    // 3. Positive Global / Worldwide Remote Indicators
+    const isExplicitlyWorldwide = /worldwide|global|anywhere|work from anywhere|apac|emea|international|home based - worldwide|all locations/i.test(allLocationText) ||
+                                 /work from anywhere|anywhere in the world|worldwide remote/i.test(desc.slice(0, 1000));
+
+    // 4. Strict Regional / Country-Locked Indicators (Incompatible with candidate in Pakistan)
+    const regionalLockedPatterns = [
+      /\bus[-\s]?remote\b/i,
+      /\bremote\s+(?:in|within)\s+(?:the\s+)?(?:us|usa|united states)\b/i,
+      /\b(?:us|usa|united states)\s+only\b/i,
+      /\bcanada[-\s]?remote\b/i,
+      /\bremote\s+(?:in|within)\s+canada\b/i,
+      /\buk[-\s]?remote\b/i,
+      /\bremote\s+(?:in|within)\s+(?:the\s+)?uk\b/i,
+      /\bremote,\s*united kingdom\b/i,
+      /\blatam\s+only\b/i,
+      /\beurope\s+only\b/i,
+      /\bbelgrade\b/i,
+      /\briyadh\b/i,
+      /\bsydney\b/i,
+      /\bmelbourne\b/i,
+      /\btokyo\b/i
     ];
 
-    const allLocationText = `${loc} ${secondary} ${country}`.toLowerCase();
-    for (const city of strictCityBlockers) {
-      if (allLocationText.includes(city)) {
-        if (!/worldwide|global|anywhere/i.test(allLocationText)) {
+    if (!isExplicitlyWorldwide) {
+      for (const rx of regionalLockedPatterns) {
+        if (rx.test(allLocationText) || rx.test(loc)) {
+          return false;
+        }
+      }
+
+      // Check strict physical tech hub cities without explicit global remote
+      const strictCityBlockers = [
+        'san francisco', 'seattle', 'new york', 'nyc', 'austin', 'boston',
+        'chicago', 'los angeles', 'sunnyvale', 'mountain view', 'palo alto',
+        'london', 'dublin', 'berlin', 'paris', 'toronto', 'vancouver'
+      ];
+      for (const city of strictCityBlockers) {
+        if (allLocationText.includes(city)) {
           return false;
         }
       }
     }
 
-    // 4. REJECT US-only, North America only, or European only geography locks
-    const geoBlockers = [
-      'us - remote',
-      'united states',
-      'u.s.',
-      'us only',
-      'usa only',
-      'north america only',
-      'canada only',
-      'uk only',
-      'emea only',
-      'europe only',
-      'latam only',
-      'must reside in',
-      'must be located in the united states',
-      'must be located in the us',
-      'must be based in the us',
-      'must be based in the united states',
-      'us time zones',
-      'us citizenship',
-      'u.s. citizenship',
-      'security clearance',
+    // 5. Check Legal & Visa / Citizenship Blockers in Description
+    const citizenshipBlockers = [
+      'us citizenship required',
+      'u.s. citizenship required',
+      'security clearance required',
+      'must be a u.s. citizen',
+      'must be a us citizen',
       'no visa sponsorship',
       'not open to international',
-      'relocation required'
+      'must reside in the united states',
+      'must be located in the united states',
+      'must be based in the us',
+      'must be based in the united states'
     ];
-
-    for (const b of geoBlockers) {
-      if (allLocationText.includes(b)) {
-        // If it explicitly says "Worldwide" or "Global", do not reject for minor mention
-        if (!/worldwide|global|anywhere|apac/i.test(allLocationText)) {
-          return false;
-        }
-      }
-      if (desc.includes(b) && (desc.includes('requirement') || desc.includes('eligible') || desc.includes('must'))) {
+    for (const b of citizenshipBlockers) {
+      if (desc.includes(b)) {
         return false;
       }
     }
 
-    // 5. Must have positive remote indicator
-    const isExplicitlyRemote = job.isRemote === true || workplace === 'remote';
-    const hasRemoteKeyword = /remote|worldwide|global|anywhere|apac/i.test(allLocationText);
+    // 6. Must have a confirmed remote indicator
+    const isExplicitlyRemote = job.isRemote === true || workplace === 'remote' || isExplicitlyWorldwide;
+    const hasRemoteWord = /remote|worldwide|global|anywhere|telecommute|home based/i.test(allLocationText);
 
-    if (!isExplicitlyRemote && !hasRemoteKeyword) {
+    if (!isExplicitlyRemote && !hasRemoteWord) {
       return false;
     }
 
@@ -438,10 +480,8 @@ class CompanyAtsEngine {
 
   /**
    * Filter 3: Experience Parser & Experience Gate
-   * Extracts years of experience required from the JD.
-   * Discards roles requiring > 2.5 years of experience for 0-2y junior/associate candidates.
    */
-  evaluateExperienceRequirement(description) {
+    evaluateExperienceRequirement(description) {
     if (!description) return { maxYears: 0, passes: true, reason: 'No experience requirement detected' };
 
     const expRegexes = [
@@ -467,15 +507,16 @@ class CompanyAtsEngine {
       return { maxYears: 0, passes: true, reason: 'Entry/Mid friendly or unspecified years' };
     }
 
+    const minYears = Math.min(...detectedYears);
     const maxYears = Math.max(...detectedYears);
     const candidateMaxYears = this.candidateProfile?.workExperienceYears?.total || 2;
 
-    // Strict Gate: If role demands > candidate years + 1 (e.g. 4+ or 5+ years), reject immediately
-    if (maxYears > candidateMaxYears + 1) {
+    // Gate on minimum required experience: allow reasonable stretch up to candidate + 2 (4 years)
+    if (minYears > candidateMaxYears + 2 && minYears > 4) {
       return {
-        maxYears,
+        maxYears: minYears,
         passes: false,
-        reason: `Demands ${maxYears}+ years of experience (Candidate has ${candidateMaxYears} years)`
+        reason: `Demands ${minYears}+ years minimum experience (Candidate has ${candidateMaxYears} years)`
       };
     }
 
@@ -490,7 +531,7 @@ class CompanyAtsEngine {
    * Filter 4: Tech Keyword Relevance
    */
   passesKeywords(job) {
-    const text = `${job.title} ${job.description.slice(0, 1000)}`.toLowerCase();
+    const text = `${job.title || ''} ${(job.description || '').slice(0, 1500)}`.toLowerCase();
     const defaultPatterns = [
       /\bai engineer\b/i,
       /\bgenerative ai\b/i,

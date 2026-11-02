@@ -64,6 +64,15 @@
     "noticePeriodWeeks": 2,
     "availableToStart": "Immediately"
   },
+  "legalAttestations": {
+    "consentToCertify": true,
+    "consentToTerms": true,
+    "consentToPrivacyPolicy": true,
+    "discloseDisability": "No",
+    "discloseVeteran": "No",
+    "gender": "Male",
+    "raceEthnicity": "Asian"
+  },
   "education": {
     "degree": "Bachelor of Science in Computer Science (BSCS)",
     "fieldOfStudy": "Computer Science",
