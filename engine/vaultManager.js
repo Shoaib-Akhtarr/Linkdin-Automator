@@ -338,6 +338,97 @@ class VaultManager {
       return null;
     }
   }
+
+  /**
+   * Export all credentials and TOTP seeds to a portable encrypted backup file.
+   * Can be restored on any machine or after Windows reinstall using the user passphrase.
+   */
+  exportOfflineBackup(passphrase, outputPath) {
+    if (!passphrase || passphrase.trim().length < 8) {
+      throw new Error('Passphrase must be at least 8 characters long.');
+    }
+    const rawVault = this.loadRawVault();
+    // Decrypt all secrets before packaging into backup payload
+    const decryptedPayload = {};
+    for (const [tenant, entry] of Object.entries(rawVault)) {
+      decryptedPayload[tenant] = {
+        tenant: entry.tenant,
+        email: entry.email,
+        password: entry.passwordEncrypted ? this.decrypt(entry.passwordEncrypted) : '',
+        totpSecret: entry.totpSecretEncrypted ? this.decrypt(entry.totpSecretEncrypted) : null,
+        status: entry.status,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt
+      };
+    }
+
+    const salt = crypto.randomBytes(16);
+    const backupKey = crypto.pbkdf2Sync(passphrase.trim(), salt, 100000, 32, 'sha256');
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', backupKey, iv);
+    let ciphertext = cipher.update(JSON.stringify(decryptedPayload, null, 2), 'utf8', 'hex');
+    ciphertext += cipher.final('hex');
+    const tag = cipher.getAuthTag().toString('hex');
+
+    const envelope = {
+      version: 1,
+      format: 'LinkdinAutomation-PortableVaultBackup',
+      exportedAt: new Date().toISOString(),
+      salt: salt.toString('hex'),
+      iv: iv.toString('hex'),
+      tag: tag,
+      data: ciphertext
+    };
+
+    const targetFile = outputPath || path.join(LOCAL_SECURE_DIR, 'vault_offline_recovery.enc');
+    fs.writeFileSync(targetFile, JSON.stringify(envelope, null, 2), { mode: 0o600 });
+    return targetFile;
+  }
+
+  /**
+   * Import and restore credentials from a portable encrypted backup file.
+   */
+  importOfflineBackup(passphrase, inputPath) {
+    if (!passphrase || passphrase.trim().length < 8) {
+      throw new Error('Passphrase must be at least 8 characters long.');
+    }
+    const targetFile = inputPath || path.join(LOCAL_SECURE_DIR, 'vault_offline_recovery.enc');
+    if (!fs.existsSync(targetFile)) {
+      throw new Error(`Backup file not found at: ${targetFile}`);
+    }
+
+    const envelope = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
+    const salt = Buffer.from(envelope.salt, 'hex');
+    const iv = Buffer.from(envelope.iv, 'hex');
+    const tag = Buffer.from(envelope.tag, 'hex');
+
+    const backupKey = crypto.pbkdf2Sync(passphrase.trim(), salt, 100000, 32, 'sha256');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', backupKey, iv);
+    decipher.setAuthTag(tag);
+    let decrypted = decipher.update(envelope.data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    const importedPayload = JSON.parse(decrypted);
+    const currentVault = this.loadRawVault();
+
+    // Re-encrypt each entry using the current machine/environment key
+    let restoredCount = 0;
+    for (const [tenant, entry] of Object.entries(importedPayload)) {
+      currentVault[tenant] = {
+        tenant: entry.tenant,
+        email: entry.email,
+        passwordEncrypted: entry.password ? this.encrypt(entry.password) : '',
+        totpSecretEncrypted: entry.totpSecret ? this.encrypt(entry.totpSecret) : null,
+        status: entry.status || 'ACTIVE_CREDENTIAL',
+        createdAt: entry.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      restoredCount++;
+    }
+
+    this.saveRawVault(currentVault);
+    return { restoredCount, totalEntries: Object.keys(currentVault).length };
+  }
 }
 
 module.exports = new VaultManager();

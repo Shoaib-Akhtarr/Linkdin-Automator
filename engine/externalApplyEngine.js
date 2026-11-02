@@ -21,6 +21,19 @@ class ExternalApplyEngine {
   }
 
   /**
+   * Safe Ledger Recorder with Dry-Run Interceptor:
+   * Suppresses writing APPLIED, COOLDOWN, or HOLD outcomes to applications.json during dry-run inspections.
+   */
+  recordOutcome(jobInfo, status, metadata = {}, options = {}) {
+    const isDryRun = options.dryRun === true || options.settings?.execution?.dryRun === true || process.argv.includes('--dry-run');
+    if (isDryRun) {
+      this.log(null, `🧪 [DRY-RUN] Suppressed recording outcome "${status}" to applications.json ledger.`);
+      return { dryRun: true, status, metadata };
+    }
+    return this.recordOutcome(jobInfo, status, metadata, options);
+  }
+
+  /**
    * Normalize ATS links to point directly to application form
    */
   normalizeAtsUrl(url) {
@@ -103,10 +116,11 @@ class ExternalApplyEngine {
   async areFormFieldsDirectlyOpen(page) {
     if (!page || page.isClosed()) return false;
     try {
-      const hasFileInput = (await page.$('input[type="file"]').catch(() => null)) !== null;
-      const hasNameInput = (await page.$('input[name*="name" i], input[id*="name" i], input[placeholder*="name" i]').catch(() => null)) !== null;
-      const hasEmailInput = (await page.$('input[type="email"], input[name*="email" i], input[id*="email" i]').catch(() => null)) !== null;
-      return hasFileInput && (hasNameInput || hasEmailInput);
+      const hasFileInput = (await page.$('div[data-automation-id="file-upload-drop-zone"] input[type="file"], input[type="file"]').catch(() => null)) !== null;
+      const hasNameInput = (await page.$('input[data-automation-id*="firstName"], input[name*="name" i], input[id*="name" i], input[placeholder*="name" i]').catch(() => null)) !== null;
+      const hasEmailInput = (await page.$('input[data-automation-id="email"], input[type="email"], input[name*="email" i], input[id*="email" i]').catch(() => null)) !== null;
+      const hasWorkdayWizard = (await page.$('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="bottom-navigation-submit-button"]').catch(() => null)) !== null;
+      return (hasFileInput && (hasNameInput || hasEmailInput)) || hasWorkdayWizard;
     } catch (_) {
       return false;
     }
@@ -147,7 +161,7 @@ class ExternalApplyEngine {
       // 1. Locate and click external apply button on LinkedIn
       const applyBtn = await this.findApplyButton(linkedInPage);
       if (!applyBtn) {
-        tracker.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_APPLY_BUTTON', message: 'No apply button on LinkedIn' });
+        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_APPLY_BUTTON', message: 'No apply button on LinkedIn' }, options);
         return { status: 'failed', code: 'CODE_NO_APPLY_BUTTON', message: 'No external Apply button found on LinkedIn.' };
       }
 
@@ -170,7 +184,7 @@ class ExternalApplyEngine {
         if (!currentUrl.includes('linkedin.com/jobs')) {
           externalPage = linkedInPage;
         } else {
-          tracker.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab' });
+          this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab' }, options);
           return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab.' };
         }
       }
@@ -187,7 +201,7 @@ class ExternalApplyEngine {
       const isDirectForm = await this.areFormFieldsDirectlyOpen(externalPage);
       if (!isDirectForm) {
         const internalApplyBtn = await externalPage.$(
-          'a:has-text("Apply for this job"), a:has-text("Apply Now"), button:has-text("Apply for this job"), button:has-text("Apply Now"), a:has-text("Apply"), button:has-text("Apply")'
+          'a[data-automation-id="adventureButton"], button[data-automation-id="adventureButton"], a:has-text("Apply for this job"), a:has-text("Apply Now"), button:has-text("Apply for this job"), button:has-text("Apply Now"), a:has-text("Apply"), button:has-text("Apply")'
         ).catch(() => null);
 
         if (internalApplyBtn && await internalApplyBtn.isVisible().catch(() => false)) {
@@ -195,20 +209,33 @@ class ExternalApplyEngine {
           await internalApplyBtn.click({ force: true }).catch(() => {});
           await this.bridge.humanDelay(2000, 3500);
           await this.dismissCookieOverlays(externalPage);
+
+          // Workday sub-options check: "Autofill with Resume" or "Apply Manually"
+          const wdAutofill = await externalPage.$('a[data-automation-id="autofillWithResume"], [data-automation-id="applyWithResume"], a:has-text("Autofill with Resume")').catch(() => null);
+          const wdManual = await externalPage.$('a[data-automation-id="applyManually"], a:has-text("Apply Manually")').catch(() => null);
+          if (wdAutofill && await wdAutofill.isVisible().catch(() => false)) {
+            update('Selecting Workday "Autofill with Resume"...');
+            await wdAutofill.click({ force: true }).catch(() => {});
+            await this.bridge.humanDelay(2000, 3500);
+          } else if (wdManual && await wdManual.isVisible().catch(() => false)) {
+            update('Selecting Workday "Apply Manually"...');
+            await wdManual.click({ force: true }).catch(() => {});
+            await this.bridge.humanDelay(2000, 3500);
+          }
         }
       }
 
       // Check if reachable
       const pageTitle = await externalPage.title().catch(() => '');
       if (pageTitle.includes('404') || pageTitle.includes('Not Found') || pageTitle.includes('Page Unavailable')) {
-        tracker.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Portal returned 404' });
+        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Portal returned 404' }, options);
         return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Portal returned 404.' };
       }
 
       // Interactive CAPTCHA check on Landing
       if (await this.isInteractiveCaptchaVisible(externalPage)) {
         update('🛑 Interactive CAPTCHA Challenge detected on landing. Recording cooldown exit.');
-        tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'landing', code: 'CODE_CAPTCHA_INTERACTIVE_BLOCK' });
+        this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'landing', code: 'CODE_CAPTCHA_INTERACTIVE_BLOCK' }, options);
         return { status: 'blocked', code: 'CODE_CAPTCHA_INTERACTIVE_BLOCK', stage: 'landing' };
       }
 
@@ -231,7 +258,7 @@ class ExternalApplyEngine {
 
         const guestFormLoaded = await this.areFormFieldsDirectlyOpen(externalPage);
         if (!guestFormLoaded) {
-          tracker.recordOutcome(jobInfo, 'FAILED_GUEST_APPLY_LOAD', { code: 'CODE_GUEST_APPLY_FAILED', message: 'Guest form failed to load' });
+          this.recordOutcome(jobInfo, 'FAILED_GUEST_APPLY_LOAD', { code: 'CODE_GUEST_APPLY_FAILED', message: 'Guest form failed to load' }, options);
           return { status: 'failed', code: 'CODE_GUEST_APPLY_FAILED', message: 'Guest form failed to load.' };
         }
         return await this.executeStage3And4(externalPage, jobInfo, update, options);
@@ -251,7 +278,7 @@ class ExternalApplyEngine {
 
     } catch (err) {
       update(`❌ External Apply Pipeline Exception: ${err.message}`);
-      tracker.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PIPELINE_EXCEPTION', message: err.message });
+      this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PIPELINE_EXCEPTION', message: err.message }, options);
       return { status: 'failed', code: 'CODE_PIPELINE_EXCEPTION', message: err.message };
     }
   }
@@ -260,7 +287,7 @@ class ExternalApplyEngine {
    * Stage 2: Authentication, Vault 2PC, Social OAuth & 2FA
    */
   async executeStage2Auth(page, jobInfo, update, options) {
-    const targetUrl = page.url();
+    const targetUrl = (page.url() && page.url() !== 'about:blank') ? page.url() : (jobInfo.url || '');
     const tenantOrigin = vaultManager.getTenantKey(targetUrl);
 
     // 1. Check for Enterprise SSO / SAML only
@@ -268,7 +295,7 @@ class ExternalApplyEngine {
                       (await page.$('input[type="password"]').catch(() => null)) === null;
     if (isSSOOnly) {
       update('🏢 Enterprise SSO/SAML-only portal detected. Queued for candidate manual login.');
-      tracker.recordOutcome(jobInfo, 'BLOCKED_SSO_ONLY', { code: 'CODE_AUTH_SSO_SAML_ONLY' });
+      this.recordOutcome(jobInfo, 'BLOCKED_SSO_ONLY', { code: 'CODE_AUTH_SSO_SAML_ONLY' }, options);
       return { status: 'blocked', code: 'CODE_AUTH_SSO_SAML_ONLY', tenant: tenantOrigin };
     }
 
@@ -291,7 +318,7 @@ class ExternalApplyEngine {
       const hasPasswordForm = (await page.$('input[type="password"]').catch(() => null)) !== null;
       const isAuthCleared = !(await page.$('button:has-text("Sign in with LinkedIn"), button:has-text("Log In")').catch(() => null));
       if (!isAuthCleared && !hasPasswordForm) {
-        tracker.recordOutcome(jobInfo, 'FAILED_OAUTH_NO_FALLBACK', { code: 'CODE_OAUTH_FAILED_NO_FALLBACK' });
+        this.recordOutcome(jobInfo, 'FAILED_OAUTH_NO_FALLBACK', { code: 'CODE_OAUTH_FAILED_NO_FALLBACK' }, options);
         return { status: 'failed', code: 'CODE_OAUTH_FAILED_NO_FALLBACK' };
       }
     }
@@ -302,23 +329,23 @@ class ExternalApplyEngine {
 
     if (creds && creds.status === 'ACTIVE_CREDENTIAL' && hasPasswordForm) {
       update(`🔑 Found active encrypted credentials for tenant "${tenantOrigin}". Decrypting and signing in...`);
-      await this.safeType(page, 'input[type="email"], input[name*="user" i], input[name*="email" i]', creds.email);
-      await this.safeType(page, 'input[type="password"]', creds.password);
+      await this.safeType(page, 'input[data-automation-id="email"], input[type="email"], input[name*="user" i], input[name*="email" i]', creds.email);
+      await this.safeType(page, 'input[data-automation-id="password"], input[type="password"]', creds.password);
 
-      const signInBtn = await page.$('button[type="submit"], input[type="submit"], button:has-text("Sign In"), button:has-text("Log In")');
+      const signInBtn = await page.$('button[data-automation-id="signInSubmitButton"], button[type="submit"], input[type="submit"], button:has-text("Sign In"), button:has-text("Log In")');
       if (signInBtn) await signInBtn.click({ force: true }).catch(() => {});
       await this.bridge.humanDelay(3000, 4500);
 
       // Post Sign-in CAPTCHA
       if (await this.isInteractiveCaptchaVisible(page)) {
-        tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'signin', code: 'CODE_CAPTCHA_SIGNIN_BLOCK' });
+        this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'signin', code: 'CODE_CAPTCHA_SIGNIN_BLOCK' }, options);
         return { status: 'blocked', code: 'CODE_CAPTCHA_SIGNIN_BLOCK', stage: 'signin' };
       }
 
       // Check if sign-in failed
       const hasBadCredsError = (await page.$('div:has-text("Invalid user name or password"), div:has-text("Account locked"), div:has-text("Incorrect email or password")').catch(() => null)) !== null;
       if (hasBadCredsError) {
-        tracker.recordOutcome(jobInfo, 'FAILED_CREDENTIALS_REJECTED', { code: 'CODE_VAULT_CREDENTIALS_REJECTED' });
+        this.recordOutcome(jobInfo, 'FAILED_CREDENTIALS_REJECTED', { code: 'CODE_VAULT_CREDENTIALS_REJECTED' }, options);
         return { status: 'failed', code: 'CODE_VAULT_CREDENTIALS_REJECTED' };
       }
     } else if (hasPasswordForm) {
@@ -329,13 +356,13 @@ class ExternalApplyEngine {
       update(`📝 No credentials in vault for "${tenantOrigin}". Phase 1 (2PC): Writing PENDING credentials to encrypted vault...`);
       vaultManager.savePendingCredentials(targetUrl, { email: candidateEmail, password: compliantPassword });
 
-      const createAccTab = await page.$('a:has-text("Create Account"), button:has-text("Create Account"), a:has-text("Register"), button:has-text("Register")');
+      const createAccTab = await page.$('a[data-automation-id="createAccountLink"], a:has-text("Create Account"), button:has-text("Create Account"), a:has-text("Register"), button:has-text("Register")');
       if (createAccTab) {
         await createAccTab.click().catch(() => {});
         await this.bridge.humanDelay(1500, 2500);
       }
 
-      await this.safeType(page, 'input[type="email"], input[name*="email" i]', candidateEmail);
+      await this.safeType(page, 'input[data-automation-id="email"], input[type="email"], input[name*="email" i]', candidateEmail);
       const pwds = await page.$$('input[type="password"]');
       for (const pInput of pwds) {
         await pInput.fill(compliantPassword).catch(() => {});
@@ -343,18 +370,18 @@ class ExternalApplyEngine {
       }
 
       // Accept terms checkboxes
-      const termsCheck = await page.$('input[type="checkbox"]');
+      const termsCheck = await page.$('input[data-automation-id="createAccountCheckbox"], input[type="checkbox"]');
       if (termsCheck && !(await termsCheck.isChecked().catch(() => true))) {
         await termsCheck.check().catch(() => {});
       }
 
-      const regSubmit = await page.$('button[type="submit"], input[type="submit"], button:has-text("Create Account"), button:has-text("Register")');
+      const regSubmit = await page.$('button[data-automation-id="createAccountSubmitButton"], button[type="submit"], input[type="submit"], button:has-text("Create Account"), button:has-text("Register")');
       if (regSubmit) await regSubmit.click({ force: true }).catch(() => {});
       await this.bridge.humanDelay(3000, 5000);
 
       // Post Register CAPTCHA
       if (await this.isInteractiveCaptchaVisible(page)) {
-        tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'register', code: 'CODE_CAPTCHA_REGISTER_BLOCK' });
+        this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'register', code: 'CODE_CAPTCHA_REGISTER_BLOCK' }, options);
         return { status: 'blocked', code: 'CODE_CAPTCHA_REGISTER_BLOCK', stage: 'register' };
       }
 
@@ -375,7 +402,7 @@ class ExternalApplyEngine {
           await this.bridge.humanDelay(3000, 4500);
 
           if (await this.isInteractiveCaptchaVisible(page)) {
-            tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'master', code: 'CODE_CAPTCHA_MASTER_BLOCK' });
+            this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'master', code: 'CODE_CAPTCHA_MASTER_BLOCK' }, options);
             return { status: 'blocked', code: 'CODE_CAPTCHA_MASTER_BLOCK', stage: 'master' };
           }
 
@@ -385,11 +412,11 @@ class ExternalApplyEngine {
             vaultManager.savePendingCredentials(targetUrl, { email: candidateEmail, password: masterPwd });
             vaultManager.commitCredentials(targetUrl);
           } else {
-            tracker.recordOutcome(jobInfo, 'FAILED_MASTER_PASSWORD_REJECTED', { code: 'CODE_MASTER_PASSWORD_REJECTED' });
+            this.recordOutcome(jobInfo, 'FAILED_MASTER_PASSWORD_REJECTED', { code: 'CODE_MASTER_PASSWORD_REJECTED' }, options);
             return { status: 'failed', code: 'CODE_MASTER_PASSWORD_REJECTED' };
           }
         } else {
-          tracker.recordOutcome(jobInfo, 'FAILED_REG_POLICY', { code: 'CODE_ACCOUNT_EXISTS_NO_CREDENTIALS' });
+          this.recordOutcome(jobInfo, 'FAILED_REG_POLICY', { code: 'CODE_ACCOUNT_EXISTS_NO_CREDENTIALS' }, options);
           return { status: 'failed', code: 'CODE_ACCOUNT_EXISTS_NO_CREDENTIALS' };
         }
       } else {
@@ -401,7 +428,7 @@ class ExternalApplyEngine {
       const activationRequired = (await page.$('div:has-text("activate your account"), div:has-text("verify your email"), div:has-text("verification link sent")').catch(() => null)) !== null;
       if (activationRequired) {
         update('📧 Email activation barrier active. Queued for candidate verification.');
-        tracker.recordOutcome(jobInfo, 'BLOCKED_ACTIVATION_PENDING', { code: 'CODE_EMAIL_ACTIVATION_REQUIRED' });
+        this.recordOutcome(jobInfo, 'BLOCKED_ACTIVATION_PENDING', { code: 'CODE_EMAIL_ACTIVATION_REQUIRED' }, options);
         return { status: 'blocked', code: 'CODE_EMAIL_ACTIVATION_REQUIRED' };
       }
     }
@@ -412,7 +439,7 @@ class ExternalApplyEngine {
       update('🛡️ 2FA Challenge detected on screen. Resolving 2FA modality...');
       const twoFaResult = await this.resolve2FA(page, targetUrl, update);
       if (twoFaResult.status !== 'verified') {
-        tracker.recordOutcome(jobInfo, twoFaResult.code, { code: twoFaResult.code, message: twoFaResult.message });
+        this.recordOutcome(jobInfo, twoFaResult.code, { code: twoFaResult.code, message: twoFaResult.message }, options);
         return twoFaResult;
       }
     }
@@ -427,7 +454,7 @@ class ExternalApplyEngine {
         await this.bridge.humanDelay(2000, 3500);
       }
       if (!await this.areFormFieldsDirectlyOpen(page)) {
-        tracker.recordOutcome(jobInfo, 'FAILED_POST_AUTH_FORM_LOST', { code: 'CODE_POST_AUTH_FORM_NOT_FOUND' });
+        this.recordOutcome(jobInfo, 'FAILED_POST_AUTH_FORM_LOST', { code: 'CODE_POST_AUTH_FORM_NOT_FOUND' }, options);
         return { status: 'failed', code: 'CODE_POST_AUTH_FORM_NOT_FOUND' };
       }
     }
@@ -502,7 +529,7 @@ class ExternalApplyEngine {
 
     // Upload Resume FIRST to trigger parser settlement before field mapping
     if (tailoredCV && fs.existsSync(tailoredCV.filePath)) {
-      const fileInput = await page.$('input[type="file"]').catch(() => null);
+      const fileInput = await page.$('div[data-automation-id="file-upload-drop-zone"] input[type="file"], input[type="file"]').catch(() => null);
       if (fileInput) {
         update('📤 Uploading tailored CV FIRST to trigger ATS parser...');
         await fileInput.setInputFiles(tailoredCV.filePath).catch(() => {});
@@ -520,13 +547,13 @@ class ExternalApplyEngine {
       const isLoginRedirect = (await page.$('input[type="password"]:not([style*="display: none"])').catch(() => null)) !== null &&
                               !(await this.areFormFieldsDirectlyOpen(page));
       if (isLoginRedirect) {
-        tracker.recordOutcome(jobInfo, 'FAILED_SESSION_EXPIRED', { code: 'CODE_WIZARD_SESSION_EXPIRED' });
+        this.recordOutcome(jobInfo, 'FAILED_SESSION_EXPIRED', { code: 'CODE_WIZARD_SESSION_EXPIRED' }, options);
         return { status: 'failed', code: 'CODE_WIZARD_SESSION_EXPIRED' };
       }
 
       // 2. Step Circuit Breaker (< 12)
       if (stepCounter >= 12) {
-        tracker.recordOutcome(jobInfo, 'FAILED_WIZARD_CYCLIC_LOOP', { code: 'CODE_WIZARD_CYCLIC_OVERFLOW' });
+        this.recordOutcome(jobInfo, 'FAILED_WIZARD_CYCLIC_LOOP', { code: 'CODE_WIZARD_CYCLIC_OVERFLOW' }, options);
         return { status: 'failed', code: 'CODE_WIZARD_CYCLIC_OVERFLOW' };
       }
 
@@ -540,36 +567,50 @@ class ExternalApplyEngine {
       const mandatoryMissing = await this.checkMandatoryTier1Missing(page);
       if (mandatoryMissing) {
         update(`🛑 Mandatory legal/regulatory field missing in profile.json (${mandatoryMissing}). Aborting safely.`);
-        tracker.recordOutcome(jobInfo, 'FAILED_MISSING_LEGAL_CONFIG', { code: 'CODE_MANDATORY_LEGAL_FIELD_UNMAPPED', notes: mandatoryMissing });
+        this.recordOutcome(jobInfo, 'FAILED_MISSING_LEGAL_CONFIG', { code: 'CODE_MANDATORY_LEGAL_FIELD_UNMAPPED', notes: mandatoryMissing }, options);
         return { status: 'blocked', code: 'CODE_MANDATORY_LEGAL_FIELD_UNMAPPED', missingField: mandatoryMissing };
       }
 
       // 4. Tier 2 Generative Questions (LLM Grounded in CV facts)
       await this.applyTier2Generative(page, jobInfo);
 
-      // 5. Evaluate Primary Action Button
-      const submitBtn = await page.$(
-        'button:has-text("Submit Application"), input[type="submit"]:has-text("Submit"), button:has-text("Complete Application"), button:has-text("Submit application")'
-      ).catch(() => null);
+      // 5. Evaluate Primary Action Button (Pick the VISIBLE button on the active wizard page)
+      const allSubmitBtns = await page.$$(
+        'button[data-automation-id="bottom-navigation-submit-button"], button:has-text("Submit Application"), input[type="submit"]:has-text("Submit"), button:has-text("Complete Application"), button:has-text("Submit application")'
+      ).catch(() => []);
+      let submitBtn = null;
+      for (const btn of allSubmitBtns) {
+        if (await btn.isVisible().catch(() => false)) {
+          submitBtn = btn;
+          break;
+        }
+      }
 
-      const nextBtn = await page.$(
-        'button:has-text("Next"), button:has-text("Save & Continue"), button:has-text("Continue"), input[value="Next"]'
-      ).catch(() => null);
+      const allNextBtns = await page.$$(
+        'button[data-automation-id="bottom-navigation-next-button"], button:has-text("Next"), button:has-text("Save & Continue"), button:has-text("Continue"), button:has-text("Save and Continue"), input[value="Next"]'
+      ).catch(() => []);
+      let nextBtn = null;
+      for (const btn of allNextBtns) {
+        if (await btn.isVisible().catch(() => false)) {
+          nextBtn = btn;
+          break;
+        }
+      }
 
-      if (submitBtn && await submitBtn.isVisible().catch(() => false) && (!nextBtn || !(await nextBtn.isVisible().catch(() => false)))) {
+      if (submitBtn && !nextBtn) {
         // Reached Submit page -> Transition to Stage 4
         update('🎯 Final submit button reached. Transitioning to Stage 4 Submit & Verify...');
         break;
       }
 
-      if (nextBtn && await nextBtn.isVisible().catch(() => false)) {
+      if (nextBtn) {
         update(`Clicking "Next / Continue" (Step ${stepCounter + 1})...`);
         await nextBtn.click({ force: true }).catch(() => {});
         await this.bridge.humanDelay(2000, 3500);
 
         // Step Transition CAPTCHA
         if (await this.isInteractiveCaptchaVisible(page)) {
-          tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'step', code: 'CODE_CAPTCHA_STEP_BLOCK' });
+          this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'step', code: 'CODE_CAPTCHA_STEP_BLOCK' }, options);
           return { status: 'blocked', code: 'CODE_CAPTCHA_STEP_BLOCK', stage: 'step' };
         }
 
@@ -584,7 +625,7 @@ class ExternalApplyEngine {
           // Validation Error Present: check heal circuit
           if (healAttempts >= 1) {
             update('❌ Step validation failed after healing retry. Stopping step loop.');
-            tracker.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_STEP_VALIDATION_FAILED' });
+            this.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_STEP_VALIDATION_FAILED' }, options);
             return { status: 'failed', code: 'CODE_STEP_VALIDATION_FAILED' };
           }
           healAttempts++;
@@ -595,7 +636,7 @@ class ExternalApplyEngine {
 
       // Neither Next nor Submit button found
       update('❌ No recognizable Next or Submit button found on active step.');
-      tracker.recordOutcome(jobInfo, 'FAILED_WIZARD_NO_BUTTON', { code: 'CODE_WIZARD_NO_ACTION_BUTTON' });
+      this.recordOutcome(jobInfo, 'FAILED_WIZARD_NO_BUTTON', { code: 'CODE_WIZARD_NO_ACTION_BUTTON' }, options);
       return { status: 'failed', code: 'CODE_WIZARD_NO_ACTION_BUTTON' };
     }
 
@@ -622,13 +663,20 @@ class ExternalApplyEngine {
 
     // Pre-Submit CAPTCHA Audit
     if (await this.isInteractiveCaptchaVisible(page)) {
-      tracker.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'submit', code: 'CODE_CAPTCHA_SUBMIT_BLOCK' });
+      this.recordOutcome(jobInfo, 'BLOCKED_CAPTCHA', { stage: 'submit', code: 'CODE_CAPTCHA_SUBMIT_BLOCK' }, options);
       return { status: 'blocked', code: 'CODE_CAPTCHA_SUBMIT_BLOCK', stage: 'submit' };
     }
 
-    const finalSubmitBtn = await page.$(
-      'button:has-text("Submit Application"), input[type="submit"], button:has-text("Complete Application"), button:has-text("Submit"), button:has-text("Send Application")'
-    );
+    const finalSubmitBtns = await page.$$(
+      'button[data-automation-id="bottom-navigation-submit-button"], button:has-text("Submit Application"), input[type="submit"], button:has-text("Complete Application"), button:has-text("Submit"), button:has-text("Send Application")'
+    ).catch(() => []);
+    let finalSubmitBtn = null;
+    for (const btn of finalSubmitBtns) {
+      if (await btn.isVisible().catch(() => false)) {
+        finalSubmitBtn = btn;
+        break;
+      }
+    }
 
     if (finalSubmitBtn && await finalSubmitBtn.isVisible().catch(() => false)) {
       update('Dispatched Final "Submit Application" click...');
@@ -640,7 +688,7 @@ class ExternalApplyEngine {
       const postSubmitErrors = (await page.$('.error, .is-invalid, span.field-error, div.alert-danger').catch(() => null)) !== null;
       if (postSubmitErrors) {
         update('❌ Form displayed inline validation error after submit click.');
-        tracker.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_FINAL_SUBMIT_VALIDATION_ERROR' });
+        this.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_FINAL_SUBMIT_VALIDATION_ERROR' }, options);
         return { status: 'failed', code: 'CODE_FINAL_SUBMIT_VALIDATION_ERROR' };
       }
 
@@ -653,24 +701,24 @@ class ExternalApplyEngine {
 
       if (hasProof) {
         update('🎉 APPLIED_CONFIRMED! Valid proof receipt detected in DOM.');
-        tracker.recordOutcome(jobInfo, 'APPLIED_CONFIRMED', {
+        this.recordOutcome(jobInfo, 'APPLIED_CONFIRMED', {
           code: 'CODE_APPLICATION_CONFIRMED',
           cvUsed: tailoredCV?.fileName,
           notes: 'Verified via DOM confirmation receipt'
-        });
+        }, options);
         return { status: 'applied', code: 'APPLIED_CONFIRMED', tailoredCV: tailoredCV?.fileName };
       } else {
         update('⚠️ Unconfirmed / Network drop. Recording UNVERIFIED_MANUAL_CHECK to prevent duplicate re-runs.');
-        tracker.recordOutcome(jobInfo, 'UNVERIFIED_MANUAL_CHECK', {
+        this.recordOutcome(jobInfo, 'UNVERIFIED_MANUAL_CHECK', {
           code: 'CODE_SUBMISSION_UNVERIFIED_STATE',
           cvUsed: tailoredCV?.fileName,
           notes: 'Dispatched submit, receipt pending manual verification'
-        });
+        }, options);
         return { status: 'unverified', code: 'UNVERIFIED_MANUAL_CHECK', tailoredCV: tailoredCV?.fileName };
       }
     }
 
-    tracker.recordOutcome(jobInfo, 'FAILED_WIZARD_NO_BUTTON', { code: 'CODE_SUBMIT_BUTTON_NOT_FOUND' });
+    this.recordOutcome(jobInfo, 'FAILED_WIZARD_NO_BUTTON', { code: 'CODE_SUBMIT_BUTTON_NOT_FOUND' }, options);
     return { status: 'failed', code: 'CODE_SUBMIT_BUTTON_NOT_FOUND' };
   }
 
@@ -698,6 +746,14 @@ class ExternalApplyEngine {
     }
 
     // Work Authorization Selects / Radios
+    // Workday Specific Name and Contact Fields
+    await this.safeType(page, 'input[data-automation-id="legalNameSection_firstName"]', p.firstName || 'Shoaib');
+    await this.safeType(page, 'input[data-automation-id="legalNameSection_lastName"]', p.lastName || 'Akhtar');
+    await this.safeType(page, 'input[data-automation-id="phone-number"]', p.phone || '+923056054842');
+    await this.safeType(page, 'input[data-automation-id="addressSection_addressLine1"]', p.address?.street || 'Model Town');
+    await this.safeType(page, 'input[data-automation-id="addressSection_city"]', p.address?.city || 'Gujrat');
+    await this.safeType(page, 'input[data-automation-id="addressSection_postalCode"]', p.address?.postalCode || '50700');
+
     const selects = await page.$$('select');
     for (const sel of selects) {
       const label = await page.evaluate(el => {

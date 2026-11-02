@@ -7,6 +7,7 @@ node_modules/
 data/vault.json
 data/vault.key
 data/applications.backup.json
+data/*.enc
 data/pending_manual_applications.json
 
 # Chrome User Profile & Remote Debugging sessions
