@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -329,11 +329,12 @@ class Tracker {
     const lastDate = prior.appliedAt || prior.detectedAt || prior.timestamp ? new Date(prior.appliedAt || prior.detectedAt || prior.timestamp).getTime() : now;
     const daysSince = (now - lastDate) / (1000 * 60 * 60 * 24);
 
-    // 1. DONE Class: Skip for 90 days
+    // 1. DONE Class: Skip for 90 days (after 90 days, cooldown clears to allow re-application)
     if (status === 'APPLIED' || status === 'APPLIED_CONFIRMED' || status === 'PREVIOUSLY_APPLIED') {
       if (daysSince <= 90) {
         return { action: 'SKIP', class: 'DONE', reason: 'CODE_PREFLIGHT_ALREADY_APPLIED', attemptsCount: attempts };
       }
+      return { action: 'PROCEED', class: 'CLEAR', reason: 'CODE_PREFLIGHT_EXPIRED_REAPPLY_ALLOWED', attemptsCount: attempts };
     }
 
     // 2. HOLD Class: Never retry automatically; user must clear
