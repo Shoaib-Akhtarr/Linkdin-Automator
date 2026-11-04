@@ -193,6 +193,21 @@ class EasyApplyModal {
         return { status: 'applied', message: 'Application completed with Done button.' };
       }
 
+      // AI Self-Healing: Call Groq Advisor to diagnose next action if button is missing
+      try {
+        const groqAdvisor = require('./groqAdvisor');
+        if (groqAdvisor && groqAdvisor.isAvailable()) {
+          const advice = await groqAdvisor.adviseNextAction(page, 'No Next/Review/Submit button found in LinkedIn dialog');
+          if (advice && advice.action === 'click') {
+            const clicked = await groqAdvisor.executeAdvice(page, advice, update);
+            if (clicked) {
+              await this.bridge.humanDelay(1000, 2000);
+              continue;
+            }
+          }
+        }
+      } catch (_) {}
+
       update('No Next/Review/Submit button found. Dialog may be completed.');
       break;
     }
@@ -355,7 +370,7 @@ class EasyApplyModal {
 
       const label = await this.getFieldLabel(page, input);
       const isNumber = (await input.getAttribute('type')) === 'number';
-      const evaluation = questionEngine.evaluateQuestion(label, isNumber ? 'number' : 'text', [], jobInfo);
+      const evaluation = await questionEngine.evaluateQuestionWithAI(label, isNumber ? 'number' : 'text', [], jobInfo);
 
       update(`Filling input "${label || 'field'}" -> "${evaluation.answer}"`);
       await input.fill('');
@@ -383,7 +398,7 @@ class EasyApplyModal {
       if (currentVal && currentVal.trim().length > 0) continue;
 
       const label = await this.getFieldLabel(page, textarea);
-      const evaluation = questionEngine.evaluateQuestion(label, 'textarea', [], jobInfo);
+      const evaluation = await questionEngine.evaluateQuestionWithAI(label, 'textarea', [], jobInfo);
       update(`Filling textarea "${label || 'summary'}" -> "${evaluation.answer}"`);
       await textarea.fill(String(evaluation.answer));
       await this.bridge.humanDelay(300, 600);
@@ -398,7 +413,7 @@ class EasyApplyModal {
         opts.map(o => ({ value: o.value, text: o.text.trim() })).filter(t => t.text.length > 0)
       );
       const optionTexts = options.map(o => o.text);
-      const evaluation = questionEngine.evaluateQuestion(label, 'select', optionTexts, jobInfo);
+      const evaluation = await questionEngine.evaluateQuestionWithAI(label, 'select', optionTexts, jobInfo);
 
       update(`Selecting dropdown "${label}" -> "${evaluation.answer}"`);
 
@@ -482,7 +497,7 @@ class EasyApplyModal {
 
       if (options.length === 0) continue;
 
-      const evalResult = questionEngine.evaluateQuestion(question, 'radio', options.map(o => o.text), jobInfo);
+      const evalResult = await questionEngine.evaluateQuestionWithAI(question, 'radio', options.map(o => o.text), jobInfo);
       const cleanAnswer = String(evalResult.answer).toLowerCase().trim();
 
       const target = options.find(o => o.text.toLowerCase().trim() === cleanAnswer)

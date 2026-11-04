@@ -6,6 +6,7 @@ const eligibilityEngine = require('./eligibilityEngine');
 const vaultManager = require('./vaultManager');
 const tracker = require('./tracker');
 const semanticResolver = require('./semanticResolver');
+const groqAdvisor = require('./groqAdvisor');
 
 class ExternalApplyEngine {
   constructor(browserBridge) {
@@ -471,6 +472,21 @@ class ExternalApplyEngine {
         await this.bridge.humanDelay(2000, 3500);
       }
       if (!await this.areFormFieldsDirectlyOpen(page)) {
+        // AI Self-Healing: Call Groq Advisor to diagnose next action if post-auth form is not directly reachable
+        try {
+          if (groqAdvisor.isAvailable()) {
+            update('🤖 Asking Groq AI Advisor to diagnose post-auth landing...');
+            const advice = await groqAdvisor.adviseNextAction(page, 'Application form not found post-authentication');
+            if (advice && advice.action === 'click') {
+              const executed = await groqAdvisor.executeAdvice(page, advice, update);
+              if (executed) {
+                await this.bridge.humanDelay(2500, 4000);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      if (!await this.areFormFieldsDirectlyOpen(page)) {
         this.recordOutcome(jobInfo, 'FAILED_POST_AUTH_FORM_LOST', { code: 'CODE_POST_AUTH_FORM_NOT_FOUND' }, options);
         return { status: 'failed', code: 'CODE_POST_AUTH_FORM_NOT_FOUND' };
       }
@@ -622,6 +638,24 @@ class ExternalApplyEngine {
         submitBtn = await semanticResolver.resolveActionButton(page, 'submit');
       }
 
+      // GROQ AI ADVISOR FALLBACK:
+      // If neither DOM nor a11y tree found the button, ask Groq to inspect the page layout
+      if (!submitBtn && !nextBtn) {
+        try {
+          if (groqAdvisor.isAvailable()) {
+            this.log(update, '🤖 Standard DOM and a11y tree found no Next/Submit button. Asking Groq AI Advisor...');
+            const advice = await groqAdvisor.adviseNextAction(page, 'No Next or Submit button found on wizard step');
+            if (advice && advice.action === 'click') {
+              const executed = await groqAdvisor.executeAdvice(page, advice, update);
+              if (executed) {
+                await this.bridge.humanDelay(2000, 3500);
+                continue;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       if (submitBtn && !nextBtn) {
         // Reached Submit page -> Transition to Stage 4
         update('🎯 Final submit button reached. Transitioning to Stage 4 Submit & Verify...');
@@ -647,14 +681,23 @@ class ExternalApplyEngine {
           healAttempts = 0;
           continue;
         } else {
-          // Validation Error Present: check heal circuit
-          if (healAttempts >= 1) {
-            update('❌ Step validation failed after healing retry. Stopping step loop.');
+          // Validation Error Present: check heal circuit with Groq AI Advisor
+          if (healAttempts >= 2) {
+            update('❌ Step validation failed after healing retries. Stopping step loop.');
             this.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_STEP_VALIDATION_FAILED' }, options);
             return { status: 'failed', code: 'CODE_STEP_VALIDATION_FAILED' };
           }
           healAttempts++;
-          update('⚠️ Form highlighted validation error. Attempting 1 precision heal retry...');
+          update(`⚠️ Form highlighted validation error (Attempt ${healAttempts}/2). Asking Groq AI Advisor to diagnose...`);
+          try {
+            if (groqAdvisor.isAvailable()) {
+              const advice = await groqAdvisor.adviseNextAction(page, 'Validation error highlighted on form step');
+              if (advice && advice.action === 'click') {
+                await groqAdvisor.executeAdvice(page, advice, update);
+                await this.bridge.humanDelay(1500, 2500);
+              }
+            }
+          } catch (_) {}
           continue;
         }
       }
@@ -670,11 +713,12 @@ class ExternalApplyEngine {
     // ==========================================
     update('🚀 [Stage 4] Preparing Final Submission & Verification...');
     const execMode = options.mode || options.settings?.execution?.mode || 'autonomous';
-    const isReviewMode = execMode === 'review' || options.settings?.execution?.pauseForReviewInHybridMode === true;
+    // User requested: "No wait for any human - do everything by it self"
+    // So isReviewMode is disabled unless explicitly requested via review mode
+    const isReviewMode = execMode === 'review';
 
     if (isReviewMode) {
-      update('🔔 [Review Mode] Application complete. Pausing for 300s candidate review...');
-      // In hybrid/review mode, wait for user input or auto-proceed after window
+      update('🔔 [Review Mode] Application complete. Pausing for candidate review...');
       await this.bridge.humanDelay(5000, 8000);
     }
 

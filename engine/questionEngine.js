@@ -24,6 +24,30 @@ class QuestionEngine {
   }
 
   /**
+   * Determine the best answer using rules first, and Groq AI for custom/unknown questions
+   */
+  async evaluateQuestionWithAI(prompt, inputType = 'text', options = [], jobInfo = {}) {
+    const directEval = this.evaluateQuestion(prompt, inputType, options, jobInfo);
+    // If high confidence from deterministic rules, return immediately (0ms)
+    if (directEval && directEval.confidence >= 0.8 && directEval.answer !== '') {
+      return directEval;
+    }
+
+    // Otherwise, invoke Groq AI Advisor to answer accurately via profile
+    try {
+      const groqAdvisor = require('./groqAdvisor');
+      if (groqAdvisor && groqAdvisor.isAvailable()) {
+        const aiResult = await groqAdvisor.resolveQuestion(prompt, inputType, options, jobInfo);
+        if (aiResult && aiResult.answer !== undefined && aiResult.answer !== '') {
+          return aiResult;
+        }
+      }
+    } catch (_) {}
+
+    return directEval;
+  }
+
+  /**
    * Determine the best answer for a given question prompt and input type
    * @param {string} prompt - The question label or placeholder
    * @param {string} inputType - 'text' | 'number' | 'radio' | 'select' | 'checkbox' | 'textarea'
