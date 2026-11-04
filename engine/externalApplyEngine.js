@@ -5,6 +5,7 @@ const pdfRenderer = require('./pdfRenderer');
 const eligibilityEngine = require('./eligibilityEngine');
 const vaultManager = require('./vaultManager');
 const tracker = require('./tracker');
+const semanticResolver = require('./semanticResolver');
 
 class ExternalApplyEngine {
   constructor(browserBridge) {
@@ -120,7 +121,18 @@ class ExternalApplyEngine {
       const hasNameInput = (await page.$('input[data-automation-id*="firstName"], input[name*="name" i], input[id*="name" i], input[placeholder*="name" i]').catch(() => null)) !== null;
       const hasEmailInput = (await page.$('input[data-automation-id="email"], input[type="email"], input[name*="email" i], input[id*="email" i]').catch(() => null)) !== null;
       const hasWorkdayWizard = (await page.$('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="bottom-navigation-submit-button"]').catch(() => null)) !== null;
-      return (hasFileInput && (hasNameInput || hasEmailInput)) || hasWorkdayWizard;
+      
+      const domDetected = (hasFileInput && (hasNameInput || hasEmailInput)) || hasWorkdayWizard;
+      if (domDetected) return true;
+
+      // HYBRID SEMANTIC RESOLVER FALLBACK:
+      // If DOM declares no form fields, query Accessibility Tree for semantic form inputs
+      const semanticDetected = await semanticResolver.areFormFieldsSemanticallyOpen(page);
+      if (semanticDetected) {
+        this.log(null, '🌲 DOM found no standard form fields, but Accessibility Tree confirmed interactive form inputs!');
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -602,6 +614,14 @@ class ExternalApplyEngine {
         }
       }
 
+      if (!submitBtn && !nextBtn) {
+        // HYBRID SEMANTIC RESOLVER FALLBACK:
+        // When standard DOM queries fail on custom components, query Accessibility Tree
+        this.log(update, '🌲 Standard DOM found no Next or Submit button. Calling Accessibility Tree (a11y)...');
+        nextBtn = await semanticResolver.resolveActionButton(page, 'next');
+        submitBtn = await semanticResolver.resolveActionButton(page, 'submit');
+      }
+
       if (submitBtn && !nextBtn) {
         // Reached Submit page -> Transition to Stage 4
         update('🎯 Final submit button reached. Transitioning to Stage 4 Submit & Verify...');
@@ -683,6 +703,11 @@ class ExternalApplyEngine {
       }
     }
 
+    if (!finalSubmitBtn) {
+      this.log(update, '🌲 DOM found no final submit button. Invoking Semantic Resolver...');
+      finalSubmitBtn = await semanticResolver.resolveActionButton(page, 'submit');
+    }
+
     if (finalSubmitBtn && await finalSubmitBtn.isVisible().catch(() => false)) {
       update('Dispatched Final "Submit Application" click...');
       await finalSubmitBtn.click({ force: true }).catch(() => {});
@@ -758,6 +783,20 @@ class ExternalApplyEngine {
     await this.safeType(page, 'input[data-automation-id="addressSection_addressLine1"]', p.address?.street || 'Model Town');
     await this.safeType(page, 'input[data-automation-id="addressSection_city"]', p.address?.city || 'Gujrat');
     await this.safeType(page, 'input[data-automation-id="addressSection_postalCode"]', p.address?.postalCode || '50700');
+
+    // HYBRID SEMANTIC RESOLVER FALLBACK:
+    // If DOM contact inputs were missed due to custom tags or obfuscation, resolve via Accessibility Tree
+    const hasFirstNameInDom = (await page.$('input[name*="first_name" i], input[id*="first_name" i], input[data-automation-id="legalNameSection_firstName"]').catch(() => null)) !== null;
+    if (!hasFirstNameInDom) {
+      const semFirst = await semanticResolver.resolveInputField(page, /first name|given name/i, 'textbox');
+      if (semFirst) await semFirst.fill(p.firstName || 'Shoaib').catch(() => {});
+      const semLast = await semanticResolver.resolveInputField(page, /last name|family name/i, 'textbox');
+      if (semLast) await semLast.fill(p.lastName || 'Akhtar').catch(() => {});
+      const semEmail = await semanticResolver.resolveInputField(page, /email/i, 'textbox');
+      if (semEmail) await semEmail.fill(p.email || 'onlyshoaib158@gmail.com').catch(() => {});
+      const semPhone = await semanticResolver.resolveInputField(page, /phone|mobile/i, 'textbox');
+      if (semPhone) await semPhone.fill(p.phone || '+923056054842').catch(() => {});
+    }
 
     const selects = await page.$$('select');
     for (const sel of selects) {
@@ -886,7 +925,11 @@ class ExternalApplyEngine {
         return el;
       }
     }
-    return null;
+
+    // HYBRID SEMANTIC RESOLVER FALLBACK:
+    // If standard DOM selectors fail, invoke Accessibility Tree (a11y)
+    this.log(null, '🌲 Standard DOM found no Apply button. Falling back to Accessibility Tree (a11y)...');
+    return await semanticResolver.resolveApplyButton(page);
   }
 
   async handleLinkedInRedirectModal(page, update) {
