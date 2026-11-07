@@ -339,6 +339,8 @@ class Tracker {
 
     // 2. HOLD Class: Never retry automatically; user must clear
     const holdStatuses = [
+      'GHOST_QUOTA_FULL',
+      'GHOST_STALE',
       'UNVERIFIED_MANUAL_CHECK',
       'CANCELLED_BY_USER',
       'HANDED_OFF_TO_USER',

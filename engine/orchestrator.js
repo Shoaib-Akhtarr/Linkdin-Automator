@@ -3,10 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const browserBridge = require('./browserBridge');
 const tracker = require('./tracker');
+const vaultManager = require('./vaultManager');
 const SearchEngine = require('./searchEngine');
 const EasyApplyModal = require('./easyApplyModal');
 const ExternalApplyEngine = require('./externalApplyEngine');
 const eligibilityEngine = require('./eligibilityEngine');
+const ghostJobFilter = require('./ghostJobFilter');
+const GmailMonitor = require('./gmailMonitor');
 const RemoteBoardsEngine = require('./platforms/remoteBoardsEngine');
 const WellfoundEngine = require('./platforms/wellfoundEngine');
 const CompanyAtsEngine = require('./platforms/companyAtsEngine');
@@ -852,6 +855,18 @@ class Orchestrator extends EventEmitter {
       return 0;
     }
     let isLogged = await this.ottaEngine.isLoggedIn(page);
+    if (!isLogged) {
+      // Check if credentials are stored in Vault
+      const vaultCreds = vaultManager.getPlatformCredentials('otta');
+      if (vaultCreds && vaultCreds.email && vaultCreds.password) {
+        this.log('🔐 [Otta] Attempting autonomous login via Vault credentials...', 'info');
+        const logged = await this.ottaEngine.loginWithCredentials(page, vaultCreds);
+        if (logged) {
+          isLogged = true;
+          this.log('✅ [Otta] Autonomous login via Vault successful!', 'success');
+        }
+      }
+    }
     if (!isLogged) {
       const isAutonomous = this.settings.execution?.mode === 'autonomous';
       if (isAutonomous) {

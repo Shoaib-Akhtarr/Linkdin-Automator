@@ -27,7 +27,10 @@ function protectWithDpapi(dataBuffer) {
       $enc = [System.Security.Cryptography.ProtectedData]::Protect($raw, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
       [Convert]::ToBase64String($enc)
     `;
-    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], { encoding: 'utf8' });
+    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
+      encoding: 'utf8',
+      windowsHide: true
+    });
     return Buffer.from(stdout.trim().split('\r\n').pop().trim(), 'base64');
   } catch (_) {
     return null;
@@ -44,7 +47,10 @@ function unprotectWithDpapi(encryptedBuffer) {
       $dec = [System.Security.Cryptography.ProtectedData]::Unprotect($raw, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
       [Convert]::ToBase64String($dec)
     `;
-    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], { encoding: 'utf8' });
+    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
+      encoding: 'utf8',
+      windowsHide: true
+    });
     return Buffer.from(stdout.trim().split('\r\n').pop().trim(), 'base64');
   } catch (_) {
     return null;
@@ -428,6 +434,99 @@ class VaultManager {
 
     this.saveRawVault(currentVault);
     return { restoredCount, totalEntries: Object.keys(currentVault).length };
+  }
+
+  /**
+   * Platform-specific Credential Accessors (Otta, LinkedIn, Wellfound, YCombinator, Email, Groq)
+   */
+  getPlatformCredentials(platform) {
+    const plat = String(platform || '').toLowerCase().trim();
+    const vault = this.loadRawVault();
+    const entry = vault[`platform_${plat}`];
+    
+    // Check .env fallbacks for email & groq
+    let email = entry?.email || '';
+    let password = entry?.passwordEncrypted ? this.decrypt(entry.passwordEncrypted) : '';
+    let apiKey = entry?.apiKeyEncrypted ? this.decrypt(entry.apiKeyEncrypted) : '';
+    let extra = entry?.extra || {};
+
+    if (plat === 'email') {
+      if (!email && process.env.EMAIL_USER) email = process.env.EMAIL_USER;
+      if (!password && process.env.EMAIL_PASS) password = process.env.EMAIL_PASS;
+    }
+    if (plat === 'groq') {
+      if (!apiKey && process.env.GROQ_API_KEY) apiKey = process.env.GROQ_API_KEY;
+    }
+
+    if (!entry && !email && !password && !apiKey) return null;
+
+    return {
+      platform: plat,
+      email,
+      password,
+      apiKey,
+      extra,
+      status: entry?.status || (email || apiKey ? 'CONFIGURED' : 'NOT_CONFIGURED'),
+      updatedAt: entry?.updatedAt || null
+    };
+  }
+
+  savePlatformCredentials(platform, { email, password, apiKey, extra = {} }) {
+    const plat = String(platform || '').toLowerCase().trim();
+    const vault = this.loadRawVault();
+    const key = `platform_${plat}`;
+    
+    const current = vault[key] || {};
+    vault[key] = {
+      tenant: key,
+      platform: plat,
+      email: email !== undefined ? email : (current.email || ''),
+      passwordEncrypted: password ? this.encrypt(password) : (current.passwordEncrypted || ''),
+      apiKeyEncrypted: apiKey ? this.encrypt(apiKey) : (current.apiKeyEncrypted || ''),
+      extra: { ...(current.extra || {}), ...extra },
+      status: 'CONFIGURED',
+      updatedAt: new Date().toISOString()
+    };
+
+    return this.saveRawVault(vault);
+  }
+
+  getAllPlatformCredentials() {
+    const vault = this.loadRawVault();
+    const platforms = ['otta', 'linkedin', 'wellfound', 'ycombinator', 'email', 'groq'];
+    const result = {};
+
+    for (const plat of platforms) {
+      const entry = vault[`platform_${plat}`];
+      let configured = Boolean(entry);
+      let email = entry?.email || '';
+      let hasPassword = Boolean(entry?.passwordEncrypted);
+      let hasApiKey = Boolean(entry?.apiKeyEncrypted);
+      let extra = entry?.extra || {};
+      let updatedAt = entry?.updatedAt || null;
+
+      // Environment overrides/fallbacks
+      if (plat === 'email') {
+        if (process.env.EMAIL_USER) { email = process.env.EMAIL_USER; configured = true; }
+        if (process.env.EMAIL_PASS) { hasPassword = true; configured = true; }
+      }
+      if (plat === 'groq') {
+        if (process.env.GROQ_API_KEY) { hasApiKey = true; configured = true; }
+      }
+
+      result[plat] = {
+        platform: plat,
+        configured,
+        email,
+        hasPassword,
+        hasApiKey,
+        extra,
+        status: configured ? 'CONFIGURED' : 'NOT_CONFIGURED',
+        updatedAt
+      };
+    }
+
+    return result;
   }
 }
 
