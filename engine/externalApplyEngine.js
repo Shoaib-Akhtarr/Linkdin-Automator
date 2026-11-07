@@ -758,37 +758,25 @@ class ExternalApplyEngine {
       update('Waiting for network idle (15s) and DOM confirmation receipt...');
       await this.bridge.humanDelay(4000, 7000);
 
-      // Audit Post-Submit Inline Errors
-      const postSubmitErrors = (await page.$('.error, .is-invalid, span.field-error, div.alert-danger').catch(() => null)) !== null;
-      if (postSubmitErrors) {
-        update('❌ Form displayed inline validation error after submit click.');
-        this.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_FINAL_SUBMIT_VALIDATION_ERROR' }, options);
-        return { status: 'failed', code: 'CODE_FINAL_SUBMIT_VALIDATION_ERROR' };
-      }
+      // Run Two-Step Verification for External ATS
+      const verification = await this.verifyExternalSubmission(page, update);
 
-      // Check Submission Proof
-      const postUrl = page.url().toLowerCase();
-      const pageText = await page.evaluate(() => document.body.innerText.toLowerCase()).catch(() => '');
-      const hasProof = postUrl.includes('/thank') || postUrl.includes('/confirm') || postUrl.includes('/submitted') ||
-                       pageText.includes('application submitted') || pageText.includes('thank you for applying') ||
-                       pageText.includes('we have received your application');
-
-      if (hasProof) {
-        update('🎉 APPLIED_CONFIRMED! Valid proof receipt detected in DOM.');
+      if (verification.confirmed) {
+        update('🎉 APPLIED_CONFIRMED! Valid proof receipt detected in DOM via 2-Step Verification.');
         this.recordOutcome(jobInfo, 'APPLIED_CONFIRMED', {
           code: 'CODE_APPLICATION_CONFIRMED',
           cvUsed: tailoredCV?.fileName,
-          notes: 'Verified via DOM confirmation receipt'
+          notes: `Verified via 2-step verification (${verification.type})`
         }, options);
         return { status: 'applied', code: 'APPLIED_CONFIRMED', tailoredCV: tailoredCV?.fileName };
       } else {
-        update('⚠️ Unconfirmed / Network drop. Recording UNVERIFIED_MANUAL_CHECK to prevent duplicate re-runs.');
+        update(`⚠️ Unconfirmed / Verification failed: ${verification.reason}. Recording UNVERIFIED_MANUAL_CHECK.`);
         this.recordOutcome(jobInfo, 'UNVERIFIED_MANUAL_CHECK', {
           code: 'CODE_SUBMISSION_UNVERIFIED_STATE',
           cvUsed: tailoredCV?.fileName,
-          notes: 'Dispatched submit, receipt pending manual verification'
+          notes: `Submit dispatched, verification failed: ${verification.reason}`
         }, options);
-        return { status: 'unverified', code: 'UNVERIFIED_MANUAL_CHECK', tailoredCV: tailoredCV?.fileName };
+        return { status: 'unverified', code: 'UNVERIFIED_MANUAL_CHECK', reason: verification.reason, tailoredCV: tailoredCV?.fileName };
       }
     }
 
@@ -1022,6 +1010,105 @@ class ExternalApplyEngine {
     await page.goto(jobInfo.url, { waitUntil: 'domcontentloaded', timeout: 35000 });
     return await this.handleExternalApply(page, jobInfo, options);
   }
+
+  /**
+   * Two-Step Verification for External ATS (Greenhouse, Lever, Ashby, Workday, BambooHR, SmartRecruiters, Jobicy, RemoteOK, WWR)
+   * Step 1: Detailed error audit & DOM confirmation receipt text / URL verification.
+   * Step 2: Form element retirement audit (Submit button & input fields disappeared/replaced by confirmation).
+   */
+  async verifyExternalSubmission(page, update = () => {}) {
+    update('🕵️ [Two-Step Verification] Auditing External ATS submission state...');
+    await this.bridge.humanDelay(3000, 5000);
+
+    // Step 1: Inline Validation Error Audit across ATS platforms
+    const errorSelector = '.error, .is-invalid, span.field-error, div.alert-danger, [data-qa*="error"], [role="alert"], [aria-invalid="true"], .has-error, .error-message, span.error';
+    const inlineErrors = await page.evaluate((sel) => {
+      const errNodes = Array.from(document.querySelectorAll(sel));
+      return errNodes
+        .filter(el => {
+          const style = window.getComputedStyle(el);
+          return style.display !== 'none' && style.visibility !== 'hidden' && (el.innerText || '').trim().length > 0;
+        })
+        .map(el => el.innerText.trim());
+    }, errorSelector).catch(() => []);
+
+    if (inlineErrors.length > 0) {
+      update(`❌ Verification Step 1 FAILED: Found inline validation errors on ATS: "${inlineErrors[0].slice(0, 70)}"`);
+      return { confirmed: false, reason: `Inline validation error: ${inlineErrors[0]}` };
+    }
+
+    // Step 1: DOM Confirmation Receipt Text and URL Verification
+    const postUrl = page.url().toLowerCase();
+    const pageText = await page.evaluate(() => (document.body ? document.body.innerText.toLowerCase() : '')).catch(() => '');
+
+    const receiptPatterns = [
+      'thank you for applying',
+      'thanks for applying',
+      'application submitted',
+      'application has been submitted',
+      'application received',
+      'we have received your application',
+      'we have received your submission',
+      'your application was submitted',
+      'your response has been recorded',
+      'you have successfully applied',
+      'application complete',
+      'we got your application'
+    ];
+
+    const urlPatterns = [
+      '/thank',
+      '/confirm',
+      '/submitted',
+      '/success',
+      '/application_received',
+      '/applied',
+      '/done'
+    ];
+
+    const hasUrlProof = urlPatterns.some(pat => postUrl.includes(pat));
+    const hasTextProof = receiptPatterns.some(pat => pageText.includes(pat));
+
+    // Step 2: Form Element State Audit
+    const formState = await page.evaluate(() => {
+      const submitButtons = Array.from(document.querySelectorAll(
+        'button[data-automation-id="bottom-navigation-submit-button"], button:has-text("Submit Application"), input[type="submit"], button:has-text("Complete Application"), button:has-text("Submit"), button:has-text("Send Application")'
+      ));
+      const visibleSubmit = submitButtons.some(b => {
+        const style = window.getComputedStyle(b);
+        return style.display !== 'none' && style.visibility !== 'hidden' && !b.disabled;
+      });
+
+      const visibleFileInput = Array.from(document.querySelectorAll('input[type="file"]')).some(f => {
+        const style = window.getComputedStyle(f);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      });
+
+      return {
+        hasVisibleSubmit: visibleSubmit,
+        hasVisibleFileInput: visibleFileInput
+      };
+    }).catch(() => ({ hasVisibleSubmit: false, hasVisibleFileInput: false }));
+
+    if ((hasUrlProof || hasTextProof) && !formState.hasVisibleSubmit) {
+      update('🎉 [Two-Step Verification] PASSED: External ATS confirmed via URL/receipt AND submit button retired!');
+      return { confirmed: true, type: 'full_proof' };
+    }
+
+    if (hasUrlProof || hasTextProof) {
+      update('✓ [Two-Step Verification] PASSED: Confirmation receipt text detected in DOM.');
+      return { confirmed: true, type: 'receipt_text' };
+    }
+
+    if (!formState.hasVisibleSubmit && !formState.hasVisibleFileInput && !postUrl.includes('apply')) {
+      update('✓ [Two-Step Verification] PASSED: Form inputs retired and page navigated away from apply URL.');
+      return { confirmed: true, type: 'form_retired' };
+    }
+
+    update('⚠️ [Two-Step Verification] FAILED: No valid confirmation receipt or page transition detected on ATS.');
+    return { confirmed: false, reason: 'No confirmation receipt detected and form remained active.' };
+  }
+
 }
 
 module.exports = ExternalApplyEngine;

@@ -298,6 +298,9 @@ class WellfoundEngine {
         }
       }
 
+      // 6b. Scan & Fill Any Additional Questions in the Modal (Salary, Work Auth, Experience, URLs)
+      await this.fillAdditionalQuestions(page, job, update);
+
       // Take snapshot for UI preview
       const screenshot = await this.bridge.takeScreenshot();
       if (screenshot && options.onScreenshot) options.onScreenshot(screenshot);
@@ -315,7 +318,7 @@ class WellfoundEngine {
         };
       }
 
-      // 8. Autonomous Submit
+      // 8. Autonomous Submit with 2-Step Verification
       const sendBtn = await page.$(
         'button[data-test="JobApplicationModal--SubmitButton"], button:has-text("Send application"), button:has-text("Submit application"), button[type="submit"]:has-text("Send"), button[type="submit"]'
       );
@@ -323,16 +326,211 @@ class WellfoundEngine {
       if (sendBtn && await sendBtn.isVisible()) {
         update('Autonomous Mode: Sending Wellfound application...');
         await sendBtn.click({ force: true }).catch(() => {});
-        await this.bridge.humanDelay(3000, 4500);
-        return { status: 'applied', message: 'Wellfound application submitted with tailored pitch!' };
+        await this.bridge.humanDelay(2500, 4000);
+
+        const verification = await this.verifyWellfoundSubmission(page, update);
+        if (verification.verified) {
+          return { status: 'applied', message: verification.message };
+        }
+        return { status: 'failed', message: verification.message || 'Wellfound submission could not be verified' };
       }
 
-      return { status: 'applied', message: 'Wellfound form completed.' };
+      // If no submit button found, verify if modal was already submitted or blocked
+      const fallbackVerification = await this.verifyWellfoundSubmission(page, update);
+      if (fallbackVerification.verified) {
+        return { status: 'applied', message: fallbackVerification.message };
+      }
+
+      return { status: 'failed', message: 'No submit button found and Wellfound submission was not confirmed.' };
 
     } catch (err) {
       update(`❌ Wellfound application error: ${err.message}`);
       return { status: 'failed', message: err.message };
     }
+  }
+
+  /**
+   * Fill additional custom questions in Wellfound application modal
+   */
+  async fillAdditionalQuestions(page, job, update) {
+    try {
+      const modal = await page.$('[data-test="JobApplicationModal"], [role="dialog"], div[class*="modal_"]');
+      const scope = modal || page;
+
+      // 1. Text & Number Inputs (e.g. salary, years of experience, website)
+      const inputs = await scope.$('input[type="text"], input[type="number"], input:not([type])');
+      for (const input of inputs) {
+        if (!(await input.isVisible().catch(() => false))) continue;
+        const val = (await input.inputValue().catch(() => '') || '').trim();
+        if (val.length > 0) continue;
+
+        let label = await input.getAttribute('placeholder') || '';
+        if (!label) {
+          label = await input.evaluate(el => {
+            const container = el.closest('div, label');
+            const lbl = container ? container.querySelector('label, span, p') : null;
+            return lbl ? lbl.innerText.trim() : '';
+          }).catch(() => '');
+        }
+
+        const isNumber = (await input.getAttribute('type')) === 'number' || /salary|compensation|years|experience|rate/i.test(label);
+        const evalResult = await questionEngine.evaluateQuestionWithAI(label, isNumber ? 'number' : 'text', [], job);
+
+        update(`[Wellfound] Answering input "${label || 'field'}" -> "${evalResult.answer}"`);
+        await input.fill(String(evalResult.answer)).catch(() => {});
+        await this.bridge.humanDelay(250, 450);
+      }
+
+      // 2. Dropdowns (<select>)
+      const selects = await scope.$('select');
+      for (const select of selects) {
+        if (!(await select.isVisible().catch(() => false))) continue;
+        const label = await select.evaluate(el => {
+          const container = el.closest('div, label');
+          const lbl = container ? container.querySelector('label, span, p') : null;
+          return lbl ? lbl.innerText.trim() : '';
+        }).catch(() => '') || 'Dropdown';
+
+        const options = await select.$eval('option', opts =>
+          opts.map(o => ({ value: o.value, text: o.text.trim() })).filter(t => t.text.length > 0)
+        ).catch(() => []);
+        if (options.length === 0) continue;
+
+        const evalResult = await questionEngine.evaluateQuestionWithAI(label, 'select', options.map(o => o.text), job);
+        const clean = String(evalResult.answer).toLowerCase().trim();
+        const matched = options.find(o => o.text.toLowerCase().trim() === clean) ||
+          options.find(o => o.text.toLowerCase().includes(clean)) ||
+          options[0];
+
+        if (matched) {
+          await select.selectOption({ value: matched.value }).catch(() => {});
+        }
+        await this.bridge.humanDelay(250, 450);
+      }
+
+      // 3. Checkboxes (terms & work authorization)
+      const checkboxes = await scope.$('input[type="checkbox"]');
+      for (const cb of checkboxes) {
+        if (!(await cb.isVisible().catch(() => false))) continue;
+        const isChecked = await cb.isChecked().catch(() => false);
+        if (!isChecked) {
+          await cb.check({ force: true }).catch(() => {});
+          await this.bridge.humanDelay(200, 400);
+        }
+      }
+    } catch (_) {}
+  }
+
+  /**
+   * Two-Step Verification for Wellfound:
+   * Step 1: In-Modal Success Receipt & Error Audit
+   * Step 2: Page Level "Applied" State Audit
+   */
+  async verifyWellfoundSubmission(page, update = () => {}) {
+    update('🔍 [Wellfound] Running Two-Step Verification: Auditing submission receipts...');
+
+    // ----------------------------------------------------
+    // STEP 1: Modal Receipt & Error Check
+    // ----------------------------------------------------
+    let step1Passed = false;
+    let step1Proof = '';
+
+    for (let i = 0; i < 5; i++) {
+      await this.bridge.humanDelay(800, 1200);
+
+      // Check for inline validation errors
+      const errorEl = await page.$(
+        '[data-test*="error"], .error, span[class*="error"], [aria-invalid="true"], div[class*="errorMessage"], div[class*="error_"], p:has-text("required")'
+      );
+      if (errorEl && await errorEl.isVisible().catch(() => false)) {
+        const errorText = (await errorEl.innerText().catch(() => '')).trim();
+        update(`❌ [Wellfound Verification Step 1 FAILED] Form error present: "${errorText}". Application NOT submitted.`);
+        return { verified: false, status: 'failed', message: `Validation error: ${errorText}` };
+      }
+
+      // Check modal confirmation text
+      const pageText = await page.evaluate(() => document.body.innerText.toLowerCase()).catch(() => '');
+      if (
+        pageText.includes('your application was sent') ||
+        pageText.includes('application sent') ||
+        pageText.includes('thanks for applying') ||
+        pageText.includes('application submitted') ||
+        pageText.includes('you applied')
+      ) {
+        step1Passed = true;
+        step1Proof = 'Confirmation receipt detected in DOM';
+        break;
+      }
+
+      // If modal dialog disappeared completely
+      const modal = await page.$('[data-test="JobApplicationModal"], [role="dialog"]');
+      const modalVisible = modal && await modal.isVisible().catch(() => false);
+      if (!modalVisible) {
+        step1Passed = true;
+        step1Proof = 'Application modal closed cleanly';
+        break;
+      }
+    }
+
+    // ----------------------------------------------------
+    // STEP 2: Page Level State Audit on Wellfound Listing
+    // ----------------------------------------------------
+    update('🔍 [Wellfound] Running Verification Step 2: Checking job page for "Applied" status badge...');
+    await this.bridge.humanDelay(1500, 2500);
+
+    let step2Passed = false;
+    let step2Proof = '';
+
+    const appliedBadgeFound = await page.evaluate(() => {
+      const main = document.querySelector('main, [data-test="JobListingDetail"], [class*="JobDetail"], #main') || document.body;
+      const candidateButtons = Array.from(main.querySelectorAll('button, [role="button"], span, div'));
+      return candidateButtons.some(b => {
+        const txt = (b.textContent || '').trim().toLowerCase();
+        return txt === 'applied' || txt === 'application submitted' || txt === 'application sent';
+      });
+    });
+
+    if (appliedBadgeFound) {
+      step2Passed = true;
+      step2Proof = 'Job page badge confirmed "Applied"';
+    }
+
+    // Check if Apply button is still sitting on the page active & clickable
+    const applyButtonStillPresent = await page.$(
+      'button:has-text("Apply now"), button:has-text("Quick Apply"), [data-test="JobDetailApplyButton"]'
+    );
+    const isApplyBtnVisible = applyButtonStillPresent && await applyButtonStillPresent.isVisible().catch(() => false);
+
+    if (step1Passed && step2Passed) {
+      update(`🎉 [Wellfound 2-Step Verification PASSED] Step 1: ${step1Proof} | Step 2: ${step2Proof}`);
+      return { verified: true, status: 'applied', message: `Wellfound application verified (${step1Proof} + ${step2Proof})` };
+    }
+
+    if (step1Passed && !isApplyBtnVisible) {
+      update(`✓ [Wellfound Verification PASSED] Step 1: ${step1Proof} and Apply button successfully dismissed.`);
+      return { verified: true, status: 'applied', message: `Wellfound application verified (${step1Proof})` };
+    }
+
+    if (step2Passed) {
+      update(`✓ [Wellfound Verification PASSED] Job page confirms: ${step2Proof}`);
+      return { verified: true, status: 'applied', message: `Wellfound application verified (${step2Proof})` };
+    }
+
+    // If Apply button is STILL active on screen:
+    if (isApplyBtnVisible) {
+      update('❌ [Wellfound 2-Step Verification FAILED] "Apply now" button is still active on page. Submission was not recorded.');
+      return {
+        verified: false,
+        status: 'failed',
+        message: 'Apply button remained active on Wellfound; application was not accepted.'
+      };
+    }
+
+    return {
+      verified: false,
+      status: 'unverified',
+      message: 'Wellfound application closed without explicit confirmation receipt.'
+    };
   }
 }
 

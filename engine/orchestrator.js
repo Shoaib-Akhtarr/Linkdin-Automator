@@ -529,10 +529,17 @@ class Orchestrator extends EventEmitter {
 
           const decision = await new Promise(resolve => { this.reviewPromiseResolve = resolve; });
           if (decision === 'submit') {
-            const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
-            this.sessionAppliedJobs.push(entry);
-            count++;
-            this.log(`✓ Submitted application for "${job.title}" at "${job.company}"!`, 'success');
+            this.log(`🕵️ Running 2-step verification on reviewed application for "${job.title}"...`, 'info');
+            const verification = await this.externalApplyEngine.verifyExternalSubmission(page, msg => this.log(msg));
+            if (verification.confirmed) {
+              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved & verified by user' });
+              this.sessionAppliedJobs.push(entry);
+              count++;
+              this.log(`✓ Submitted & verified application for "${job.title}" at "${job.company}"!`, 'success');
+            } else {
+              this.log(`⚠️ User approved, but ATS verification unconfirmed: ${verification.reason}. Recording as unverified.`, 'warn');
+              tracker.record({ ...job, status: 'unverified', notes: `Review approved but unverified: ${verification.reason}` });
+            }
           } else {
             tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
           }
@@ -679,10 +686,17 @@ class Orchestrator extends EventEmitter {
             this.emit('state_change', this.state);
             const decision = await new Promise(r => { this.reviewPromiseResolve = r; });
             if (decision === 'submit') {
-              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
-              this.sessionAppliedJobs.push(entry);
-              appliedCount++;
-              this.log(`✓ Submitted Wellfound application for ${job.title}!`, 'success');
+              this.log(`🕵️ Running 2-step verification on reviewed Wellfound application for "${job.title}"...`, 'info');
+              const verification = await this.wellfoundEngine.verifyWellfoundSubmission(page, msg => this.log(msg));
+              if (verification.confirmed) {
+                const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved & verified by user' });
+                this.sessionAppliedJobs.push(entry);
+                appliedCount++;
+                this.log(`✓ Submitted & verified Wellfound application for ${job.title}!`, 'success');
+              } else {
+                this.log(`⚠️ User approved, but Wellfound verification unconfirmed: ${verification.reason}.`, 'warn');
+                tracker.record({ ...job, status: 'unverified', notes: `Review approved but unverified: ${verification.reason}` });
+              }
             } else {
               tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
             }
@@ -823,10 +837,17 @@ class Orchestrator extends EventEmitter {
             this.emit('state_change', this.state);
             const decision = await new Promise(r => { this.reviewPromiseResolve = r; });
             if (decision === 'submit') {
-              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
-              this.sessionAppliedJobs.push(entry);
-              appliedCount++;
-              this.log(`✓ Submitted YC application for ${job.title}!`, 'success');
+              this.log(`🕵️ Running 2-step verification on reviewed YC application for "${job.title}"...`, 'info');
+              const verification = await this.ycombinatorEngine.verifyYCombinatorSubmission(page, msg => this.log(msg));
+              if (verification.confirmed) {
+                const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved & verified by user' });
+                this.sessionAppliedJobs.push(entry);
+                appliedCount++;
+                this.log(`✓ Submitted & verified YC application for ${job.title}!`, 'success');
+              } else {
+                this.log(`⚠️ User approved, but YC verification unconfirmed: ${verification.reason}.`, 'warn');
+                tracker.record({ ...job, status: 'unverified', notes: `Review approved but unverified: ${verification.reason}` });
+              }
             } else {
               tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
             }
@@ -975,10 +996,17 @@ class Orchestrator extends EventEmitter {
             this.emit('state_change', this.state);
             const decision = await new Promise(r => { this.reviewPromiseResolve = r; });
             if (decision === 'submit') {
-              const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved by user' });
-              this.sessionAppliedJobs.push(entry);
-              appliedCount++;
-              this.log(`✓ Submitted Otta application for ${job.title}!`, 'success');
+              this.log(`🕵️ Running 2-step verification on reviewed Otta application for "${job.title}"...`, 'info');
+              const verification = await this.externalApplyEngine.verifyExternalSubmission(page, msg => this.log(msg));
+              if (verification.confirmed) {
+                const entry = tracker.record({ ...job, status: 'applied', notes: job.tailoredCV ? `Tailored ATS CV: ${job.tailoredCV}` : 'Approved & verified by user' });
+                this.sessionAppliedJobs.push(entry);
+                appliedCount++;
+                this.log(`✓ Submitted & verified Otta application for ${job.title}!`, 'success');
+              } else {
+                this.log(`⚠️ User approved, but Otta verification unconfirmed: ${verification.reason}.`, 'warn');
+                tracker.record({ ...job, status: 'unverified', notes: `Review approved but unverified: ${verification.reason}` });
+              }
             } else {
               tracker.record({ ...job, status: 'skipped', notes: 'Skipped by user review' });
             }
@@ -1290,11 +1318,17 @@ class Orchestrator extends EventEmitter {
                   this.log(`Note on external submission: ${e.message}`, 'info');
                 }
                 await browserBridge.humanDelay(2000, 3500);
+                const verification = await this.externalApplyEngine.verifyExternalSubmission(externalPageRef, msg => this.log(msg));
                 await externalPageRef.close().catch(() => {});
-                const entry = tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
-                this.sessionAppliedJobs.push(entry);
-                this.log(`✓ Successfully submitted application for ${job.title} at ${job.company}!`, 'success');
-                batchAppliedCount++;
+                if (verification.confirmed) {
+                  const entry = tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
+                  this.sessionAppliedJobs.push(entry);
+                  this.log(`✓ Successfully submitted & verified application for ${job.title} at ${job.company}!`, 'success');
+                  batchAppliedCount++;
+                } else {
+                  tracker.record({ ...job, status: 'unverified', notes: `Review approved but unverified: ${verification.reason}` });
+                  this.log(`⚠️ External application unconfirmed: ${verification.reason}`, 'warn');
+                }
               } else {
                 try {
                   const activeDialog = await this.easyApplyModal.getActiveDialog(page);

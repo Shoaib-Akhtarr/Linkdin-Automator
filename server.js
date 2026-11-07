@@ -488,7 +488,7 @@ app.listen(PORT, () => {
   // Automatically open default browser once server is confirmed listening
   try {
     const { exec } = require('child_process');
-    exec(`start http://localhost:${PORT}`, { windowsHide: true });
+    if (process.env.OPEN_BROWSER === 'true') { exec(`start http://localhost:${PORT}`, { windowsHide: true }); }
   } catch (e) {}
 
   // Auto-launch local Ollama engine in background if not already active
