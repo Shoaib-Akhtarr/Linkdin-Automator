@@ -83,10 +83,10 @@
     "mode": "autonomous",
     "easyApplyMode": "autonomous",
     "externalMode": "autonomous",
-    "maxPerCategory": 1,
-    "dailyApplicationLimit": 100,
-    "minDelayMs": 800,
-    "maxDelayMs": 1800,
+    "maxPerCategory": 0,
+    "dailyApplicationLimit": 500,
+    "minDelayMs": 500,
+    "maxDelayMs": 1200,
     "cdpPort": 9222,
     "cdpHost": "http://127.0.0.1:9222",
     "autoSubmitInAutonomousMode": true,
@@ -103,10 +103,10 @@
     "dynamicProjects": true
   },
   "autopilot": {
-    "enabled": true,
-    "intervalMinutes": 120,
-    "batchSize": 80,
-    "nextRunTime": 1793615812858
+    "enabled": false,
+    "intervalMinutes": 15,
+    "batchSize": 100,
+    "nextRunTime": null
   },
   "aiOptimizer": {
     "mode": "hybrid",
