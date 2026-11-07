@@ -97,13 +97,12 @@ class EasyApplyModal {
 
       dialog = await this.getActiveDialog(page);
       if (!dialog) {
-        update('Modal dialog closed. Checking if application succeeded...');
-        const doneBtn = await page.$('button:has-text("Done")');
-        if (doneBtn && await doneBtn.isVisible()) {
-          await doneBtn.click();
-          return { status: 'applied', message: 'Application finished successfully.' };
+        update('Modal dialog closed. Running Two-Step Verification to check if application truly succeeded...');
+        const verification = await this.verifyApplicationSubmitted(page, null, update);
+        if (verification.verified) {
+          return { status: 'applied', message: verification.message };
         }
-        return { status: 'applied', message: 'Application completed (dialog closed).' };
+        return { status: 'failed', message: verification.reason || 'Modal closed prematurely without confirmation receipt.' };
       }
 
       // Check current page fingerprint to prevent getting stuck
@@ -151,9 +150,14 @@ class EasyApplyModal {
         } else {
           update('Autonomous Mode: Clicking "Submit application"...');
           await submitBtn.click({ force: true });
-          await this.bridge.humanDelay(1500, 2500);
-          await this.closeSuccessModal(page, update);
-          return { status: 'applied', message: 'Application submitted successfully.' };
+          await this.bridge.humanDelay(2000, 3000);
+
+          // RUN 2-STEP VERIFICATION!
+          const verification = await this.verifyApplicationSubmitted(page, dialog, update);
+          if (verification.verified) {
+            return { status: 'applied', message: verification.message };
+          }
+          return { status: 'failed', message: verification.reason || 'Submission not confirmed by 2-step verification.' };
         }
       }
 
@@ -169,18 +173,18 @@ class EasyApplyModal {
       if (nextBtn) {
         update('Clicking "Next" button...');
         await nextBtn.click({ force: true });
-        await this.bridge.humanDelay(600, 1000);
+        await this.bridge.humanDelay(800, 1400);
 
         // Check if blocked by validation error
         const hasError = await this.checkForErrors(dialog, page);
         if (hasError) {
-          update(`Validation error on step ${stepCount}: "${hasError}". Attempting to fix...`);
+          update(`Validation error on step ${stepCount}: "${hasError}". Attempting to fix and refill...`);
           await this.fillCurrentStep(page, dialog, update, jobInfo);
           await this.bridge.humanDelay(400, 700);
           const retryNext = await this.findButtonInDialog(dialog, 'next');
           if (retryNext) {
             await retryNext.click({ force: true });
-            await this.bridge.humanDelay(600, 1000);
+            await this.bridge.humanDelay(800, 1400);
           }
         }
         continue;
@@ -190,6 +194,10 @@ class EasyApplyModal {
       const doneBtn = await page.$('button:has-text("Done")');
       if (doneBtn && await doneBtn.isVisible()) {
         await doneBtn.click();
+        const verification = await this.verifyApplicationSubmitted(page, null, update);
+        if (verification.verified) {
+          return { status: 'applied', message: verification.message };
+        }
         return { status: 'applied', message: 'Application completed with Done button.' };
       }
 
@@ -208,11 +216,15 @@ class EasyApplyModal {
         }
       } catch (_) {}
 
-      update('No Next/Review/Submit button found. Dialog may be completed.');
+      update('No Next/Review/Submit button found. Verifying current modal state...');
+      const verification = await this.verifyApplicationSubmitted(page, dialog, update);
+      if (verification.verified) {
+        return { status: 'applied', message: verification.message };
+      }
       break;
     }
 
-    return { status: 'applied', message: 'Application processed through available steps.' };
+    return { status: 'failed', message: 'Application was not submitted: unanswered questions or unable to advance modal steps.' };
   }
 
   /**
@@ -347,37 +359,44 @@ class EasyApplyModal {
    * Fill form inputs in the active modal step
    */
   async fillCurrentStep(page, dialog, update, jobInfo = {}) {
-    // 1. Text, Number, and Tel Inputs
-    const textInputs = await page.$$(
-      'dialog input[type="text"], dialog input[type="number"], dialog input[type="tel"], [data-testid="dialog"] input[type="text"], [data-testid="dialog"] input[type="number"], [data-testid="dialog"] input[type="tel"]'
+    const scope = dialog || (await this.getActiveDialog(page)) || page;
+
+    // 1. Text, Number, Tel, and general Text-like Inputs
+    const textInputs = await scope.$$(
+      'input[type="text"], input[type="number"], input[type="tel"], input:not([type])'
     );
 
     for (const input of textInputs) {
-      if (!(await input.isVisible())) continue;
-      const currentVal = (await input.inputValue() || '').trim();
+      if (!(await input.isVisible().catch(() => false))) continue;
+      const currentVal = (await input.inputValue().catch(() => '') || '').trim();
       const isInvalid = (await input.getAttribute('aria-invalid')) === 'true' ||
         await input.evaluate(el => {
           const container = el.closest('div') || el.parentElement;
-          return !!container && (container.innerText.includes('Invalid input') || container.innerText.includes('Enter a whole number'));
+          return !!container && (
+            container.innerText.includes('Invalid input') || 
+            container.innerText.includes('Enter a whole number') || 
+            container.innerText.includes('Please enter a valid') ||
+            container.innerText.includes('This field is required')
+          );
         }).catch(() => false);
 
       const isErrantYesNo = currentVal.toLowerCase() === 'yes' || currentVal.toLowerCase() === 'no';
 
       if (currentVal.length > 0 && !isInvalid && !isErrantYesNo) {
-        // Keep valid pre-filled contact details
+        // Keep valid pre-filled contact details (e.g. phone, email)
         continue;
       }
 
       const label = await this.getFieldLabel(page, input);
-      const isNumber = (await input.getAttribute('type')) === 'number';
+      const isNumber = (await input.getAttribute('type')) === 'number' || /years|how many|experience|salary|gpa|zip|postal|phone|code/i.test(label);
       const evaluation = await questionEngine.evaluateQuestionWithAI(label, isNumber ? 'number' : 'text', [], jobInfo);
 
       update(`Filling input "${label || 'field'}" -> "${evaluation.answer}"`);
-      await input.fill('');
-      await input.fill(String(evaluation.answer));
+      await input.fill('').catch(() => {});
+      await input.fill(String(evaluation.answer)).catch(() => {});
       await this.bridge.humanDelay(300, 500);
 
-      // Handle typeahead suggestions if present (e.g. city / location)
+      // Handle typeahead suggestions if present (e.g. city / location / country)
       try {
         const listbox = await page.$('div[role="listbox"], .basic-typeahead__selectable-list');
         if (listbox && await listbox.isVisible()) {
@@ -391,27 +410,29 @@ class EasyApplyModal {
     }
 
     // 2. Textareas
-    const textareas = await page.$$('dialog textarea, [data-testid="dialog"] textarea');
+    const textareas = await scope.$$('textarea');
     for (const textarea of textareas) {
-      if (!(await textarea.isVisible())) continue;
-      const currentVal = await textarea.inputValue();
-      if (currentVal && currentVal.trim().length > 0) continue;
+      if (!(await textarea.isVisible().catch(() => false))) continue;
+      const currentVal = (await textarea.inputValue().catch(() => '') || '').trim();
+      if (currentVal.length > 0) continue;
 
       const label = await this.getFieldLabel(page, textarea);
       const evaluation = await questionEngine.evaluateQuestionWithAI(label, 'textarea', [], jobInfo);
       update(`Filling textarea "${label || 'summary'}" -> "${evaluation.answer}"`);
-      await textarea.fill(String(evaluation.answer));
+      await textarea.fill(String(evaluation.answer)).catch(() => {});
       await this.bridge.humanDelay(300, 600);
     }
 
     // 3. Dropdowns (<select>)
-    const selects = await page.$$('dialog select, [data-testid="dialog"] select');
+    const selects = await scope.$$('select');
     for (const select of selects) {
-      if (!(await select.isVisible())) continue;
+      if (!(await select.isVisible().catch(() => false))) continue;
       const label = await this.getFieldLabel(page, select);
       const options = await select.$$eval('option', opts =>
         opts.map(o => ({ value: o.value, text: o.text.trim() })).filter(t => t.text.length > 0)
-      );
+      ).catch(() => []);
+      if (options.length === 0) continue;
+
       const optionTexts = options.map(o => o.text);
       const evaluation = await questionEngine.evaluateQuestionWithAI(label, 'select', optionTexts, jobInfo);
 
@@ -422,7 +443,7 @@ class EasyApplyModal {
       const matchedOpt = options.find(o => o.text.toLowerCase().trim() === cleanAnswer)
         || options.find(o => o.text.toLowerCase().includes(cleanAnswer))
         || options.find(o => o.value.toLowerCase().trim() === cleanAnswer)
-        || (options.length > 1 ? options[1] : options[0]);
+        || (options.length > 1 && !options[0].text.toLowerCase().includes('select') ? options[0] : options[1] || options[0]);
 
       if (matchedOpt) {
         try {
@@ -437,25 +458,63 @@ class EasyApplyModal {
       await this.bridge.humanDelay(250, 450);
     }
 
-    // 4. Radio Groups (SDUI and classic)
-    const radioGroups = await page.$$(
-      'dialog fieldset, [data-testid="dialog"] fieldset, dialog div[role="radiogroup"], [data-testid="dialog"] div[role="radiogroup"]'
+    // 3b. LinkedIn Custom Comboboxes / Dropdowns (div[role="combobox"] / button[aria-haspopup="listbox"])
+    const comboboxes = await scope.$$('[role="combobox"], button[aria-haspopup="listbox"]');
+    for (const combo of comboboxes) {
+      if (!(await combo.isVisible().catch(() => false))) continue;
+      const tagName = await combo.evaluate(el => el.tagName.toLowerCase()).catch(() => '');
+      if (tagName === 'input') continue;
+
+      const label = await this.getFieldLabel(page, combo);
+      const currentText = (await combo.innerText().catch(() => '')).trim();
+      if (currentText && !currentText.toLowerCase().includes('select') && !currentText.toLowerCase().includes('choose')) {
+        continue;
+      }
+
+      const evaluation = await questionEngine.evaluateQuestionWithAI(label, 'select', [], jobInfo);
+      update(`Opening custom dropdown "${label}" -> "${evaluation.answer}"`);
+      await combo.click({ force: true }).catch(() => {});
+      await this.bridge.humanDelay(400, 700);
+
+      const dropdownOpts = await page.$$('[role="listbox"] [role="option"], [role="listbox"] li, .artdeco-dropdown__content li');
+      if (dropdownOpts.length > 0) {
+        const cleanAnswer = String(evaluation.answer).toLowerCase().trim();
+        let clicked = false;
+        for (const opt of dropdownOpts) {
+          const optText = (await opt.innerText().catch(() => '')).trim().toLowerCase();
+          if (optText === cleanAnswer || optText.includes(cleanAnswer)) {
+            await opt.click({ force: true }).catch(() => {});
+            clicked = true;
+            break;
+          }
+        }
+        if (!clicked && dropdownOpts.length > 0) {
+          await dropdownOpts[0].click({ force: true }).catch(() => {});
+        }
+      }
+      await this.bridge.humanDelay(300, 500);
+    }
+
+    // 4. Radio Groups (SDUI and classic fieldsets)
+    const radioGroups = await scope.$$(
+      'fieldset, div[role="radiogroup"], [data-test-form-builder-radio-group], .fb-radio-buttons, .jobs-easy-apply-form-section__grouping:has(input[type="radio"])'
     );
     for (const grp of radioGroups) {
-      if (!(await grp.isVisible())) continue;
+      if (!(await grp.isVisible().catch(() => false))) continue;
 
       // Extract question text
       let question = '';
-      const parent = await grp.evaluateHandle(el => el.closest('[componentkey]') || el.parentElement);
-      if (parent) {
-        question = await parent.evaluate(el => {
-          const p = el.querySelector('p, h3, label, legend');
-          return p ? p.innerText.trim() : '';
-        }).catch(() => '');
-      }
+      const legend = await grp.$('legend, [role="heading"], label, p, h3');
+      if (legend) question = (await legend.innerText().catch(() => '')).trim();
+
       if (!question) {
-        const legend = await grp.$('legend, [role="heading"]');
-        if (legend) question = (await legend.innerText()).trim();
+        const parent = await grp.evaluateHandle(el => el.closest('.fb-dash-form-element, .jobs-easy-apply-form-section__grouping, div[data-test-form-builder-group]') || el.parentElement);
+        if (parent) {
+          question = await parent.evaluate(el => {
+            const p = el.querySelector('p, h3, label, legend, span.t-14');
+            return p ? p.innerText.trim() : '';
+          }).catch(() => '');
+        }
       }
       if (!question) {
         const radioDiv = await grp.$('div[role="radio"]');
@@ -463,7 +522,7 @@ class EasyApplyModal {
           question = (await radioDiv.getAttribute('aria-label') || '').trim();
         }
       }
-      if (!question) continue;
+      if (!question) question = 'Question';
 
       // Collect options: check div[role="radio"] first, then input[type="radio"]
       const radioDivs = await grp.$$('div[role="radio"]');
@@ -471,7 +530,7 @@ class EasyApplyModal {
 
       if (radioDivs.length > 0) {
         for (const rDiv of radioDivs) {
-          const text = (await rDiv.innerText()).trim();
+          const text = (await rDiv.innerText().catch(() => '')).trim();
           const isChecked = (await rDiv.getAttribute('aria-checked')) === 'true';
           options.push({ element: rDiv, text, isChecked });
         }
@@ -482,7 +541,7 @@ class EasyApplyModal {
           let labelText = '';
           if (id) {
             const l = await page.$(`label[for="${id}"]`);
-            if (l) labelText = (await l.innerText()).trim();
+            if (l) labelText = (await l.innerText().catch(() => '')).trim();
           }
           if (!labelText) {
             labelText = await input.evaluate(el => {
@@ -497,6 +556,10 @@ class EasyApplyModal {
 
       if (options.length === 0) continue;
 
+      // Check if already answered
+      const alreadyChecked = options.some(o => o.isChecked);
+      if (alreadyChecked) continue;
+
       const evalResult = await questionEngine.evaluateQuestionWithAI(question, 'radio', options.map(o => o.text), jobInfo);
       const cleanAnswer = String(evalResult.answer).toLowerCase().trim();
 
@@ -508,16 +571,16 @@ class EasyApplyModal {
         update(`Selecting radio "${question.slice(0, 50)}..." -> "${target.text}"`);
         await target.element.scrollIntoViewIfNeeded().catch(() => {});
         await target.element.click({ force: true }).catch(async () => {
-          await target.element.evaluate(el => el.click());
+          await target.element.evaluate(el => el.click()).catch(() => {});
         });
         await this.bridge.humanDelay(250, 450);
       }
     }
 
     // 5. Checkboxes (Agreements & Qualifications)
-    const checkboxes = await page.$$('dialog input[type="checkbox"], [data-testid="dialog"] input[type="checkbox"]');
+    const checkboxes = await scope.$$('input[type="checkbox"], div[role="checkbox"]');
     for (const cb of checkboxes) {
-      if (!(await cb.isVisible())) continue;
+      if (!(await cb.isVisible().catch(() => false))) continue;
       const id = await cb.getAttribute('id') || '';
       const name = await cb.getAttribute('name') || '';
 
@@ -535,12 +598,12 @@ class EasyApplyModal {
       if (!isChecked) {
         const isRequired = (await cb.getAttribute('required')) !== null || (await cb.getAttribute('aria-required')) === 'true';
         const label = await this.getFieldLabel(page, cb);
-        if (isRequired || /agree|certify|acknowledge|confirm|terms|privacy/i.test(label)) {
+        if (isRequired || /agree|certify|acknowledge|confirm|terms|privacy|consent/i.test(label)) {
           update(`Checking agreement/qualification checkbox: "${label || 'Terms'}"`);
           await cb.check({ force: true }).catch(() => cb.evaluate(el => {
             el.checked = true;
             el.dispatchEvent(new Event('change', { bubbles: true }));
-          }));
+          })).catch(() => {});
           await this.bridge.humanDelay(200, 400);
         }
       }
@@ -555,11 +618,20 @@ class EasyApplyModal {
       const ariaLabel = await element.getAttribute('aria-label');
       if (ariaLabel && ariaLabel.trim()) return ariaLabel.trim();
 
+      const ariaLabelledBy = await element.getAttribute('aria-labelledby');
+      if (ariaLabelledBy) {
+        const labelEl = await page.$(`#${ariaLabelledBy}`);
+        if (labelEl) {
+          const text = (await labelEl.innerText().catch(() => '')).trim();
+          if (text) return text;
+        }
+      }
+
       const id = await element.getAttribute('id');
       if (id) {
         const labelEl = await page.$(`label[for="${id}"]`);
         if (labelEl) {
-          const text = (await labelEl.innerText()).trim();
+          const text = (await labelEl.innerText().catch(() => '')).trim();
           if (text) return text;
         }
       }
@@ -568,9 +640,14 @@ class EasyApplyModal {
       if (placeholder && placeholder.trim()) return placeholder.trim();
 
       const parentLabel = await element.evaluate(el => {
+        const formElement = el.closest('.fb-dash-form-element, .jobs-easy-apply-form-section__grouping, .fb-form-element, div[data-test-form-builder-group]');
+        if (formElement) {
+          const title = formElement.querySelector('label, [role="heading"], legend, .fb-form-element-label, span.t-14, p');
+          if (title && title.innerText) return title.innerText.trim();
+        }
         const lbl = el.closest('label') || el.closest('div')?.querySelector('label, p, span');
-        return lbl ? lbl.innerText : '';
-      });
+        return lbl ? lbl.innerText.trim() : '';
+      }).catch(() => '');
       if (parentLabel && parentLabel.trim()) return parentLabel.trim();
 
       return '';
@@ -583,7 +660,7 @@ class EasyApplyModal {
     try {
       const scope = dialog || page;
       const errorEl = await scope.$(
-        '.artdeco-inline-feedback--error, [data-test-form-builder-error], .fb-form-element__error, p[role="alert"], p:has-text("This field is required"), p:has-text("Please enter a valid")'
+        '.artdeco-inline-feedback--error, [data-test-form-builder-error], .fb-form-element__error, p[role="alert"], p:has-text("This field is required"), p:has-text("Please enter a valid"), p:has-text("Please make a selection")'
       );
       if (errorEl && await errorEl.isVisible()) {
         return (await errorEl.innerText()).trim();
@@ -592,16 +669,170 @@ class EasyApplyModal {
     return null;
   }
 
-  async closeSuccessModal(page, update) {
+  /**
+   * Two-Step Verification System:
+   * Verifies beyond doubt whether the application was truly submitted.
+   * Step 1: In-Modal Success Receipt (Explicit "Application sent" / "Done" confirmation)
+   * Step 2: Post-Modal Job Card State Audit (Job card badge changed to "Applied" / Easy Apply button gone)
+   */
+  async verifyApplicationSubmitted(page, dialog, update = () => {}) {
+    update('🔍 Running Two-Step Verification: Auditing submission receipts...');
+
+    // ----------------------------------------------------
+    // STEP 1: In-Modal Success Confirmation Receipt
+    // ----------------------------------------------------
+    let step1Passed = false;
+    let proofMessage = '';
+
+    // Wait up to 6 seconds for submission response
+    for (let i = 0; i < 6; i++) {
+      await this.bridge.humanDelay(800, 1200);
+
+      // Check if there are blocking inline validation errors
+      const currentDialog = await this.getActiveDialog(page);
+      if (currentDialog) {
+        const error = await this.checkForErrors(currentDialog, page);
+        if (error) {
+          update(`❌ Verification Step 1 FAILED: Blocking validation error present: "${error}". Application NOT submitted.`);
+          return { 
+            verified: false, 
+            status: 'failed', 
+            reason: `Validation error: ${error}`,
+            error
+          };
+        }
+
+        // Check if modal text explicitly confirms submission
+        const text = (await currentDialog.innerText().catch(() => '')).toLowerCase();
+        if (
+          text.includes('your application was sent') ||
+          text.includes('application submitted') ||
+          text.includes('application was submitted') ||
+          text.includes('application sent')
+        ) {
+          step1Passed = true;
+          proofMessage = 'Modal confirmed: Application was sent';
+          break;
+        }
+
+        // Check for Done button
+        const doneBtn = await page.$(
+          'button:has-text("Done"), [data-control-name="save_application_and_close"], .artdeco-modal button:has-text("Done"), button[aria-label="Done"]'
+        );
+        if (doneBtn && await doneBtn.isVisible().catch(() => false)) {
+          step1Passed = true;
+          proofMessage = 'Modal confirmed: Done button received';
+          await doneBtn.click({ force: true }).catch(() => {});
+          await this.bridge.humanDelay(1000, 1500);
+          break;
+        }
+      } else {
+        // Dialog disappeared - proceed to Step 2
+        break;
+      }
+    }
+
+    // If modal is still open with form fields, it did NOT submit!
+    const remainingDialog = await this.getActiveDialog(page);
+    if (remainingDialog) {
+      const remainingInputs = await remainingDialog.$$('input, textarea, select');
+      if (remainingInputs.length > 0) {
+        const err = await this.checkForErrors(remainingDialog, page) || 'Unanswered questions or required fields prevented submission';
+        update(`❌ Verification Step 1 FAILED: Modal remains open with unanswered fields. ${err}`);
+        return {
+          verified: false,
+          status: 'failed',
+          reason: err
+        };
+      }
+    }
+
+    // ----------------------------------------------------
+    // STEP 2: Post-Modal Job Card State Audit on LinkedIn Page
+    // ----------------------------------------------------
+    update('🔍 Running Verification Step 2: Checking LinkedIn job card for "Applied" status...');
+    await this.bridge.humanDelay(1500, 2500);
+
+    let step2Passed = false;
+    let cardProof = '';
+
+    const verificationSelectors = [
+      '.jobs-s-apply__applied-date',
+      '.artdeco-inline-feedback--success',
+      'span.artdeco-inline-feedback__message',
+      '.jobs-details-top-card__actions-container span:has-text("Applied")',
+      '.jobs-unified-top-card__actions-container span:has-text("Applied")',
+      '.jobs-details-top-card:has-text("Applied")',
+      '[data-view-name="job-details"] :has-text("Applied on")',
+      '[data-view-name="job-details"] :has-text("Applied ")'
+    ];
+
+    for (const sel of verificationSelectors) {
+      try {
+        const el = await page.$(sel);
+        if (el && await el.isVisible().catch(() => false)) {
+          const txt = (await el.innerText()).trim();
+          if (/applied/i.test(txt)) {
+            step2Passed = true;
+            cardProof = `Job card badge confirms "${txt}"`;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Check if "Easy Apply" button is gone or replaced
+    const easyApplyButtonStillPresent = await page.$(
+      'button.jobs-apply-button:has-text("Easy Apply"), button[aria-label*="Easy Apply"]'
+    );
+    const isEasyApplyVisible = easyApplyButtonStillPresent && await easyApplyButtonStillPresent.isVisible().catch(() => false);
+
+    if (step1Passed && step2Passed) {
+      update(`🎉 [2-Step Verification PASSED] Step 1: ${proofMessage} | Step 2: ${cardProof}`);
+      return { verified: true, status: 'applied', message: `Confirmed via 2-step verification (${proofMessage} + ${cardProof})` };
+    }
+
+    if (step1Passed && !isEasyApplyVisible) {
+      update(`✓ [Verification PASSED] Modal confirmed submission (${proofMessage}) and Easy Apply button successfully closed.`);
+      return { verified: true, status: 'applied', message: `Confirmed submission (${proofMessage})` };
+    }
+
+    if (step2Passed) {
+      update(`✓ [Verification PASSED] Job card confirms: ${cardProof}`);
+      return { verified: true, status: 'applied', message: `Confirmed via job card: ${cardProof}` };
+    }
+
+    // If Easy Apply button is STILL active on screen:
+    if (isEasyApplyVisible) {
+      update('❌ [2-Step Verification FAILED] "Easy Apply" button is still active on LinkedIn job card. Application was NOT accepted.');
+      return {
+        verified: false,
+        status: 'failed',
+        reason: 'Easy Apply button remained active; submission was rejected or dropped by LinkedIn.'
+      };
+    }
+
+    update('⚠️ [2-Step Verification WARNING] Modal closed without explicit confirmation receipt.');
+    return {
+      verified: false,
+      status: 'unverified',
+      reason: 'Application modal closed without receiving Done button or confirmation badge.'
+    };
+  }
+
+  async closeSuccessModal(page, update = () => {}) {
     try {
-      const doneBtn = await page.waitForSelector('button:has-text("Done")', { timeout: 5000 });
+      const doneBtn = await page.waitForSelector(
+        'button:has-text("Done"), [data-control-name="save_application_and_close"], button[aria-label="Done"], .artdeco-modal button:has-text("Done")',
+        { timeout: 5000 }
+      );
       if (doneBtn) {
         await doneBtn.click({ force: true });
         update('Clicked "Done" on submission confirmation.');
+        return true;
       }
-    } catch (e) {
-      await this.dismissModal(page);
-    }
+    } catch (e) {}
+    return false;
   }
 
   async dismissModal(page) {

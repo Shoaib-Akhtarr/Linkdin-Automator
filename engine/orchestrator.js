@@ -470,7 +470,23 @@ class Orchestrator extends EventEmitter {
       if (this.state === 'stopped' || this.isStopped) break;
 
       try {
-        // History checkpoint
+        // History checkpoint & Pre-flight audit
+        const preFlight = tracker.evaluatePreFlightClass(job);
+        if (preFlight.action === 'SKIP') {
+          if (preFlight.class === 'DONE') {
+            alreadyAppliedCount++;
+            continue;
+          }
+          if (preFlight.class === 'HOLD') {
+            this.log(`⏸️ Pre-flight: Skipped "${job.title}" at "${job.company}" (Job on HOLD: ${preFlight.reason}).`, 'info');
+            continue;
+          }
+          if (preFlight.class === 'COOLDOWN') {
+            this.log(`⏳ Pre-flight: Skipped "${job.title}" at "${job.company}" (In COOLDOWN: ${preFlight.reason}, ${preFlight.daysLeft || 7}d remaining).`, 'info');
+            continue;
+          }
+        }
+
         const priorApp = tracker.findPriorApplication(job);
         if (priorApp && (priorApp.status === 'applied' || priorApp.status === 'previously_applied')) {
           alreadyAppliedCount++;
@@ -527,6 +543,12 @@ class Orchestrator extends EventEmitter {
           this.sessionAppliedJobs.push(entry);
           count++;
           this.log(`✓ Successfully applied to "${job.title}" at "${job.company}" via Curated Remote ATS!`, 'success');
+        } else if (result && result.status === 'previously_applied') {
+          tracker.record({ ...job, status: 'previously_applied', notes: result.message || 'Already applied' });
+          this.log(`🛡️ Already applied to "${job.title}" at "${job.company}".`, 'info');
+        } else if (result && result.status === 'skipped') {
+          tracker.record({ ...job, status: 'skipped', notes: result.reason || result.message || 'Skipped' });
+          this.log(`⏩ Pre-flight/Policy skipped "${job.title}" at "${job.company}" (${result.reason || result.code || 'Skipped'}).`, 'info');
         } else {
           tracker.record({ ...job, status: 'failed', notes: result?.message || 'Failed' });
         }
@@ -1200,14 +1222,19 @@ class Orchestrator extends EventEmitter {
                 }
               } else {
                 try {
-                  const submitBtn = await page.$(
-                    'dialog button:has-text("Submit application"), dialog button:has-text("Submit"), [data-testid="dialog"] button:has-text("Submit"), button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
+                  const activeDialog = await this.easyApplyModal.getActiveDialog(page);
+                  const submitBtn = activeDialog ? await this.easyApplyModal.findButtonInDialog(activeDialog, 'submit') : await page.$(
+                    'button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
                   );
                   if (submitBtn) {
                     await submitBtn.click({ force: true }).catch(() => {});
-                    await browserBridge.humanDelay(2500, 4000);
-                    await this.easyApplyModal.closeSuccessModal(page, msg => this.log(msg));
-                    autoSubmitted = true;
+                    await browserBridge.humanDelay(2000, 3500);
+                    const verification = await this.easyApplyModal.verifyApplicationSubmitted(page, activeDialog, msg => this.log(msg));
+                    if (verification.verified) {
+                      autoSubmitted = true;
+                    } else {
+                      this.log(`⚠️ Auto-submission verification failed: ${verification.reason || 'Not confirmed'}`, 'warn');
+                    }
                   }
                 } catch (e) {
                   this.log(`Modal auto-submission attempt: ${e.message}`, 'info');
@@ -1220,8 +1247,9 @@ class Orchestrator extends EventEmitter {
                 this.log(`✓ Successfully submitted application autonomously for ${job.title} at ${job.company}!`, 'success');
                 batchAppliedCount++;
               } else {
-                tracker.record({ ...job, status: 'skipped', notes: result.message || 'Requires manual external login' });
-                this.log(`External portal requires manual account login. Skipped to continue autonomous loop: "${job.title}"`, 'warn');
+                await this.easyApplyModal.dismissModal(page);
+                tracker.record({ ...job, status: 'failed', notes: result.message || 'Submission verification failed or missing required fields' });
+                this.log(`Application could not be confirmed as submitted for "${job.title}". Recorded as failed to prevent false positive.`, 'warn');
               }
 
               this.emit('stats_update', tracker.getStats(dailyLimit));
@@ -1263,24 +1291,39 @@ class Orchestrator extends EventEmitter {
                 }
                 await browserBridge.humanDelay(2000, 3500);
                 await externalPageRef.close().catch(() => {});
+                const entry = tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
+                this.sessionAppliedJobs.push(entry);
+                this.log(`✓ Successfully submitted application for ${job.title} at ${job.company}!`, 'success');
+                batchAppliedCount++;
               } else {
                 try {
-                  const submitBtn = await page.$(
-                    'dialog button:has-text("Submit application"), dialog button:has-text("Submit"), [data-testid="dialog"] button:has-text("Submit"), button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
+                  const activeDialog = await this.easyApplyModal.getActiveDialog(page);
+                  const submitBtn = activeDialog ? await this.easyApplyModal.findButtonInDialog(activeDialog, 'submit') : await page.$(
+                    'button[aria-label*="Submit application"], button:has-text("Submit application"), button:has-text("Submit")'
                   );
                   if (submitBtn) {
                     await submitBtn.click({ force: true }).catch(() => {});
-                    await browserBridge.humanDelay(2500, 4000);
-                    await this.easyApplyModal.closeSuccessModal(page, msg => this.log(msg));
+                    await browserBridge.humanDelay(2000, 3500);
+                    const verification = await this.easyApplyModal.verifyApplicationSubmitted(page, activeDialog, msg => this.log(msg));
+                    if (verification.verified) {
+                      const entry = tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
+                      this.sessionAppliedJobs.push(entry);
+                      this.log(`✓ Successfully submitted application for ${job.title} at ${job.company}!`, 'success');
+                      batchAppliedCount++;
+                    } else {
+                      await this.easyApplyModal.dismissModal(page);
+                      tracker.record({ ...job, status: 'failed', notes: verification.reason || 'Verification failed after review submit' });
+                      this.log(`⚠️ Application could not be confirmed as submitted for ${job.title}: ${verification.reason || 'Not verified'}`, 'warn');
+                    }
+                  } else {
+                    await this.easyApplyModal.dismissModal(page);
+                    tracker.record({ ...job, status: 'failed', notes: 'Submit button not found' });
+                    this.log(`⚠️ Submit button was not found in dialog for ${job.title}`, 'warn');
                   }
                 } catch (e) {
                   this.log(`Note on modal submission: ${e.message}`, 'info');
                 }
               }
-              const entry = tracker.record({ ...job, status: 'applied', notes: cvNote || 'Approved and submitted by user' });
-              this.sessionAppliedJobs.push(entry);
-              this.log(`✓ Successfully submitted application for ${job.title} at ${job.company}!`, 'success');
-              batchAppliedCount++;
             } else {
               if (isExternal && externalPageRef && !externalPageRef.isClosed()) {
                 await externalPageRef.close().catch(() => {});

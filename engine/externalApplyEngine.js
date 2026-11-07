@@ -32,7 +32,7 @@ class ExternalApplyEngine {
       this.log(null, `🧪 [DRY-RUN] Suppressed recording outcome "${status}" to applications.json ledger.`);
       return { dryRun: true, status, metadata };
     }
-    return this.recordOutcome(jobInfo, status, metadata, options);
+    return tracker.recordOutcome(jobInfo, status, metadata);
   }
 
   /**
@@ -1002,6 +1002,22 @@ class ExternalApplyEngine {
   }
 
   async applyDirectUrl(page, jobInfo, options = {}) {
+    const preFlight = tracker.evaluatePreFlightClass(jobInfo);
+    if (preFlight.action === 'SKIP') {
+      if (preFlight.class === 'DONE') {
+        this.log(options.onStatusUpdate, `⏭️ Pre-flight: Already applied within 90d. Skipping.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_ALREADY_APPLIED', reason: 'Already applied' };
+      }
+      if (preFlight.class === 'HOLD') {
+        this.log(options.onStatusUpdate, `⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
+      }
+      if (preFlight.class === 'COOLDOWN') {
+        this.log(options.onStatusUpdate, `⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+      }
+    }
+
     jobInfo.url = this.normalizeAtsUrl(jobInfo.url);
     await page.goto(jobInfo.url, { waitUntil: 'domcontentloaded', timeout: 35000 });
     return await this.handleExternalApply(page, jobInfo, options);

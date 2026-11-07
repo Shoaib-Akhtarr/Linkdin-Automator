@@ -375,7 +375,7 @@ class Tracker {
       'FAILED_STEP_VALIDATION'
     ];
 
-    if (cooldownStatuses.some(s => status.startsWith(s))) {
+    if (status === 'FAILED' || cooldownStatuses.some(s => status.startsWith(s))) {
       if (attempts >= 3) {
         return { action: 'SKIP', class: 'HOLD', reason: 'CODE_MAX_ATTEMPTS_EXCEEDED', attemptsCount: attempts };
       }
@@ -385,7 +385,12 @@ class Tracker {
       return { action: 'PROCEED', class: 'CLEAR', attemptsCount: attempts };
     }
 
-    // 4. Safe Default for UNRECOGNIZED prior status: Default to HOLD (never accidentally clear/retry)
+    // 4. Previously Skipped Jobs
+    if (status === 'SKIPPED') {
+      return { action: 'SKIP', class: 'HOLD', reason: 'CODE_PREVIOUSLY_SKIPPED', attemptsCount: attempts };
+    }
+
+    // 5. Safe Default for UNRECOGNIZED prior status: Default to HOLD (never accidentally clear/retry)
     return { action: 'SKIP', class: 'HOLD', reason: `CODE_UNKNOWN_STATUS_HOLD_${status}`, attemptsCount: attempts };
   }
 

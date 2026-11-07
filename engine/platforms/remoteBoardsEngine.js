@@ -302,6 +302,23 @@ class RemoteBoardsEngine {
     const update = options.onStatusUpdate || (() => {});
     update(`⚡ Starting application for "${job.title}" at "${job.company}" on Curated Remote ATS (${job.source || 'Remote Board'})...`);
 
+    // Pre-flight check before touching the browser or loading any external site
+    const preFlight = tracker.evaluatePreFlightClass(job);
+    if (preFlight.action === 'SKIP') {
+      if (preFlight.class === 'DONE') {
+        update(`⏭️ Pre-flight: Already applied within 90d. Skipping.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_ALREADY_APPLIED', reason: 'Already applied' };
+      }
+      if (preFlight.class === 'HOLD') {
+        update(`⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
+      }
+      if (preFlight.class === 'COOLDOWN') {
+        update(`⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
+        return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+      }
+    }
+
     // If listing is from WeWorkRemotely, visit page to resolve direct employer ATS career portal URL
     if (job.url && job.url.includes('weworkremotely.com')) {
       try {
@@ -329,6 +346,69 @@ class RemoteBoardsEngine {
         }
       } catch (wwrErr) {
         update(`⚠️ WWR portal resolution note: ${wwrErr.message}`);
+      }
+    }
+
+    // If listing is from Jobicy, resolve direct employer ATS career portal URL
+    if (job.url && job.url.includes('jobicy.com')) {
+      try {
+        update(`🌐 [Jobicy] Resolving direct employer ATS portal for "${job.title}"...`);
+        await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.bridge.humanDelay(1500, 2500);
+
+        const resolved = await page.evaluate(async () => {
+          // 1. Check for standard external ATS links anywhere on the page
+          const links = Array.from(document.querySelectorAll('a[href]'));
+          for (const a of links) {
+            const h = a.href || '';
+            if ((h.includes('greenhouse.io') || h.includes('lever.co') || h.includes('ashbyhq.com') || h.includes('myworkdayjobs.com') || h.includes('smartrecruiters.com') || h.includes('bamboohr.com') || h.includes('rippling.com')) && !h.includes('jobicy.com')) {
+              return { url: h };
+            }
+          }
+
+          // 2. Try resolving via signals.php with page credentials
+          const actionMatch = document.documentElement.innerHTML.match(/action:\s*['"]([a-z0-9_]+)['"],\s*nonce:\s*['"]([a-z0-9_]+)['"],\s*post_id:\s*(\d+)/i);
+          if (actionMatch) {
+            const [, action, nonce, postId] = actionMatch;
+            try {
+              const res = await fetch('/signals.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                  'X-Requested-With': 'XMLHttpRequest',
+                  'X-Jobicy-Ajax': 'true'
+                },
+                body: new URLSearchParams({ action, nonce, post_id: postId, increment_clicks: 'true' })
+              });
+              const json = await res.json();
+              if (json && json.url && typeof json.url === 'string' && json.url.startsWith('http')) {
+                return { url: json.url };
+              }
+              if (json && json.data && json.data.message && json.data.message.toLowerCase().includes('sign in')) {
+                return { requiresAuth: true, message: json.data.message };
+              }
+            } catch (_) {}
+          }
+
+          // 3. Check for sign-in gate modal on page
+          const authBtn = document.querySelector('#jv-open-apply-auth, .jv-apply-primary');
+          if (authBtn) {
+            return { requiresAuth: true, message: 'Jobicy login required to reveal employer apply link' };
+          }
+
+          return null;
+        });
+
+        if (resolved && resolved.url) {
+          update(`✓ Resolved direct ATS portal: ${resolved.url.slice(0, 65)}...`);
+          job.url = resolved.url;
+        } else if (resolved && resolved.requiresAuth) {
+          update(`⚠️ [Jobicy] Employer apply link is gated behind Jobicy sign-in. Please log in to Jobicy in Chrome to enable Jobicy applications.`);
+          return { status: 'skipped', code: 'CODE_JOBICY_SIGNIN_REQUIRED', reason: 'Jobicy account sign-in required' };
+        }
+      } catch (jobicyErr) {
+        update(`⚠️ Jobicy portal resolution note: ${jobicyErr.message}`);
       }
     }
 

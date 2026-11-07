@@ -113,6 +113,7 @@ class AICVOptimizer {
       const child = spawn(defaultOllamaPath, ['serve'], {
         detached: true,
         stdio: 'ignore',
+        windowsHide: true,
         env: {
           ...process.env,
           OLLAMA_IGPU_ENABLE: '1'

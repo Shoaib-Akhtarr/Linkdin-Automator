@@ -50,14 +50,18 @@ class BrowserBridge {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
 
-    console.log('Starting Google Chrome with remote debugging port 9222...');
+    console.log('Starting Headless Google Chrome daemon with remote debugging port 9222...');
     this.chromeProcess = spawn(
       CHROME_PATH,
       [
+        '--headless=new',
         '--remote-debugging-port=9222',
         `--user-data-dir=${userDataDir}`,
         '--no-first-run',
         '--no-default-browser-check',
+        '--window-size=1440,900',
+        '--mute-audio',
+        '--disable-blink-features=AutomationControlled',
         '--disable-quic',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
@@ -67,7 +71,8 @@ class BrowserBridge {
       ],
       {
         detached: true,
-        stdio: 'ignore'
+        stdio: 'ignore',
+        windowsHide: true
       }
     );
     this.chromeProcess.unref();

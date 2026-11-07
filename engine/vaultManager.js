@@ -27,7 +27,7 @@ function protectWithDpapi(dataBuffer) {
       $enc = [System.Security.Cryptography.ProtectedData]::Protect($raw, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
       [Convert]::ToBase64String($enc)
     `;
-    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
+    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
       encoding: 'utf8',
       windowsHide: true
     });
@@ -47,7 +47,7 @@ function unprotectWithDpapi(encryptedBuffer) {
       $dec = [System.Security.Cryptography.ProtectedData]::Unprotect($raw, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
       [Convert]::ToBase64String($dec)
     `;
-    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
+    const stdout = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', psScript], {
       encoding: 'utf8',
       windowsHide: true
     });

@@ -738,7 +738,7 @@ async function loadVault() {
     if (!data) return;
 
     let configuredCount = 0;
-    const platforms = ['otta', 'linkedin', 'wellfound', 'ycombinator', 'email', 'groq'];
+    const platforms = ['otta', 'linkedin', 'wellfound', 'ycombinator', 'email'];
 
     platforms.forEach(plat => {
       const info = data[plat];

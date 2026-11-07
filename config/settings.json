@@ -91,7 +91,8 @@
     "cdpHost": "http://127.0.0.1:9222",
     "autoSubmitInAutonomousMode": true,
     "pauseForReviewInHybridMode": false,
-    "skipOnUnmatchedRequiredFields": false
+    "skipOnUnmatchedRequiredFields": false,
+    "headless": true
   },
   "intelligence": {
     "readFullDescription": true,
