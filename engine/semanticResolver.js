@@ -59,24 +59,31 @@ class SemanticResolver {
   async areFormFieldsSemanticallyOpen(page) {
     if (!page || page.isClosed()) return false;
     try {
+      const currentUrl = (page.url() || '').toLowerCase();
+      // Job aggregators and board listing pages are NEVER application forms
+      if (currentUrl.includes('remoteok.com') || currentUrl.includes('jobicy.com') || 
+          currentUrl.includes('weworkremotely.com') || currentUrl.includes('remotive.com') ||
+          currentUrl.includes('linkedin.com/jobs')) {
+        return false;
+      }
+
       if (typeof page.ariaSnapshot === 'function') {
         const snapshot = await page.ariaSnapshot().catch(() => '');
         if (!snapshot) return false;
 
-        // Check if snapshot contains form controls
-        const hasTextboxes = snapshot.includes('textbox');
-        const hasComboboxes = snapshot.includes('combobox');
-        const hasCheckboxes = snapshot.includes('checkbox');
-        const hasRadios = snapshot.includes('radio');
-        const hasFileInput = snapshot.includes('file') || snapshot.includes('Upload');
+        const hasFileInput = snapshot.includes('file') || snapshot.includes('Upload') || snapshot.includes('Resume') || snapshot.includes('CV');
+        const hasEmail = snapshot.includes('Email') || snapshot.includes('email');
+        const hasName = snapshot.includes('Name') || snapshot.includes('name');
+        const hasSubmit = snapshot.includes('Submit') || snapshot.includes('Apply');
 
-        const inputCount = (snapshot.match(/textbox|combobox|checkbox|radio/g) || []).length;
-        return inputCount >= 2 || (hasFileInput && inputCount >= 1);
+        return (hasEmail || hasName) && (hasFileInput || hasSubmit);
       }
 
-      // Fallback locator count
-      const textboxes = await page.getByRole('textbox').count().catch(() => 0);
-      return textboxes >= 2;
+      // Fallback locator count: must have candidate contact input and file/submit
+      const hasEmailInput = (await page.$('input[type="email"], input[name*="email" i]').catch(() => null)) !== null;
+      const hasFileInput = (await page.$('input[type="file"]').catch(() => null)) !== null;
+      const hasSubmit = (await page.$('button[type="submit"], input[type="submit"]').catch(() => null)) !== null;
+      return hasEmailInput && (hasFileInput || hasSubmit);
     } catch (_) {
       return false;
     }

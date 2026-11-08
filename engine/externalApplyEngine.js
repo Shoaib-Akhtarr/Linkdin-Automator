@@ -118,12 +118,23 @@ class ExternalApplyEngine {
   async areFormFieldsDirectlyOpen(page) {
     if (!page || page.isClosed()) return false;
     try {
+      const currentUrl = (page.url() || '').toLowerCase();
+      // Job aggregators and board listing pages are NEVER application forms
+      if (currentUrl.includes('remoteok.com') || currentUrl.includes('jobicy.com') || 
+          currentUrl.includes('weworkremotely.com') || currentUrl.includes('remotive.com') ||
+          currentUrl.includes('linkedin.com/jobs')) {
+        return false;
+      }
+
       const hasFileInput = (await page.$('div[data-automation-id="file-upload-drop-zone"] input[type="file"], input[type="file"]').catch(() => null)) !== null;
-      const hasNameInput = (await page.$('input[data-automation-id*="firstName"], input[name*="name" i], input[id*="name" i], input[placeholder*="name" i]').catch(() => null)) !== null;
+      const hasNameInput = (await page.$('input[name="name" i], input[data-automation-id*="firstName"], input[name*="name" i], input[id*="name" i], input[placeholder*="name" i]').catch(() => null)) !== null;
       const hasEmailInput = (await page.$('input[data-automation-id="email"], input[type="email"], input[name*="email" i], input[id*="email" i]').catch(() => null)) !== null;
       const hasWorkdayWizard = (await page.$('[data-automation-id="bottom-navigation-next-button"], [data-automation-id="bottom-navigation-submit-button"]').catch(() => null)) !== null;
-      
-      const domDetected = (hasFileInput && (hasNameInput || hasEmailInput)) || hasWorkdayWizard;
+      const hasSubmitBtn = (await page.$('button[type="submit"], input[type="submit"], button:has-text("Submit application"), button:has-text("Submit Application")').catch(() => null)) !== null;
+
+      const domDetected = (hasFileInput && (hasNameInput || hasEmailInput)) || 
+                          (hasNameInput && hasEmailInput && hasSubmitBtn) ||
+                          hasWorkdayWizard;
       if (domDetected) return true;
 
       // HYBRID SEMANTIC RESOLVER FALLBACK:
@@ -215,8 +226,19 @@ class ExternalApplyEngine {
       jobInfo.url = targetUrl;
       update(`✓ External career page loaded: ${targetUrl.slice(0, 80)}...`);
 
+      // 1. Direct Open ATS Dynamic Loading (Ashby, Greenhouse, Lever, Workable, SmartRecruiters, BambooHR)
+      const isOpenAts = /ashbyhq\.com|greenhouse\.io|lever\.co|workable\.com|smartrecruiters\.com|bamboohr\.com/i.test(targetUrl);
+      if (isOpenAts) {
+        update('⏳ Direct Open ATS detected. Waiting for React application container to mount...');
+        await externalPage.waitForSelector(
+          'input[type="file"], input[type="email"], input[name*="name" i], [data-ashby], .application-form, form',
+          { timeout: 12000 }
+        ).catch(() => {});
+        await this.bridge.humanDelay(1500, 2500);
+      }
+
       // Check if Job Description page with internal "Apply" button
-      const isDirectForm = await this.areFormFieldsDirectlyOpen(externalPage);
+      let isDirectForm = await this.areFormFieldsDirectlyOpen(externalPage);
       if (!isDirectForm) {
         const internalApplyBtn = await externalPage.$(
           'a[data-automation-id="adventureButton"], button[data-automation-id="adventureButton"], a:has-text("Apply for this job"), a:has-text("Apply Now"), button:has-text("Apply for this job"), button:has-text("Apply Now"), a:has-text("Apply"), button:has-text("Apply")'
@@ -280,6 +302,37 @@ class ExternalApplyEngine {
           return { status: 'failed', code: 'CODE_GUEST_APPLY_FAILED', message: 'Guest form failed to load.' };
         }
         return await this.executeStage3And4(externalPage, jobInfo, update, options);
+      }
+
+      // If Open ATS domain, it NEVER has an authentication gate. If form not open, check if job is closed
+      if (isOpenAts) {
+        const isClosedText = await externalPage.evaluate(() => {
+          const t = (document.body?.innerText || '').toLowerCase();
+          return t.includes('no longer accepting applications') || t.includes('position is closed') || t.includes('job has expired') || t.includes('job is closed');
+        }).catch(() => false);
+        if (isClosedText) {
+          update('ℹ️ Direct Open ATS role is no longer accepting applications (job closed).');
+          this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_JOB_CLOSED', message: 'Job posting closed' }, options);
+          return { status: 'skipped', code: 'CODE_JOB_CLOSED', message: 'Job posting closed' };
+        }
+        // Try waiting one more time for slow SPA render
+        update('⏳ Re-checking dynamic ATS form mount...');
+        await this.bridge.humanDelay(3000, 5000);
+        if (await this.areFormFieldsDirectlyOpen(externalPage)) {
+          return await this.executeStage3And4(externalPage, jobInfo, update, options);
+        }
+        update('❌ Direct Open ATS form fields could not be resolved.');
+        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_ATS_FORM_NOT_RENDERED', message: 'Form failed to render' }, options);
+        return { status: 'failed', code: 'CODE_ATS_FORM_NOT_RENDERED' };
+      }
+
+      // Check if real authentication gate exists (Password input or Login/SSO buttons)
+      const hasAuthGate = (await externalPage.$('input[type="password"], [data-automation-id="signInSubmitButton"], button:has-text("Sign In"), a:has-text("Sign In"), button:has-text("Log In"), a:has-text("Log In")').catch(() => null)) !== null;
+
+      if (!hasAuthGate) {
+        update('❌ No open application form or authentication gate detected on career portal.');
+        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_FORM_OR_AUTH_GATE', message: 'No form or login found' }, options);
+        return { status: 'failed', code: 'CODE_NO_FORM_OR_AUTH_GATE' };
       }
 
       // ==========================================
@@ -639,16 +692,18 @@ class ExternalApplyEngine {
       }
 
       // GROQ AI ADVISOR FALLBACK:
-      // If neither DOM nor a11y tree found the button, ask Groq to inspect the page layout
+      // If neither DOM nor a11y tree found the button, ask Groq to inspect the page layout (max 2 attempts per wizard)
       if (!submitBtn && !nextBtn) {
         try {
-          if (groqAdvisor.isAvailable()) {
-            this.log(update, '🤖 Standard DOM and a11y tree found no Next/Submit button. Asking Groq AI Advisor...');
+          if (groqAdvisor.isAvailable() && healAttempts < 2) {
+            healAttempts++;
+            this.log(update, `🤖 Standard DOM and a11y tree found no Next/Submit button. Asking Groq AI Advisor (Attempt ${healAttempts}/2)...`);
             const advice = await groqAdvisor.adviseNextAction(page, 'No Next or Submit button found on wizard step');
             if (advice && advice.action === 'click') {
               const executed = await groqAdvisor.executeAdvice(page, advice, update);
               if (executed) {
                 await this.bridge.humanDelay(2000, 3500);
+                stepCounter++;
                 continue;
               }
             }
@@ -793,14 +848,15 @@ class ExternalApplyEngine {
     const w = profile.workAuthorization || {};
     const c = profile.compensationAndAvailability || {};
 
-    // Standard Contact Fields
+    // Standard Contact Fields (Support full name single input like Ashby and split first/last)
+    await this.safeType(page, 'input[name="name" i], input[id="name" i], input[placeholder*="full name" i], input[autocomplete="name"]', `${p.firstName || 'Shoaib'} ${p.lastName || 'Akhtar'}`.trim());
     await this.safeType(page, 'input[name*="first_name" i], input[id*="first_name" i]', p.firstName || 'Shoaib');
     await this.safeType(page, 'input[name*="last_name" i], input[id*="last_name" i]', p.lastName || 'Akhtar');
-    await this.safeType(page, 'input[type="email"], input[name*="email" i]', p.email || 'onlyshoaib158@gmail.com');
-    await this.safeType(page, 'input[type="tel"], input[name*="phone" i]', p.phone || '+923056054842');
-    await this.safeType(page, 'input[name*="linkedin" i]', p.links?.linkedin || 'https://www.linkedin.com/in/shoaib-akhtar-133103300/');
-    await this.safeType(page, 'input[name*="github" i]', p.links?.github || 'https://github.com/Shoaib-Akhtarr');
-    await this.safeType(page, 'input[name*="city" i]', p.address?.city || 'Gujrat');
+    await this.safeType(page, 'input[type="email"], input[name*="email" i], input[id*="email" i]', p.email || 'onlyshoaib158@gmail.com');
+    await this.safeType(page, 'input[type="tel"], input[name*="phone" i], input[id*="phone" i]', p.phone || '+923056054842');
+    await this.safeType(page, 'input[name*="linkedin" i], input[id*="linkedin" i]', p.links?.linkedin || 'https://www.linkedin.com/in/shoaib-akhtar-133103300/');
+    await this.safeType(page, 'input[name*="github" i], input[id*="github" i]', p.links?.github || 'https://github.com/Shoaib-Akhtarr');
+    await this.safeType(page, 'input[name*="city" i], input[id*="city" i]', p.address?.city || 'Gujrat');
 
     // Salary Expectations
     if (c.desiredSalaryNumeric) {

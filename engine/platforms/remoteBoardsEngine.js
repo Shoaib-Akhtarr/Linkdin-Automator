@@ -349,6 +349,92 @@ class RemoteBoardsEngine {
       }
     }
 
+    // If listing is from RemoteOK, resolve direct employer ATS career portal URL
+    if (job.url && job.url.includes('remoteok.com')) {
+      try {
+        update(`🌐 [RemoteOK] Resolving direct employer ATS portal for "${job.title}"...`);
+        await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.bridge.humanDelay(1500, 2500);
+
+        // 1. Look for direct external ATS links on RemoteOK page
+        const directAtsHref = await page.evaluate(() => {
+          const links = Array.from(document.querySelectorAll('a[href]'));
+          for (const a of links) {
+            const h = a.href || '';
+            if ((h.includes('greenhouse.io') || h.includes('lever.co') || h.includes('ashbyhq.com') ||
+                 h.includes('myworkdayjobs.com') || h.includes('smartrecruiters.com') || h.includes('bamboohr.com') ||
+                 h.includes('workable.com') || h.includes('rippling.com')) && !h.includes('remoteok.com')) {
+              return h;
+            }
+          }
+          return null;
+        });
+
+        if (directAtsHref) {
+          update(`✓ Resolved direct ATS portal from RemoteOK: ${directAtsHref.slice(0, 65)}...`);
+          job.url = directAtsHref;
+        } else {
+          // 2. Click the Apply button on RemoteOK and capture destination / popup
+          const applyBtn = await page.$(
+            'a.prevent-default.apply, a.apply, a:has-text("Apply for this job"), a:has-text("Apply now"), button:has-text("Apply now")'
+          );
+
+          if (applyBtn && await applyBtn.isVisible().catch(() => false)) {
+            const newPagePromise = page.context().waitForEvent('page', { timeout: 8000 }).catch(() => null);
+            await applyBtn.click({ force: true }).catch(() => {});
+            await this.bridge.humanDelay(2000, 3500);
+
+            const popup = await newPagePromise;
+            if (popup) {
+              await popup.waitForLoadState('domcontentloaded', { timeout: 20000 }).catch(() => {});
+              const popupUrl = popup.url();
+              if (popupUrl && !popupUrl.includes('remoteok.com') && popupUrl.startsWith('http')) {
+                update(`✓ Captured external ATS tab from RemoteOK: ${popupUrl.slice(0, 65)}...`);
+                job.url = popupUrl;
+                const result = await this.externalApply.applyDirectUrl(popup, job, options);
+                await popup.close().catch(() => {});
+                return result;
+              }
+              await popup.close().catch(() => {});
+            }
+
+            // Check if page navigated or revealed an external link / modal
+            const currentUrl = page.url();
+            if (currentUrl && !currentUrl.includes('remoteok.com') && currentUrl.startsWith('http')) {
+              update(`✓ Navigated to employer portal: ${currentUrl.slice(0, 65)}...`);
+              job.url = currentUrl;
+            } else {
+              // Check if modal or expand revealed an outbound link
+              const revealedLink = await page.evaluate(() => {
+                const links = Array.from(document.querySelectorAll('a[href^="http"]'));
+                const ext = links.find(a => 
+                  !a.href.includes('remoteok.com') && 
+                  !a.href.includes('twitter.com') && 
+                  !a.href.includes('facebook.com') && 
+                  !a.href.includes('linkedin.com') && 
+                  /apply|jobs|career/i.test(a.href)
+                );
+                return ext ? ext.href : null;
+              });
+
+              if (revealedLink) {
+                update(`✓ Found revealed outbound application link: ${revealedLink.slice(0, 65)}...`);
+                job.url = revealedLink;
+              }
+            }
+          }
+        }
+      } catch (rokErr) {
+        update(`⚠️ RemoteOK portal resolution note: ${rokErr.message}`);
+      }
+
+      // If job.url is still on RemoteOK, it cannot be auto-applied directly
+      if (job.url && job.url.includes('remoteok.com')) {
+        update(`⚠️ Could not resolve direct employer ATS from RemoteOK listing. Skipping.`);
+        return { status: 'skipped', code: 'CODE_REMOTEOK_UNRESOLVED', reason: 'Could not resolve outbound employer ATS portal' };
+      }
+    }
+
     // If listing is from Jobicy, resolve direct employer ATS career portal URL
     if (job.url && job.url.includes('jobicy.com')) {
       try {

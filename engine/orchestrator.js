@@ -79,7 +79,31 @@ class Orchestrator extends EventEmitter {
     }
   }
 
+  
+  startLiveScreenStream() {
+    if (this._screencastInterval) return;
+    this._screencastInterval = setInterval(async () => {
+      if (this.state !== 'running' && this.state !== 'awaiting_review') return;
+      try {
+        if (browserBridge.page && !browserBridge.page.isClosed()) {
+          const ss = await browserBridge.takeScreenshot();
+          if (ss) {
+            this.emit('screenshot', ss);
+          }
+        }
+      } catch (_) {}
+    }, 1200);
+  }
+
+  stopLiveScreenStream() {
+    if (this._screencastInterval) {
+      clearInterval(this._screencastInterval);
+      this._screencastInterval = null;
+    }
+  }
+
   async start() {
+    this.startLiveScreenStream();
     if (this.state === 'running' || this.activeLoopPromise) {
       this.log('Automation is currently active or stopping. Please wait a second before starting.', 'warn');
       return;
@@ -115,6 +139,7 @@ class Orchestrator extends EventEmitter {
   }
 
   async stop() {
+    this.stopLiveScreenStream();
     if (this.isStopped && this.state === 'stopped') return;
     this.isStopped = true;
     this.state = 'stopped';
@@ -211,6 +236,10 @@ class Orchestrator extends EventEmitter {
     try {
       this.log('Connecting to Google Chrome...', 'info');
       let page = await browserBridge.connect();
+      try {
+        const initialSs = await browserBridge.takeScreenshot();
+        if (initialSs) this.emit('screenshot', initialSs);
+      } catch (_) {}
 
       const activePlatform = (this.settings.activePlatform || 'all').toLowerCase();
       const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
