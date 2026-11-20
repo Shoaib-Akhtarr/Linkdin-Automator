@@ -3,6 +3,7 @@ const fs = require('fs');
 const questionEngine = require('./questionEngine');
 const cvMatcher = require('./cvMatcher');
 const pdfRenderer = require('./pdfRenderer');
+const internalAgentSystem = require('./internalAgentSystem');
 
 class EasyApplyModal {
   constructor(browserBridge) {
@@ -54,7 +55,25 @@ class EasyApplyModal {
     }
 
     if (!dialog) {
-      return { status: 'failed', message: 'Easy Apply modal dialog did not appear in DOM.' };
+      update('Modal dialog not detected in initial wait. Calling Internal Agent System to diagnose and resolve...');
+      const healing = await internalAgentSystem.handleObstacle({
+        page,
+        dialog: null,
+        jobInfo,
+        error: new Error('Easy Apply modal dialog did not appear in DOM'),
+        step: 0,
+        platform: 'LinkedIn',
+        onUpdate: update,
+        orchestrator: options.orchestrator
+      });
+
+      if (healing.resolved) {
+        dialog = await this.getActiveDialog(page);
+      }
+      if (!dialog) {
+        const clientMsg = healing.clientMessage || internalAgentSystem.formatClientMessage('Easy Apply modal dialog did not appear in DOM');
+        return { status: 'canceled', clientMessage: clientMsg, message: clientMsg };
+      }
     }
 
     update('✓ Easy Apply modal dialog detected.');
@@ -95,136 +114,200 @@ class EasyApplyModal {
       await this.bridge.humanDelay(500, 900);
       update(`Processing modal step ${stepCount}...`);
 
-      dialog = await this.getActiveDialog(page);
-      if (!dialog) {
-        update('Modal dialog closed. Running Two-Step Verification to check if application truly succeeded...');
-        const verification = await this.verifyApplicationSubmitted(page, null, update);
-        if (verification.verified) {
-          return { status: 'applied', message: verification.message };
-        }
-        return { status: 'failed', message: verification.reason || 'Modal closed prematurely without confirmation receipt.' };
-      }
-
-      // Check current page fingerprint to prevent getting stuck
-      const currentFingerprint = (await dialog.innerText()).slice(0, 200).replace(/\s+/g, ' ');
-      if (currentFingerprint === lastDialogFingerprint) {
-        stuckCount++;
-        if (stuckCount >= 3) {
-          update('⚠️ Form screen has not changed after 2 consecutive button clicks. Checking for blocking errors...');
-          const blockingError = await this.checkForErrors(dialog, page);
-          if (blockingError) {
-            update(`Blocked by field requirement: "${blockingError}". Dismissing dialog.`);
-            return { status: 'blocked', message: blockingError };
-          }
-        }
-      } else {
-        stuckCount = 0;
-        lastDialogFingerprint = currentFingerprint;
-      }
-
-      // 2. Fill form inputs in current step with full job intelligence context
-      await this.fillCurrentStep(page, dialog, update, jobInfo);
-      await this.bridge.humanDelay(300, 600);
-
-      // 3. Handle resume selection if on a resume step
-      if (!resumeHandled) {
-        const handled = await this.handleResumeSelection(page, dialog, update, jobInfo, options);
-        if (handled) resumeHandled = true;
-      }
-
-      // 4. Find primary action buttons strictly INSIDE the dialog
-      const submitBtn = await this.findButtonInDialog(dialog, 'submit');
-      const reviewBtn = await this.findButtonInDialog(dialog, 'review');
-      const nextBtn = await this.findButtonInDialog(dialog, 'next');
-
-      // CASE A: FINAL SUBMISSION BUTTON VISIBLE
-      if (submitBtn) {
-        update('Reached final submission step.');
-
-        if (options.mode === 'hybrid' || options.mode === 'review') {
-          update('⚠️ Application filled and waiting for review in Hybrid Mode. Review in Chrome or approve via Dashboard.');
-          return {
-            status: 'needs_review',
-            message: 'Application filled and waiting on review/submit screen.'
-          };
-        } else {
-          update('Autonomous Mode: Clicking "Submit application"...');
-          await submitBtn.click({ force: true });
-          await this.bridge.humanDelay(2000, 3000);
-
-          // RUN 2-STEP VERIFICATION!
-          const verification = await this.verifyApplicationSubmitted(page, dialog, update);
+      try {
+        dialog = await this.getActiveDialog(page);
+        if (!dialog) {
+          update('Modal dialog closed. Running Two-Step Verification to check if application truly succeeded...');
+          const verification = await this.verifyApplicationSubmitted(page, null, update);
           if (verification.verified) {
             return { status: 'applied', message: verification.message };
           }
-          return { status: 'failed', message: verification.reason || 'Submission not confirmed by 2-step verification.' };
+          return { status: 'failed', message: verification.reason || 'Modal closed prematurely without confirmation receipt.' };
         }
-      }
 
-      // CASE B: REVIEW BUTTON
-      if (reviewBtn) {
-        update('Clicking "Review" button...');
-        await reviewBtn.click({ force: true });
-        await this.bridge.humanDelay(600, 1000);
-        continue;
-      }
+        // Check current page fingerprint to prevent getting stuck
+        const currentFingerprint = (await dialog.innerText()).slice(0, 200).replace(/\s+/g, ' ');
+        if (currentFingerprint === lastDialogFingerprint) {
+          stuckCount++;
+          if (stuckCount >= 2) {
+            update('⚠️ Form screen has not changed after consecutive button clicks. Invoking Internal Agent System...');
+            const blockingError = await this.checkForErrors(dialog, page) || 'Form screen has not changed after button click';
+            const healing = await internalAgentSystem.handleObstacle({
+              page,
+              dialog,
+              jobInfo,
+              error: new Error(blockingError),
+              step: stepCount,
+              platform: 'LinkedIn',
+              onUpdate: update,
+              orchestrator: options.orchestrator
+            });
 
-      // CASE C: NEXT BUTTON
-      if (nextBtn) {
-        update('Clicking "Next" button...');
-        await nextBtn.click({ force: true });
-        await this.bridge.humanDelay(800, 1400);
-
-        // Check if blocked by validation error
-        const hasError = await this.checkForErrors(dialog, page);
-        if (hasError) {
-          update(`Validation error on step ${stepCount}: "${hasError}". Attempting to fix and refill...`);
-          await this.fillCurrentStep(page, dialog, update, jobInfo);
-          await this.bridge.humanDelay(400, 700);
-          const retryNext = await this.findButtonInDialog(dialog, 'next');
-          if (retryNext) {
-            await retryNext.click({ force: true });
-            await this.bridge.humanDelay(800, 1400);
-          }
-        }
-        continue;
-      }
-
-      // Check if finished with Done button
-      const doneBtn = await page.$('button:has-text("Done")');
-      if (doneBtn && await doneBtn.isVisible()) {
-        await doneBtn.click();
-        const verification = await this.verifyApplicationSubmitted(page, null, update);
-        if (verification.verified) {
-          return { status: 'applied', message: verification.message };
-        }
-        return { status: 'applied', message: 'Application completed with Done button.' };
-      }
-
-      // AI Self-Healing: Call Groq Advisor to diagnose next action if button is missing
-      try {
-        const groqAdvisor = require('./groqAdvisor');
-        if (groqAdvisor && groqAdvisor.isAvailable()) {
-          const advice = await groqAdvisor.adviseNextAction(page, 'No Next/Review/Submit button found in LinkedIn dialog');
-          if (advice && advice.action === 'click') {
-            const clicked = await groqAdvisor.executeAdvice(page, advice, update);
-            if (clicked) {
-              await this.bridge.humanDelay(1000, 2000);
+            if (healing.resolved) {
+              stuckCount = 0;
               continue;
+            } else {
+              return {
+                status: 'canceled',
+                clientMessage: healing.clientMessage,
+                message: healing.clientMessage
+              };
             }
           }
+        } else {
+          stuckCount = 0;
+          lastDialogFingerprint = currentFingerprint;
         }
-      } catch (_) {}
 
-      update('No Next/Review/Submit button found. Verifying current modal state...');
-      const verification = await this.verifyApplicationSubmitted(page, dialog, update);
-      if (verification.verified) {
-        return { status: 'applied', message: verification.message };
+        // 2. Fill form inputs in current step with full job intelligence context
+        await this.fillCurrentStep(page, dialog, update, jobInfo);
+        await this.bridge.humanDelay(300, 600);
+
+        // 3. Handle resume selection if on a resume step
+        if (!resumeHandled) {
+          const handled = await this.handleResumeSelection(page, dialog, update, jobInfo, options);
+          if (handled) resumeHandled = true;
+        }
+
+        // 4. Find primary action buttons strictly INSIDE the dialog
+        const submitBtn = await this.findButtonInDialog(dialog, 'submit');
+        const reviewBtn = await this.findButtonInDialog(dialog, 'review');
+        const nextBtn = await this.findButtonInDialog(dialog, 'next');
+
+        // CASE A: FINAL SUBMISSION BUTTON VISIBLE
+        if (submitBtn) {
+          update('Reached final submission step.');
+
+          if (options.mode === 'hybrid' || options.mode === 'review') {
+            update('⚠️ Application filled and waiting for review in Hybrid Mode. Review in Chrome or approve via Dashboard.');
+            return {
+              status: 'needs_review',
+              message: 'Application filled and waiting on review/submit screen.'
+            };
+          } else {
+            update('Autonomous Mode: Clicking "Submit application"...');
+            await submitBtn.click({ force: true });
+            await this.bridge.humanDelay(2000, 3000);
+
+            // RUN 2-STEP VERIFICATION!
+            const verification = await this.verifyApplicationSubmitted(page, dialog, update);
+            if (verification.verified) {
+              return { status: 'applied', message: verification.message };
+            }
+            return { status: 'failed', message: verification.reason || 'Submission not confirmed by 2-step verification.' };
+          }
+        }
+
+        // CASE B: REVIEW BUTTON
+        if (reviewBtn) {
+          update('Clicking "Review" button...');
+          await reviewBtn.click({ force: true });
+          await this.bridge.humanDelay(600, 1000);
+          continue;
+        }
+
+        // CASE C: NEXT BUTTON
+        if (nextBtn) {
+          update('Clicking "Next" button...');
+          await nextBtn.click({ force: true });
+          await this.bridge.humanDelay(800, 1400);
+
+          // Check if blocked by validation error
+          const hasError = await this.checkForErrors(dialog, page);
+          if (hasError) {
+            update(`Validation error on step ${stepCount}: "${hasError}". Invoking Internal Agent System to diagnose and resolve...`);
+            const healing = await internalAgentSystem.handleObstacle({
+              page,
+              dialog,
+              jobInfo,
+              error: new Error(`Validation error on step ${stepCount}: ${hasError}`),
+              step: stepCount,
+              platform: 'LinkedIn',
+              onUpdate: update,
+              orchestrator: options.orchestrator
+            });
+
+            if (healing.resolved) {
+              await this.bridge.humanDelay(500, 900);
+              const retryNext = await this.findButtonInDialog(dialog, 'next') || await this.findButtonInDialog(dialog, 'review');
+              if (retryNext) {
+                await retryNext.click({ force: true });
+                await this.bridge.humanDelay(800, 1400);
+              }
+              continue;
+            } else {
+              return {
+                status: 'canceled',
+                clientMessage: healing.clientMessage,
+                message: healing.clientMessage
+              };
+            }
+          }
+          continue;
+        }
+
+        // Check if finished with Done button
+        const doneBtn = await page.$('button:has-text("Done")');
+        if (doneBtn && await doneBtn.isVisible()) {
+          await doneBtn.click();
+          const verification = await this.verifyApplicationSubmitted(page, null, update);
+          if (verification.verified) {
+            return { status: 'applied', message: verification.message };
+          }
+          return { status: 'applied', message: 'Application completed with Done button.' };
+        }
+
+        // Action button missing: Invoke Internal Agent System
+        update('No Next/Review/Submit button found. Invoking Internal Agent System to diagnose and resolve...');
+        const healing = await internalAgentSystem.handleObstacle({
+          page,
+          dialog,
+          jobInfo,
+          error: new Error('No Next, Review, or Submit button found in LinkedIn dialog'),
+          step: stepCount,
+          platform: 'LinkedIn',
+          onUpdate: update,
+          orchestrator: options.orchestrator
+        });
+
+        if (healing.resolved) {
+          await this.bridge.humanDelay(1000, 2000);
+          continue;
+        } else {
+          return {
+            status: 'canceled',
+            clientMessage: healing.clientMessage,
+            message: healing.clientMessage
+          };
+        }
+
+      } catch (stepException) {
+        update(`⚠️ Unexpected exception on step ${stepCount}: ${stepException.message}. Invoking Internal Agent System...`);
+        const healing = await internalAgentSystem.handleObstacle({
+          page,
+          dialog,
+          jobInfo,
+          error: stepException,
+          step: stepCount,
+          platform: 'LinkedIn',
+          onUpdate: update,
+          orchestrator: options.orchestrator
+        });
+
+        if (healing.resolved) {
+          continue;
+        } else {
+          return {
+            status: 'canceled',
+            clientMessage: healing.clientMessage,
+            message: healing.clientMessage
+          };
+        }
       }
-      break;
     }
 
-    return { status: 'failed', message: 'Application was not submitted: unanswered questions or unable to advance modal steps.' };
+    const exhaustedMsg = internalAgentSystem.formatClientMessage('Maximum modal step limit reached without submission');
+    return { status: 'canceled', clientMessage: exhaustedMsg, message: exhaustedMsg };
   }
 
   /**
@@ -439,9 +522,14 @@ class EasyApplyModal {
       update(`Selecting dropdown "${label}" -> "${evaluation.answer}"`);
 
       // Match option
-      const cleanAnswer = String(evaluation.answer).toLowerCase().trim();
+      let cleanAnswer = String(evaluation.answer).toLowerCase().trim();
+      // User directive: "for canceling any job to no, make every possible to yes"
+      if (cleanAnswer === 'no' && !/convict|felon|terminated for cause|fired for cause/i.test(label)) {
+        cleanAnswer = 'yes';
+      }
       const matchedOpt = options.find(o => o.text.toLowerCase().trim() === cleanAnswer)
         || options.find(o => o.text.toLowerCase().includes(cleanAnswer))
+        || options.find(o => /yes/i.test(o.text))
         || options.find(o => o.value.toLowerCase().trim() === cleanAnswer)
         || (options.length > 1 && !options[0].text.toLowerCase().includes('select') ? options[0] : options[1] || options[0]);
 
@@ -561,10 +649,16 @@ class EasyApplyModal {
       if (alreadyChecked) continue;
 
       const evalResult = await questionEngine.evaluateQuestionWithAI(question, 'radio', options.map(o => o.text), jobInfo);
-      const cleanAnswer = String(evalResult.answer).toLowerCase().trim();
+      let cleanAnswer = String(evalResult.answer).toLowerCase().trim();
+
+      // User directive: "for canceling any job to no, make every possible to yes"
+      if (cleanAnswer === 'no' && !/convict|felon|terminated for cause|fired for cause/i.test(question)) {
+        cleanAnswer = 'yes';
+      }
 
       const target = options.find(o => o.text.toLowerCase().trim() === cleanAnswer)
         || options.find(o => o.text.toLowerCase().includes(cleanAnswer))
+        || options.find(o => /yes/i.test(o.text))
         || options[0];
 
       if (target && !target.isChecked) {

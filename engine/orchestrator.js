@@ -15,6 +15,9 @@ const WellfoundEngine = require('./platforms/wellfoundEngine');
 const CompanyAtsEngine = require('./platforms/companyAtsEngine');
 const YCombinatorEngine = require('./platforms/ycombinatorEngine');
 const OttaEngine = require('./platforms/ottaEngine');
+const VcPortfolioEngine = require('./platforms/vcPortfolioEngine');
+const outreachGenerator = require('./outreachGenerator');
+const triAiEvaluator = require('./triAiEvaluator');
 
 class Orchestrator extends EventEmitter {
   constructor() {
@@ -31,6 +34,7 @@ class Orchestrator extends EventEmitter {
     this.companyAtsEngine = new CompanyAtsEngine(browserBridge, this.externalApplyEngine);
     this.ycombinatorEngine = new YCombinatorEngine(browserBridge);
     this.ottaEngine = new OttaEngine(browserBridge, this.externalApplyEngine);
+    this.vcPortfolioEngine = new VcPortfolioEngine(browserBridge, this.externalApplyEngine);
     this.currentJob = null;
     this.reviewPromiseResolve = null;
     this.logs = [];
@@ -106,6 +110,15 @@ class Orchestrator extends EventEmitter {
     this.startLiveScreenStream();
     if (this.state === 'running' || this.activeLoopPromise) {
       this.log('Automation is currently active or stopping. Please wait a second before starting.', 'warn');
+      return;
+    }
+
+    const cloudAiGateway = require('./cloudAiGateway');
+    const credits = cloudAiGateway.getCachedCredits();
+    if (typeof credits === 'number' && credits <= 0) {
+      this.log('🛑 [Credit System] Start blocked: You have 0 credits remaining. Please top up your balance in Credits modal.', 'error');
+      this.state = 'idle';
+      this.emit('state_change', this.state);
       return;
     }
     if (this.state === 'paused') {
@@ -213,6 +226,11 @@ class Orchestrator extends EventEmitter {
 
   isLimitReached(batchAppliedCount) {
     if (this.state === 'stopped' || this.isStopped) return true;
+    const cloudAiGateway = require('./cloudAiGateway');
+    if (cloudAiGateway.getCachedCredits() <= 0) {
+      this.log('🛑 [Credit System] 0 credits remaining. Automation stopped safely. Please top up your balance.', 'warn');
+      return true;
+    }
     const dailyLimit = this.settings.execution?.dailyApplicationLimit || 100;
     const batchLimit = this.settings.autopilot?.batchSize || 10;
     if (tracker.isDailyLimitReached(dailyLimit)) {
@@ -253,16 +271,25 @@ class Orchestrator extends EventEmitter {
         let roundAppliedCount = 0;
 
         // 0. Direct Company ATS Scan & Autonomous Apply (Ashby, Greenhouse, Lever)
-        if (!this.isStopped && (this.settings.directCompanyAts?.enabled !== false)) {
+        if (!this.isStopped && (this.settings.directCompanyAts?.enabled !== false) && (activePlatform === 'all' || activePlatform === 'direct_ats' || activePlatform === 'direct_company_ats')) {
           try {
-            this.log('🔍 [Direct Company ATS] Sourcing verified company career listings via ATS endpoints...', 'info');
-            await this.companyAtsEngine.scanAllCompanies(this.settings, msg => this.log(msg, 'info'));
-
-            // If autoApply is active, auto-apply to eligible queued roles
+            // First check if we already have queued / pending jobs ready to apply immediately
             if (this.settings.directCompanyAts?.autoApply !== false && !this.isLimitReached(totalSessionApplied)) {
-              const count = await this.runDirectCompanyAtsLoop(page, totalSessionApplied);
-              roundAppliedCount += count;
-              totalSessionApplied += count;
+              const pendingCount = await this.runDirectCompanyAtsLoop(page, totalSessionApplied);
+              roundAppliedCount += pendingCount;
+              totalSessionApplied += pendingCount;
+            }
+
+            // If still under limit, refresh ATS scan from company endpoints
+            if (!this.isLimitReached(totalSessionApplied)) {
+              this.log('🔍 [Direct Company ATS] Sourcing verified company career listings via ATS endpoints...', 'info');
+              await this.companyAtsEngine.scanAllCompanies(this.settings, msg => this.log(msg, 'info'));
+
+              if (this.settings.directCompanyAts?.autoApply !== false && !this.isLimitReached(totalSessionApplied)) {
+                const count = await this.runDirectCompanyAtsLoop(page, totalSessionApplied);
+                roundAppliedCount += count;
+                totalSessionApplied += count;
+              }
             }
           } catch (atsScanErr) {
             this.log(`⚠️ Direct ATS note: ${atsScanErr.message}`, 'warn');
@@ -389,9 +416,17 @@ class Orchestrator extends EventEmitter {
     const maxPerCat = parseInt(process.env.MAX_PER_CATEGORY || this.settings.execution?.maxPerCategory || '0', 10);
 
     const atsData = this.companyAtsEngine.loadAtsJobs();
-    const queuedJobs = (atsData.jobs || []).filter(j => 
-      j.status === 'auto_queued_for_apply' || j.status === 'approved_queued_for_apply'
-    );
+    const isAutoApply = this.settings.directCompanyAts?.autoApply !== false;
+    const minScore = this.settings.directCompanyAts?.minimumMatchScore || 70;
+
+    const queuedJobs = (atsData.jobs || []).filter(j => {
+      if (j.status === 'auto_queued_for_apply' || j.status === 'approved_queued_for_apply') return true;
+      if (isAutoApply && (j.status === 'PENDING_APPROVAL' || j.status === 'alerted_pending_approval')) {
+        if (typeof j.score === 'number' && j.score < minScore) return false;
+        return true;
+      }
+      return false;
+    });
 
     if (queuedJobs.length === 0) {
       return 0;
@@ -418,6 +453,28 @@ class Orchestrator extends EventEmitter {
           job.status = 'applied';
           this.companyAtsEngine.saveAtsJobs(atsData);
           continue;
+        }
+
+        // Pre-filter: Check citizenship and clearance
+        const eligibility = eligibilityEngine.evaluateEligibility(job, this.settings);
+        if (!eligibility.eligible) {
+          this.log(`🛡️ Pre-filter: Skipped "${job.title}" (${eligibility.reason})`, 'warn');
+          job.status = 'skipped_eligibility';
+          job.failureReason = eligibility.reason;
+          this.companyAtsEngine.saveAtsJobs(atsData);
+          continue;
+        }
+
+        // Tri-AI Consensus Gate: Check 3-model evaluation if cached
+        const evalData = triAiEvaluator.getCachedEvaluation(job.jobId);
+        if (evalData) {
+          if (evalData.recommendationTier === 'reject' || (typeof evalData.consensusScore === 'number' && evalData.consensusScore < 5.0)) {
+            this.log(`🛑 Tri-AI Gated: Skipped "${job.title}" at "${job.company}" (${evalData.consensusScore}/10 - ${evalData.consensusVerdict})`, 'warn');
+            job.status = 'rejected_by_ai';
+            job.failureReason = `Tri-AI: ${evalData.consensusScore}/10 (${evalData.consensusVerdict})`;
+            this.companyAtsEngine.saveAtsJobs(atsData);
+            continue;
+          }
         }
 
         this.currentJob = job;
@@ -447,6 +504,17 @@ class Orchestrator extends EventEmitter {
           this.sessionAppliedJobs.push(entry);
           count++;
           this.log(`✓ Successfully auto-applied to "${job.title}" at "${job.company}" on ${job.platform.toUpperCase()}!`, 'success');
+
+          // Step 2 Cold Outreach hook
+          try {
+            const outreach = outreachGenerator.generateOutreach(job.company, job.title);
+            this.log(`✉️ [Step 2 Follow-Up] 1-Click Decision Maker search: ${outreach.links.findOnLinkedIn}`, 'info');
+          } catch (_) {}
+        } else if (result && (result.status === 'canceled' || result.clientMessage)) {
+          const clientMsg = result.clientMessage || `Sir, this is the problem we are facing: ${result.message || 'ATS obstacle encountered'}. So we are canceling the job apply, you please see another one.`;
+          tracker.record({ ...job, status: 'canceled', notes: clientMsg });
+          this.log(clientMsg, 'warn');
+          this.emit('client_message', { message: clientMsg, job });
         } else if (result && result.status === 'needs_user_login') {
           this.log(`⚠️ Workday/Taleo auth required for "${job.title}" at "${job.company}". CV saved in data/tailored_cvs/.`, 'warn');
         } else {
@@ -544,11 +612,15 @@ class Orchestrator extends EventEmitter {
           page = await browserBridge.getPage();
         }
 
-        const result = await this.remoteBoardsEngine.applyJob(page, job, {
-          mode: this.settings.execution?.externalMode || this.settings.execution?.mode || 'autonomous',
-          settings: this.settings,
-          onStatusUpdate: msg => this.log(msg)
-        });
+        const result = await Promise.race([
+          this.remoteBoardsEngine.applyJob(page, job, {
+            mode: this.settings.execution?.externalMode || this.settings.execution?.mode || 'autonomous',
+            settings: this.settings,
+            onStatusUpdate: msg => this.log(msg),
+            orchestrator: this
+          }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('Remote ATS operation timed out (65s limit)')), 65000))
+        ]).catch(err => ({ status: 'failed', message: err.message }));
 
         if (result && result.status === 'needs_review') {
           this.state = 'awaiting_review';
@@ -582,6 +654,11 @@ class Orchestrator extends EventEmitter {
         } else if (result && result.status === 'previously_applied') {
           tracker.record({ ...job, status: 'previously_applied', notes: result.message || 'Already applied' });
           this.log(`🛡️ Already applied to "${job.title}" at "${job.company}".`, 'info');
+        } else if (result && (result.status === 'canceled' || result.clientMessage)) {
+          const clientMsg = result.clientMessage || `Sir, this is the problem we are facing: ${result.message || 'ATS obstacle encountered'}. So we are canceling the job apply, you please see another one.`;
+          tracker.record({ ...job, status: 'canceled', notes: clientMsg });
+          this.log(clientMsg, 'warn');
+          this.emit('client_message', { message: clientMsg, job });
         } else if (result && result.status === 'skipped') {
           tracker.record({ ...job, status: 'skipped', notes: result.reason || result.message || 'Skipped' });
           this.log(`⏩ Pre-flight/Policy skipped "${job.title}" at "${job.company}" (${result.reason || result.code || 'Skipped'}).`, 'info');
@@ -739,7 +816,12 @@ class Orchestrator extends EventEmitter {
           } else if (result && result.status === 'previously_applied') {
             tracker.record({ ...job, status: 'previously_applied', notes: result.message });
             this.log(`🛡️ Already applied to "${job.title}" on Wellfound.`, 'info');
-          } else if (result && result.status === 'skipped') {
+          } else if (result && (result.status === 'canceled' || result.clientMessage)) {
+          const clientMsg = result.clientMessage || `Sir, this is the problem we are facing: ${result.message || 'ATS obstacle encountered'}. So we are canceling the job apply, you please see another one.`;
+          tracker.record({ ...job, status: 'canceled', notes: clientMsg });
+          this.log(clientMsg, 'warn');
+          this.emit('client_message', { message: clientMsg, job });
+        } else if (result && result.status === 'skipped') {
             tracker.record({ ...job, status: 'skipped', notes: result.message });
             this.log(`⏭️ Skipped "${job.title}": ${result.message}`, 'warn');
           } else {
@@ -1087,22 +1169,64 @@ class Orchestrator extends EventEmitter {
         if (liPage) {
           page = liPage;
           browserBridge.page = liPage;
+        } else {
+          // Navigate to LinkedIn feed to check session
+          await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
         }
       }
     } catch (_) {}
-    const loggedIn = await browserBridge.isLinkedInLoggedIn();
+    let loggedIn = await browserBridge.isLinkedInLoggedIn();
     if (!loggedIn) {
-      this.log(
-        '⚠️ Please log in to LinkedIn in the opened Chrome window. The automation will continue once logged in.',
-        'warn'
-      );
-      let waited = 0;
-      while (waited < 120 && !(await browserBridge.isLinkedInLoggedIn())) {
-        await new Promise(r => setTimeout(r, 3000));
-        waited += 3;
+      try {
+        if (!page.url().includes('linkedin.com')) {
+          await page.goto('https://www.linkedin.com/feed/', { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+          loggedIn = await browserBridge.isLinkedInLoggedIn();
+        }
+      } catch (_) {}
+    }
+    if (!loggedIn) {
+      // 1. Check if user configured credentials in vault for autonomous silent login
+      const autoLoginEngine = require('./autoLoginEngine');
+      const creds = vaultManager.getPlatformCredentials('linkedin');
+      if (creds && creds.email && creds.password) {
+        this.log(`🤖 [Auto-Login] No active session detected. Executing autonomous silent login for ${creds.email}...`, 'info');
+        const loginRes = await autoLoginEngine.login('linkedin', creds);
+        if (loginRes.status === 'success') {
+          loggedIn = true;
+          this.log('✓ [Auto-Login] Successfully authenticated LinkedIn session!', 'success');
+        } else if (loginRes.status === 'challenge_required') {
+          this.log(`🔐 [2FA Challenge] ${loginRes.message}. Please enter the code in the Dashboard modal.`, 'warn');
+          this.emit('auth_challenge_required', { platform: 'linkedin', message: loginRes.message });
+
+          // Wait for user to input 2FA code in dashboard modal
+          let waited = 0;
+          const maxWait = 180;
+          while (waited < maxWait && autoLoginEngine.activeChallenges.has('linkedin') && !(await browserBridge.isLinkedInLoggedIn())) {
+            await new Promise(r => setTimeout(r, 3000));
+            waited += 3;
+            if (waited % 15 === 0) {
+              this.log(`⏳ Waiting for verification code entry in Dashboard... (${waited}s / ${maxWait}s)`, 'info');
+            }
+          }
+          loggedIn = await browserBridge.isLinkedInLoggedIn();
+        } else if (loginRes.status === 'bad_credentials') {
+          this.log(`❌ [Auto-Login] Incorrect email or password. Please update credentials in Dashboard.`, 'error');
+          throw new Error('LinkedIn login failed: Invalid credentials. Please update credentials in the Dashboard.');
+        }
+      } else {
+        this.log('⚠️ LinkedIn credentials not found in vault. Please enter your email and password in the Auto-Login panel.', 'warn');
+        this.emit('auth_challenge_required', { platform: 'linkedin', challengeType: 'credentials_needed', message: 'Please enter your LinkedIn credentials in the Auto-Login panel.' });
+        
+        let waited = 0;
+        while (waited < 120 && !(await browserBridge.isLinkedInLoggedIn())) {
+          await new Promise(r => setTimeout(r, 3000));
+          waited += 3;
+        }
+        loggedIn = await browserBridge.isLinkedInLoggedIn();
       }
-      if (!(await browserBridge.isLinkedInLoggedIn())) {
-        throw new Error('LinkedIn login timeout. Please log in to your account and restart.');
+
+      if (!loggedIn) {
+        throw new Error('LinkedIn authentication incomplete. Please enter credentials or verification code in the dashboard.');
       }
     }
     this.log('✓ Successfully verified LinkedIn active session!', 'success');
@@ -1121,6 +1245,7 @@ class Orchestrator extends EventEmitter {
       if (this.isStopped || this.isLimitReached(currentBatch + batchAppliedCount)) break;
       if (maxPerCat > 0 && batchAppliedCount >= maxPerCat) break;
 
+      this.currentSearchUrl = this.searchEngine.buildSearchUrl(keyword, this.settings, 0);
       this.log(`🔍 Searching LinkedIn jobs for keyword: "${keyword}"...`, 'info');
       let jobs = [];
       try {
@@ -1163,6 +1288,14 @@ class Orchestrator extends EventEmitter {
             if (!page || page.isClosed()) {
               this.log('🔄 Re-acquiring active LinkedIn page reference...', 'info');
               page = await browserBridge.getPage();
+            }
+            // If main page was left on redirect tracker or blank, bring it back to search
+            const curUrl = page.url();
+            if (curUrl.includes('jobs-tracker') || curUrl === 'about:blank') {
+              this.log(`🔄 Main page drifted (${curUrl.slice(0, 45)}). Restoring search page...`, 'info');
+              const restoreUrl = this.currentSearchUrl || this.searchEngine.lastSearchUrl || 'https://www.linkedin.com/jobs/';
+              await page.goto(restoreUrl, { waitUntil: 'domcontentloaded', timeout: 35000 }).catch(() => {});
+              await browserBridge.humanDelay(2000, 3000);
             }
           } catch (pErr) {
             page = await browserBridge.getPage();
@@ -1225,12 +1358,16 @@ class Orchestrator extends EventEmitter {
             } catch (_) {}
 
             const eaMode = this.settings.execution?.easyApplyMode || this.settings.execution?.mode || 'autonomous';
-            result = await this.easyApplyModal.handleModal(job, {
-              mode: eaMode,
-              settings: this.settings,
-              onStatusUpdate: msg => this.log(msg),
-              isCancelled: () => this.isStopped || this.state === 'stopped'
-            });
+            result = await Promise.race([
+              this.easyApplyModal.handleModal(job, {
+                mode: eaMode,
+                settings: this.settings,
+                onStatusUpdate: msg => this.log(msg),
+                isCancelled: () => this.isStopped || this.state === 'stopped',
+                orchestrator: this
+              }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('Easy Apply operation timed out (75s limit)')), 75000))
+            ]).catch(err => ({ status: 'failed', message: err.message }));
           } else if (detected.type === 'external_apply') {
             if (!allowExternal) {
               this.log(`External company listing found, but "Easy Apply Only" is active in settings. Skipping.`, 'info');
@@ -1241,12 +1378,16 @@ class Orchestrator extends EventEmitter {
             isExternal = true;
             this.log(`🌐 Universal External Apply: Initiating application for "${job.title}" at "${job.company}"...`, 'info');
             const extMode = this.settings.execution?.externalMode || this.settings.execution?.mode || 'autonomous';
-            result = await this.externalApplyEngine.handleExternalApply(page, job, {
-              mode: extMode,
-              settings: this.settings,
-              onStatusUpdate: msg => this.log(msg),
-              isCancelled: () => this.isStopped || this.state === 'stopped'
-            });
+            result = await Promise.race([
+              this.externalApplyEngine.handleExternalApply(page, job, {
+                mode: extMode,
+                settings: this.settings,
+                onStatusUpdate: msg => this.log(msg),
+                isCancelled: () => this.isStopped || this.state === 'stopped',
+                orchestrator: this
+              }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('External portal operation timed out (65s limit)')), 65000))
+            ]).catch(err => ({ status: 'failed', message: err.message }));
             if (result && result.page) {
               externalPageRef = result.page;
             }
@@ -1399,6 +1540,16 @@ class Orchestrator extends EventEmitter {
 
             this.state = 'running';
             this.emit('state_change', this.state);
+          } else if (result && (result.status === 'canceled' || result.clientMessage)) {
+            if (isExternal && externalPageRef) {
+              await externalPageRef.close().catch(() => {});
+            } else {
+              await this.easyApplyModal.dismissModal(page);
+            }
+            const clientMsg = result.clientMessage || `Sir, this is the problem we are facing: ${result.message || 'AI could not resolve form obstacle'}. So we are canceling the job apply, you please see another one.`;
+            tracker.record({ ...job, status: 'canceled', notes: clientMsg });
+            this.log(clientMsg, 'warn');
+            this.emit('client_message', { message: clientMsg, job });
           } else if (result && result.status === 'limit_reached') {
             this.log('🛑 LinkedIn Easy Apply daily limit reached for today! Switching focus to External ATS & Remote boards.', 'warn');
             this.easyApplyLimitReached = true;

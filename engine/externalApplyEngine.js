@@ -7,6 +7,7 @@ const vaultManager = require('./vaultManager');
 const tracker = require('./tracker');
 const semanticResolver = require('./semanticResolver');
 const groqAdvisor = require('./groqAdvisor');
+const internalAgentSystem = require('./internalAgentSystem');
 
 class ExternalApplyEngine {
   constructor(browserBridge) {
@@ -161,20 +162,28 @@ class ExternalApplyEngine {
     // STAGE 1: ENTRY AND ROUTING
     // ==========================================
     update(`🌐 [Stage 1] Pre-Flight Ledger Audit for: "${jobInfo.title}" at "${jobInfo.company}"...`);
+    const isExplicitUserAction = options.force === true || options.clearance === true || options.manualApproval === true;
     const preFlight = tracker.evaluatePreFlightClass(jobInfo);
 
     if (preFlight.action === 'SKIP') {
-      if (preFlight.class === 'DONE') {
+      if (preFlight.class === 'DONE' && !options.force) {
         update(`⏭️ Pre-flight: Already applied within 90d. Skipping.`);
         return { status: 'skipped', code: 'CODE_PREFLIGHT_ALREADY_APPLIED', reason: 'Already applied' };
       }
       if (preFlight.class === 'HOLD') {
-        update(`⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
-        return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
-      }
-      if (preFlight.class === 'COOLDOWN') {
-        update(`⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
-        return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+        if (isExplicitUserAction) {
+          update(`🔓 Pre-flight: Candidate clearance granted for "${jobInfo.title}". Bypassing prior HOLD (${preFlight.reason}).`);
+        } else {
+          update(`⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
+          return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
+        }
+      } else if (preFlight.class === 'COOLDOWN') {
+        if (isExplicitUserAction) {
+          update(`🔓 Pre-flight: Candidate clearance granted for "${jobInfo.title}". Bypassing COOLDOWN.`);
+        } else {
+          update(`⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
+          return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+        }
       }
     }
 
@@ -195,26 +204,60 @@ class ExternalApplyEngine {
         }
 
         const directHref = await applyBtn.getAttribute('href').catch(() => null);
-        const newPagePromise = context.waitForEvent('page', { timeout: 15000 }).catch(() => null);
 
-        await applyBtn.click({ force: true }).catch(() => {});
-        await this.bridge.humanDelay(1500, 2500);
-        await this.handleLinkedInRedirectModal(linkedInPage, update);
+        // Extract real destination ATS URL if LinkedIn uses tracking redirect (e.g. jobs-tracker/?stage=clicked_apply&url=...)
+        let extractedDestUrl = null;
+        if (directHref) {
+          if (directHref.includes('url=')) {
+            const m = directHref.match(/[?&]url=([^&]+)/);
+            if (m) extractedDestUrl = decodeURIComponent(m[1]);
+          } else if (directHref.startsWith('http') && !directHref.includes('linkedin.com')) {
+            extractedDestUrl = directHref;
+          }
+        }
 
-        externalPage = await newPagePromise;
-        if (!externalPage && directHref && !directHref.startsWith('#')) {
-          update(`Opening direct career URL in new tab...`);
-          externalPage = await context.newPage();
-          await externalPage.goto(directHref, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        if (extractedDestUrl) {
+          update(`Opening direct company ATS portal: ${extractedDestUrl.slice(0, 65)}...`);
+          const newPagePromise = context.waitForEvent('page', { timeout: 10000 }).catch(() => null);
+          await linkedInPage.evaluate(u => window.open(u, '_blank'), extractedDestUrl).catch(() => {});
+          externalPage = await newPagePromise;
+
+          if (!externalPage) {
+            externalPage = await Promise.race([
+              context.newPage(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('newPage timeout')), 6000))
+            ]).catch(() => null);
+            if (externalPage) {
+              await externalPage.goto(extractedDestUrl, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+            }
+          }
+        } else {
+          const newPagePromise = context.waitForEvent('page', { timeout: 10000 }).catch(() => null);
+          await applyBtn.click({ force: true }).catch(() => {});
+          await this.bridge.humanDelay(1500, 2500);
+          await this.handleLinkedInRedirectModal(linkedInPage, update);
+
+          externalPage = await newPagePromise;
+          if (!externalPage && directHref && !directHref.startsWith('#')) {
+            update(`Opening direct career URL in new tab...`);
+            externalPage = await Promise.race([
+              context.newPage(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('newPage timeout')), 6000))
+            ]).catch(() => null);
+            if (externalPage) {
+              await externalPage.goto(directHref, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+            }
+          }
+        }
+
+        // If main tab was accidentally navigated to LinkedIn redirect tracker, return it immediately
+        if (linkedInPage.url().includes('jobs-tracker')) {
+          await linkedInPage.goBack().catch(() => {});
         }
 
         if (!externalPage) {
-          if (!linkedInPage.url().includes('linkedin.com/jobs')) {
-            externalPage = linkedInPage;
-          } else {
-            this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab' }, options);
-            return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external tab.' };
-          }
+          this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external career tab' }, options);
+          return { status: 'failed', code: 'CODE_PORTAL_UNREACHABLE', message: 'Could not capture external career tab.' };
         }
       }
 
@@ -331,8 +374,8 @@ class ExternalApplyEngine {
 
       if (!hasAuthGate) {
         update('❌ No open application form or authentication gate detected on career portal.');
-        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_FORM_OR_AUTH_GATE', message: 'No form or login found' }, options);
-        return { status: 'failed', code: 'CODE_NO_FORM_OR_AUTH_GATE' };
+        this.recordOutcome(jobInfo, 'FAILED_PORTAL_UNREACHABLE', { code: 'CODE_NO_FORM_OR_AUTH_GATE', message: 'No open application form or authentication gate detected on career portal' }, options);
+        return { status: 'failed', code: 'CODE_NO_FORM_OR_AUTH_GATE', message: 'No open application form or authentication gate detected on career portal' };
       }
 
       // ==========================================
@@ -736,31 +779,49 @@ class ExternalApplyEngine {
           healAttempts = 0;
           continue;
         } else {
-          // Validation Error Present: check heal circuit with Groq AI Advisor
-          if (healAttempts >= 2) {
-            update('❌ Step validation failed after healing retries. Stopping step loop.');
-            this.recordOutcome(jobInfo, 'FAILED_STEP_VALIDATION', { code: 'CODE_STEP_VALIDATION_FAILED' }, options);
-            return { status: 'failed', code: 'CODE_STEP_VALIDATION_FAILED' };
+          // Validation Error Present: Invoke Internal Agent System
+          update(`⚠️ Form highlighted validation error (Step ${stepCounter + 1}). Invoking Internal Agent System to diagnose and resolve...`);
+          const healing = await internalAgentSystem.handleObstacle({
+            page,
+            dialog: null,
+            jobInfo,
+            error: new Error('Validation error highlighted on form step'),
+            step: stepCounter + 1,
+            platform: 'Universal ATS',
+            onUpdate: update,
+            orchestrator: options.orchestrator
+          });
+
+          if (healing.resolved) {
+            stepCounter++;
+            continue;
+          } else {
+            this.recordOutcome(jobInfo, 'CANCELED_AI_CLUELESS', { code: 'CODE_STEP_VALIDATION_CANCELED', message: healing.clientMessage }, options);
+            return { status: 'canceled', clientMessage: healing.clientMessage, message: healing.clientMessage };
           }
-          healAttempts++;
-          update(`⚠️ Form highlighted validation error (Attempt ${healAttempts}/2). Asking Groq AI Advisor to diagnose...`);
-          try {
-            if (groqAdvisor.isAvailable()) {
-              const advice = await groqAdvisor.adviseNextAction(page, 'Validation error highlighted on form step');
-              if (advice && advice.action === 'click') {
-                await groqAdvisor.executeAdvice(page, advice, update);
-                await this.bridge.humanDelay(1500, 2500);
-              }
-            }
-          } catch (_) {}
-          continue;
         }
       }
 
-      // Neither Next nor Submit button found
-      update('❌ No recognizable Next or Submit button found on active step.');
-      this.recordOutcome(jobInfo, 'FAILED_WIZARD_NO_BUTTON', { code: 'CODE_WIZARD_NO_ACTION_BUTTON' }, options);
-      return { status: 'failed', code: 'CODE_WIZARD_NO_ACTION_BUTTON' };
+      // Neither Next nor Submit button found: Invoke Internal Agent System
+      update('❌ No recognizable Next or Submit button found on active step. Invoking Internal Agent System...');
+      const healing = await internalAgentSystem.handleObstacle({
+        page,
+        dialog: null,
+        jobInfo,
+        error: new Error('No recognizable Next or Submit button found on ATS wizard step'),
+        step: stepCounter + 1,
+        platform: 'Universal ATS',
+        onUpdate: update,
+        orchestrator: options.orchestrator
+      });
+
+      if (healing.resolved) {
+        stepCounter++;
+        continue;
+      } else {
+        this.recordOutcome(jobInfo, 'CANCELED_AI_CLUELESS', { code: 'CODE_WIZARD_NO_BUTTON_CANCELED', message: healing.clientMessage }, options);
+        return { status: 'canceled', clientMessage: healing.clientMessage, message: healing.clientMessage };
+      }
     }
 
     // ==========================================
@@ -1046,19 +1107,27 @@ class ExternalApplyEngine {
   }
 
   async applyDirectUrl(page, jobInfo, options = {}) {
+    const isExplicitUserAction = options.force === true || options.clearance === true || options.manualApproval === true;
     const preFlight = tracker.evaluatePreFlightClass(jobInfo);
     if (preFlight.action === 'SKIP') {
-      if (preFlight.class === 'DONE') {
+      if (preFlight.class === 'DONE' && !options.force) {
         this.log(options.onStatusUpdate, `⏭️ Pre-flight: Already applied within 90d. Skipping.`);
         return { status: 'skipped', code: 'CODE_PREFLIGHT_ALREADY_APPLIED', reason: 'Already applied' };
       }
       if (preFlight.class === 'HOLD') {
-        this.log(options.onStatusUpdate, `⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
-        return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
-      }
-      if (preFlight.class === 'COOLDOWN') {
-        this.log(options.onStatusUpdate, `⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
-        return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+        if (isExplicitUserAction) {
+          this.log(options.onStatusUpdate, `🔓 Pre-flight: Candidate clearance granted for "${jobInfo.title}". Bypassing prior HOLD (${preFlight.reason}).`);
+        } else {
+          this.log(options.onStatusUpdate, `⏸️ Pre-flight: Job on HOLD (${preFlight.reason}). Awaiting candidate clearance.`);
+          return { status: 'skipped', code: 'CODE_PREFLIGHT_HOLD_PENDING_USER', reason: preFlight.reason };
+        }
+      } else if (preFlight.class === 'COOLDOWN') {
+        if (isExplicitUserAction) {
+          this.log(options.onStatusUpdate, `🔓 Pre-flight: Candidate clearance granted for "${jobInfo.title}". Bypassing COOLDOWN.`);
+        } else {
+          this.log(options.onStatusUpdate, `⏳ Pre-flight: Job in COOLDOWN (${preFlight.daysLeft || 7}d remaining, attempts: ${preFlight.attemptsCount}). Skipping.`);
+          return { status: 'skipped', code: 'CODE_PREFLIGHT_COOLDOWN', reason: preFlight.reason };
+        }
       }
     }
 

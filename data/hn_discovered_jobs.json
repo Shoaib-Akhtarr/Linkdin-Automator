@@ -1,0 +1,347 @@
+{
+  "total": 13,
+  "scanned_at": "2026-11-20T13:51:52.836630+00:00",
+  "jobs": [
+    {
+      "jobId": "hn_50339013",
+      "platform": "hackernews",
+      "company": "MixRank (YC S11)",
+      "title": "Software Engineers",
+      "location": "100% Remote (Global)",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50339013",
+      "applyUrl": "https://news.ycombinator.com/item?id=50339013",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "Kiran_MixRank",
+      "description": "MixRank (YC S11) | Software Engineers | 100% Remote (Global) | Full-Time MixRank processes petabytes of data every month through web crawling. Hundreds of customers use our data products, including Google, Amazon, Facebook, Intel, and Adobe, across industries such as finance, recruiting, sales, marketing, and security. We\u2019re a fully remote company with a global footprint across 20+ countries. We\u2019re growing, profitable, employee-owned, and have no dependence on outside funding. Applicants from all geographies and backgrounds are welcome. We\u2019re looking for passionate individuals for whom programming is not just a job, but something they genuinely love to do. We\u2019re obsessed with computers, programming, big data, databases, compilers, hardware, math, data science, and the internet. Does this sound like you? Please apply to join our team. Our codebase is friendly to new contributors. You\u2019ll have a fully functional development environment within hours through full automation and will be pushing commits on your first day. Deployments to production happen multiple times per day and finish in under two minutes.Effectively all of our codebase is written in Python, Rust, SQL, JavaScript/TypeScript, and Nix. The core technologies you\u2019ll need familiarity with to be productive are Python, PostgreSQL, Linux, and Git.\nWe operate at a larger scale than typical startups. We run two datacenters with high-performance servers we\u2019ve built ourselves, capable of handling the volumes of data we process. We\u2019ve implemented our own distributed file system, perform full-scale web crawls, and download and run static analysis on the entire universe of published Android APKs and iOS IPAs.\nUnlike a typical startup where you might spend half your time in meetings and the other half fixing Jira tickets, at MixRank you\u2019ll challenge yourself with difficult technical problems that help you grow as an individual. We\u2019re continuously hiring for the positions below; these aren\u2019t singular roles that close on",
+      "postedAt": "2026-11-02T16:15:14.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "mobile",
+        "data",
+        "qa",
+        "security",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50339551",
+      "platform": "hackernews",
+      "company": "Juro",
+      "title": "AI Engineer (Agentic team)",
+      "location": "London, UK",
+      "workplaceType": "remote",
+      "salary": "\u00a3115k",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50339551",
+      "applyUrl": "https://juro.notion.site/aie",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "TEForstner",
+      "description": "Juro | AI Engineer (Agentic team) | London, UK | REMOTE (UK) | Full-time | \u00a3115k + equity\nJuro is an AI contract automation platform used by in-house legal and business teams. Our Agentic team builds Operator, the agent that works across contracts inside Juro: it answers questions and takes action on legal data. You'd build the tools that let it act across the product, own parts of the agent harness (planning, tool use, context) and put evals around what you ship, together with our QA team.\nStack: TypeScript/Node.js, MongoDB, pgvector, AWS Bedrock, LiteLLM, Mastra, some React. Engineers pick their own AI tooling (Claude Code, Codex, Cursor...) and we pay for the usage.\nWe're looking for programmers first who now build with LLMs, and who have shipped something people use. Years of ML matter less to us than what you've built. We apply models, we don't train them.\nProcess: 30-min intro call, interview with the hiring manager, a build review where you walk us through something you've built, and a short chat with our CTO. We reply to every applicant.\nYou'll work from the UK. For exceptional candidates we can sponsor a UK Skilled Worker visa, whether you're relocating or already in the UK. If you need sponsorship, say so in your application.\nApply: https://juro.notion.site/aie",
+      "postedAt": "2026-11-02T16:43:55.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "qa",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50340419",
+      "platform": "hackernews",
+      "company": "Paramark",
+      "title": "Software Engineer (L4)",
+      "location": "San Francisco HYBRID (3 days/wk) or REMOTE (US)",
+      "workplaceType": "hybrid / remote",
+      "salary": "$199K",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50340419",
+      "applyUrl": "https://www.mercurynews.com/2025/08/25/silicon-valley-startu",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "pbelknap27",
+      "description": "Paramark | Software Engineer (L4) | San Francisco HYBRID (3 days/wk) or REMOTE (US) | Full-time | $199K\u2013$249K + equity\nParamark helps Marketing teams optimize spend across all of their channels and programs. There are proven scientific ways to do this, but they are poorly understood and practiced by only a tiny fraction of teams. Our product ingests data from all of our customers' marketing channels and uses it to train open-source ML models for both measurement and experimentation. This makes it possible for any marketer to use these methods.\nIn this domain, it's hard to figure out what to build, and it's even harder to be both accurate and simple. You'll be joining a small team -- we have four product engineers. That means owning systems end to end and having real influence over what gets built. Your typical project will start with a high level goal, and you will figure out the rest.\nFounded 2023, ~16 people, $8M from Greylock, cash-flow positive. Reasonable working hours: when the Mercury News covered the return of 996 culture, we were the counterexample. \"We don't think early stage startup life requires 18-hour days, or even 12-hour days.\" https://www.mercurynews.com/2025/08/25/silicon-valley-startu... . 4 weeks PTO plus federal holidays, medical/dental/vision (100% of employee premiums, 50% for family).\nLooking for 8+ years, full-stack. Some exposure to statistics, experimentation, or A/B testing helps.\nStack: TypeScript, React, Python, Postgres. Google Cloud, Kubernetes, FastAPI, taskiq.\nProcess: intro call; technical phone screen; one-day onsite in SF (travel covered for remote candidates)\nIn-person: https://paramark.com/careers/software-engineer-l4\nRemote: https://paramark.com/careers/software-engineer-l4-remote\nI'm the CTO and I read every application myself. Happy to answer questions in this thread.",
+      "postedAt": "2026-11-02T17:36:23.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "data",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50340551",
+      "platform": "hackernews",
+      "company": "Helmsted",
+      "title": "Founding AI Engineer",
+      "location": "REMOTE (US)",
+      "workplaceType": "remote",
+      "salary": "$160K",
+      "contactEmail": "careers@helmsted.ai",
+      "allEmails": [
+        "careers@helmsted.ai"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50340551",
+      "applyUrl": "https://helmsted.ai/careers",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "jurrens",
+      "description": "Helmsted | Founding AI Engineer | REMOTE (US) | Full-time | $160K\u2013$200K + equity | https://helmsted.ai/careers\nHelmsted is the AI-native operating system for wealth advisors of complex households: planning, tax and estate analysis, meetings and the client portal, run by agents that do the work. Small team, live with pilot firms, shipping daily.\nYou'd build the agents and the intelligence behind them with our CTO: evals and systems that improve from their own usage, long-term memory, retrieval over millions of documents, model routing and cost, and secure, permissioned access to client data. Fintech experience is a plus, not a requirement.\nRemote in the US today, with eventual relocation as the team centralizes. Paid sick leave; health insurance and 401(k) under discussion. Applications accepted on an ongoing basis.\nTo apply, email careers@helmsted.ai with a resume and short answers to the questions in the full JD: https://helmsted.ai/careers/helmsted-founding-ai-engineer.pd...",
+      "postedAt": "2026-11-02T17:43:25.000Z",
+      "matchedTracks": [
+        "devops",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50340600",
+      "platform": "hackernews",
+      "company": "Distru ( https://www.distru.com )",
+      "title": "AI Product Engineer",
+      "location": "AI Product Manager",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50340600",
+      "applyUrl": "https://www.distru.com",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "jbhatab",
+      "description": "Distru ( https://www.distru.com ) | AI Product Engineer | AI Product Manager | VP of Product (AI focus) | REMOTE (Americas & Europe) | Full-Time\nDistru is the #1 ERP in the cannabis industry. $3.5B in annual GMV flows through our platform, and most of the top cannabis brands and distributors in the US run their entire operation on us to stay compliant.\nWe're profitable, stable, and growing. No runway anxiety, and we're reinvesting deeply into our AI transformation. We are building our product into an AI first ERP with a headless suite, MCP, unified data layer, and agents built for commerce. AI is at an inflection point for enterprise use cases and the System of Record (SOR) has never been more valuable. We want to build the best all in one AI stack for commerce operations.\nWe are investing in our internal AI transformation with premium accounts for Claude, ChatGPT, and Cursor/Grok. We encourage people to go to AI conferences + use budget to experiment with AI.\nWe're an intrinsically motivated team that works without ego, is constantly learning, and genuinely cares about our people (5/5 on Glassdoor). We take a lot of pride in our human first culture. AI is cool, but people are cooler.\nThe roles: We're looking for technically minded builders in all of our roles. You'll own mission-critical parts of the AI product suite end to end, from planning and design through implementation, testing, and shipping. You will be on the front lines of experimenting with new product experiences built with AI. Implementing new tooling + infrastructure to help scale our agents and ensure consistency.\nStack: React + TypeScript, Elixir/Phoenix + GraphQL, PostgreSQL, React Native, LangGraph, Python\nPlease apply at https://distru.com/careers and mention Hacker News!",
+      "postedAt": "2026-11-02T17:46:45.000Z",
+      "matchedTracks": [
+        "webdev",
+        "backend",
+        "fullstack",
+        "mobile",
+        "data",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50341345",
+      "platform": "hackernews",
+      "company": "SadServers",
+      "title": "Software Engineer",
+      "location": "REMOTE (Canada)",
+      "workplaceType": "remote",
+      "salary": "$55 - $75/hr",
+      "contactEmail": "jobs@sadservers.com",
+      "allEmails": [
+        "jobs@sadservers.com"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50341345",
+      "applyUrl": "https://sadservers.com",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "fduran",
+      "description": "SadServers | Software Engineer | REMOTE (Canada) | Part-time or Contract | $55 - $75/hr | https://sadservers.com\nI'm the founder of SadServers, a SaaS that provides hands-on challenges for Linux & DevOps/SRE engineers and assessments for hiring teams. It was launched (and quickly broken) here on HN four years ago and we've been growing steadily since then (about to pass 1M VMs served).\nBesides training and interviewing, companies use our platform to evaluate and/or train their SRE AI agents. I'm looking for a software engineer who can develop this offering, collaborating with customers and working on projects like our own benchmarking, see https://srebattle.com/ (WIP) for example. Our stack is Django REST (backend), Python (runners), Node/React/Vite (website).\nPlease email jobs@sadservers.com with subject \"SRE AI Developer\". The hiring process for selected applicants is two steps: one video call and one paid mini-project.",
+      "postedAt": "2026-11-02T18:32:00.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "data",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50341833",
+      "platform": "hackernews",
+      "company": "Evaboot",
+      "title": "Agentic Python Engineer",
+      "location": "REMOTE worldwide",
+      "workplaceType": "remote",
+      "salary": "$60-120K",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50341833",
+      "applyUrl": "https://www.youtube.com/watch?v=khYgyDlo2Iw",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "robz75",
+      "description": "Evaboot | Agentic Python Engineer | REMOTE worldwide | Full-time | $60-120K USD/year\nEvaboot turns LinkedIn Sales Navigator searches into clean, verified prospecting lists. Demo: https://www.youtube.com/watch?v=khYgyDlo2Iw\nBootstrapped, $2.2M+ ARR, team of 5, remote since day one.\nWhat we're doing: building agentic products, workflows and architectures.\nAgentic products you'll work on: SDR agent (sales navigator agent, emailing outreach agent).\nAgentic workflows you'll build: coding, support, SEO & content, acquisition automations, and analytics.\nAgentic architectures you'll work on: company-wide systems, memory, tooling, security, and evaluations.\nYou will work directly with me (co-founder & CEO).\nRequirements: strong Python engineering, power user of agentic coding, strong architectural thinking.\nBonus points: AWS deployment & infrastructure, Langfuse for observability & evaluations.\nWhat's guaranteed: intense execution pace & exponential learning curve. Zero bullshit environment, we focus mostly on results and KPIs.\nAutodidacts are welcome.\nTwo weeks maximum from apply to reply.\nApply right here: https://forms.gle/ALgZfzwpZU8UXvxg8",
+      "postedAt": "2026-11-02T19:00:38.000Z",
+      "matchedTracks": [
+        "devops",
+        "backend",
+        "fullstack",
+        "data",
+        "qa",
+        "security",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50343546",
+      "platform": "hackernews",
+      "company": "Subimage (YC W25)",
+      "title": "Founding Engineer",
+      "location": "San Francisco, CA",
+      "workplaceType": "remote",
+      "salary": "$170K",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50343546",
+      "applyUrl": "https://subimage.io",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "alexchantavy",
+      "description": "Subimage (YC W25) | Founding Engineer | San Francisco, CA | ONSITE (5 days/week) | Full-time | $170K\u2013$230K + 0.5%\u20131.0% equity | https://subimage.io\nHihi, I'm Alex, co-founder and CEO. Subimage maps infrastructure the way an attacker does so security teams at scale-ups and enterprises can find and fix problems. We're built on Cartography ( https://cartography.dev ), the open source infra mapping tool we helped create at Lyft and donated to the CNCF. It runs at over 70 companies, including 7 in the Fortune 100.\nWe're a tiny seed-stage team and our customers are companies your parents have heard of. We have more demand than we can build for, which is why this post exists. This is a chance to get in on the ground floor of something big (or to find out quickly that it won't work; just being upfront about it).\nSome of the problems you'd be working on:\n- Vulnerability triage with real context: is the asset internet-facing, through which services, is the vulnerable function actually reachable in code, are there compensating controls, and what sensitive data does it reach once exploited, across how many hops.\n- Proving that the security fixes our agent proposes won't break anything.\n- A near-real-time, self-updating map of an environment so you can see an attack as it happens, plus \"time travel\" in the graph so you can replay it afterward.\n- Teaching an agent to answer questions about a large graph quickly, with only the context it needs and without making mistakes.\n- Determining who owns a given resource from messy signals like tags, actions, logs, and files.\nStack: Cartography for ingestion, Neo4j for the graph, Python/FastAPI backend, Svelte frontend with a homegrown WebGL graph renderer, an MCP server that exposes all of it to agents, Terraform for IaC.\nWho we're looking for: 3+ years at high-growth companies, strong distributed systems and cloud experience, a real sense of ownership, first-principles thinking, and a willingness to implement gnarly business logic (elegan",
+      "postedAt": "2026-11-02T20:52:18.000Z",
+      "matchedTracks": [
+        "devops",
+        "backend",
+        "fullstack",
+        "data",
+        "security",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50344410",
+      "platform": "hackernews",
+      "company": "Vivral (Nair Engineering)",
+      "title": "ML, Systems (GPU), Hardware, and Embedded Engineers",
+      "location": "Gainesville, FL (UF students)",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "",
+      "allEmails": [],
+      "url": "https://news.ycombinator.com/item?id=50344410",
+      "applyUrl": "https://forms.gle/PrewX9oGEj7fCMR46",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "HenryKest",
+      "description": "Vivral (Nair Engineering) | ML, Systems (GPU), Hardware, and Embedded Engineers | Gainesville, FL (UF students) | Part-time | Equity\nVivral is an AI health assistant that helps people understand their health. We run frontier-grade medical AI on ordinary computers instead of the cloud, so health support can reach remote, underserved communities. Already tested by researchers at UF, Michigan, and Princeton.\nWe're hiring part-time student engineers (sophomores through PhD): Machine Learning (PyTorch, LLMs), Systems (CUDA/Triton, making large models run fast on everyday hardware), Hardware (FPGA, digital design), and Embedded (C/C++ firmware). Roles are built around class schedules and come with equity that vests over time.\nApply (10 minutes): https://forms.gle/PrewX9oGEj7fCMR46\nMore: nairengineering.com",
+      "postedAt": "2026-11-02T21:56:10.000Z",
+      "matchedTracks": [
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50349129",
+      "platform": "hackernews",
+      "company": "Opsfleet",
+      "title": "AI Engineer (Agentic / GenAI)",
+      "location": "REMOTE (EEA)",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "hiring@opsfleet.com",
+      "allEmails": [
+        "hiring@opsfleet.com"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50349129",
+      "applyUrl": "https://www.linkedin.com/jobs/view/4478769287/",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "Bat-elN",
+      "description": "Opsfleet | AI Engineer (Agentic / GenAI) | REMOTE (EEA) | Full-time\nFully remote cloud & AI services company (founded 2015, 70+ engineers, AWS Premier, Google Cloud & Snowflake Partner) with a growing GenAI practice and several active client projects.\nYou'll build production LLM agents for clients: multi-agent systems, tool use and RAG, in Python, on AWS Bedrock and GCP Vertex AI. Direct client contact.\nWe're looking for a hands-on engineer (not a research or prompt-only role) who has built and shipped LLM agents to production, with frameworks like Strands Agents, LangChain, Agno, Deep Agents, Google ADK or Claude Agent SDK.\nJust as important: we hire good people. Communicative, collaborative, eager to learn and happy to take ownership. That's what makes people succeed here, with clients and with the team.\nProcess: intro call -> take-home assignment -> technical interview -> offer.\nApply: https://www.linkedin.com/jobs/view/4478769287/ or hiring@opsfleet.com, please mention HN",
+      "postedAt": "2026-11-03T07:31:55.000Z",
+      "matchedTracks": [
+        "devops",
+        "backend",
+        "fullstack",
+        "data",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50353951",
+      "platform": "hackernews",
+      "company": "ThreatMark",
+      "title": "Security, Machine Learning",
+      "location": "REMOTE(World) / Brno, Czech Republic",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "career@threatmark.com",
+      "allEmails": [
+        "career@threatmark.com"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50353951",
+      "applyUrl": "https://www.threatmark.com/careers/",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "kyry_cz",
+      "description": "ThreatMark | Security, Machine Learning | REMOTE(World) / Brno, Czech Republic | Equity\nThreatMark protects >60M end users from finacial fraud and saves > $1.2M every day in losses.\nWe are working with banks in EU and US to protect their end users.\nWe develop large-behavioral models that recognizes returning users by their mouse movements, keystroke timings and sensoric data (accelerometer, gyroscope).\nWe detect cyberthreats (e.g. malware, phishing, scraping) by exploiting browsers/sandboxes of devices.\nWe manage ~PB scale of data and provide realtime scoring in milliseconds driving authentication/authorization flow (2nd factor).\nStack: [python, typescript, rust], [redis, postgresql], [aws, terraform] ...\nWe are looking for exceptional engineers to build with us and be part of the success:\n- Backend Engineer [rust, python] - low-latency stream processing engine, rewrite python microservices to rust, build new detection features\n- DevOps Engineer (IaaC in AWS)\n- DevSecOps Engineer\n- AI Tech Lead (loops & graphs guru, real ML background)\n- Security Researcher/Engineer\n- Product Manager [USA]\n- Fraud Detection Specialist\n- Partner Manager\nIf you are interested, please email us @ career@threatmark.com with subject \"HN Who's Hiring\"\nIf you don't find the right role here or at https://www.threatmark.com/careers/ , write us anyway if you believe you can be good fit :)\nKrystof Hilar, Co-Founder & CTO",
+      "postedAt": "2026-11-03T16:19:36.000Z",
+      "matchedTracks": [
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50357486",
+      "platform": "hackernews",
+      "company": "Radar Labs",
+      "title": "Software Engineers (SRE, ML, backend, full-stack, mobile, security, QA)",
+      "location": "Remote (US), NYC",
+      "workplaceType": "remote",
+      "salary": "Unspecified",
+      "contactEmail": "tim@radar.com",
+      "allEmails": [
+        "tim@radar.com"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50357486",
+      "applyUrl": "https://radar.com",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "timjulien",
+      "description": "Radar Labs | Software Engineers (SRE, ML, backend, full-stack, mobile, security, QA) | Remote (US), NYC | Full Time | https://radar.com\n- Radar is the geo-location dev tool\n- Doing 1B+ API calls per day\n- Our main languages are Rust and TypeScript, we also use mobile and offline pipeline languages (Python, Scala, and Terraform).\n- We're based in NYC with our HQ in Union Square and remote friendly (US)\nInteresting things we're working on:\n- HorizonDB, our Geospatial database written in Rust\n- Agents and MCP tools to visualize and debug location data at scale\n- Precise indoor location more accurate than iOS and Android leveraging Ultra-Wideband, other mobile sensors and ML.\n- Anomaly detection to identify spoofed locations\n- Mobile infrastructure that automatically configures itself optimizing battery-life and location accuracy for different use-cases over time\n- Multi-Region AWS K8s deployment, 99.99%+ availability\nCheck out our jobs page here: https://radar.com/jobs#jobs If you have any questions, feel free to reply here or you can e-mail me at tim@radar.com",
+      "postedAt": "2026-11-03T20:09:59.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "mobile",
+        "data",
+        "security",
+        "ai"
+      ]
+    },
+    {
+      "jobId": "hn_50396245",
+      "platform": "hackernews",
+      "company": "BuildQ",
+      "title": "Founding Engineer",
+      "location": "REMOTE (PT to ET overlap preferred)",
+      "workplaceType": "remote",
+      "salary": "$130K - $150K",
+      "contactEmail": "careers@buildq.ai",
+      "allEmails": [
+        "careers@buildq.ai"
+      ],
+      "url": "https://news.ycombinator.com/item?id=50396245",
+      "applyUrl": "https://buildq.ai/careers/founding-engineer",
+      "hasDirectAts": false,
+      "source": "Hacker News (Ask HN: Who is hiring? (November 2026))",
+      "author": "dylan-buildq",
+      "description": "BuildQ | Founding Engineer | REMOTE (PT to ET overlap preferred) | $130K - $150K + equity | Full-time | Seed | https://buildq.ai/careers/founding-engineer\nHey folks! I'm Dylan, CTO at BuildQ, and we're building out our founding eng team. Today, a $200M solar project sits for weeks while someone reads thousands of PDFs before it can be financed. We make that review fast: customers order diligence from us, our agents do the work, and an expert signs off. We've processed 200,000+ documents across 1,100+ projects so far. We're remote, and the benefits are great (a startup with a 401k match!).\nWe're looking for a Founding Engineer to join 2 of us on the engineering team. You'll ship to production on your first day, and you'll help shape what the future of BuildQ looks like.\nStack: Rails, Python, React, TS, Postgres, AWS\nEmail careers@buildq.ai with \"HN Founding Engineer\", anything you're proud to share that you've built, and any questions you may have.",
+      "postedAt": "2026-11-06T18:26:22.000Z",
+      "matchedTracks": [
+        "devops",
+        "webdev",
+        "backend",
+        "fullstack",
+        "data",
+        "ai"
+      ]
+    }
+  ]
+}

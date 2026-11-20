@@ -22,8 +22,15 @@ scripts/*.jpg
 scripts/*.png
 scripts/*.html
 
+# Build Outputs & Binary Archives
+dist/
+*.exe
+data/applications.pre_fix_backup.json
+data/credits.json
+
 # OS and Editor Files
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+scratch/

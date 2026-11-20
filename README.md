@@ -39,22 +39,50 @@ Supports **LinkedIn Easy Apply & External Portals**, **Wellfound (AngelList Star
 
 ## 🚀 Quick Start Guide
 
-### 1. Launch Chrome in Remote Debugging Mode
-Double-click `launch-chrome.bat` or run:
-```bash
-chrome.exe --remote-debugging-port=9222 --user-data-dir="%LOCALAPPDATA%\LinkedInAutomationChromeProfile" https://www.linkedin.com/jobs/
-```
-> *Log in to your LinkedIn account once in this window. Your session is saved permanently.*
+### 🌟 Daily Master Command (Recommended)
+Simply double-click **`DAILY_RUN.bat`** in the project root. It provides an intuitive 1-click console for the full daily cycle:
+1. **Discover Jobs**: Scans curated tech ATS endpoints (Ashby, Greenhouse, Lever) & Hacker News "Who is Hiring?".
+2. **Review Health**: Shows pending opportunities, today's applications, and queue health.
+3. **Launch Desktop App**: Press `D` or double-click **`START_DESKTOP_APP.bat`** to run the standalone Electron desktop window.
 
-### 2. Start the Automation Dashboard
-Double-click `start.bat` or run:
+---
+
+### 💻 Native Desktop Application (Electron)
+Double-click **`START_DESKTOP_APP.bat`** or run:
+```bash
+npm run desktop
+```
+* **Dedicated Window**: No web browser tabs required.
+* **System Tray**: Minimizes to the Windows System Tray (next to your taskbar clock) when you close the window (`X`), letting your 24/7 Autopilot work in the background.
+* **1-Click Tray Menu**: Right-click the tray icon to quickly open the dashboard, open CV folders, reload, or quit.
+
+---
+
+### Manual Step-by-Step Flow
+
+#### 1. Discover Fresh Opportunities
+```bash
+npm run find-jobs    # Direct ATS (Ashby, Greenhouse, Lever)
+npm run find-hn      # Hacker News "Who is Hiring?" direct founder posts
+```
+
+#### 2. Inspect Daily Summary
+```bash
+npm run summary
+```
+
+#### 3. Start Chrome & Dashboard
+Double-click `START_DASHBOARD.bat` or run:
 ```bash
 npm start
 ```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser to approve, review, or trigger applications.
 
-### 3. Optional: Mobile Remote Control
-Double-click `start-remote-tunnel.bat` to access your dashboard from your smartphone anywhere.
+#### 4. Send Soft-Touch Follow-up Outreach
+```bash
+npm run outreach     # Follow-up for ATS roles
+npm run hn-outreach  # Founder outreach for HN roles
+```
 
 ---
 

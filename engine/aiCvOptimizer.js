@@ -203,7 +203,7 @@ class AICVOptimizer {
    */
   async executeHybrid(masterProfile, job, matchAnalysis) {
     // --- LEVEL 1: Groq Cloud API ---
-    if (process.env.GROQ_API_KEY || (this.provider === 'groq' && this.apiKey)) {
+    if (true || process.env.GROQ_API_KEY || (this.provider === 'groq' && this.apiKey)) {
       try {
         console.log(`⚡ [Hybrid AI Engine] Level 1: Calling Groq Cloud API (${this.groqModel})...`);
         const prompt = this.buildPrompt(masterProfile, job, matchAnalysis);
@@ -359,6 +359,22 @@ OUTPUT JSON SCHEMA:
    * Direct call to Groq Cloud API with Auto-Cooldown & Token Capping
    */
   async callGroq({ systemPrompt, userPrompt }) {
+    // Try Cloud AI Gateway first
+    try {
+      const cloudGateway = require('./cloudAiGateway');
+      const gwRes = await cloudGateway.callChatCompletions({
+        model: this.groqModel || 'qwen/qwen3.8-27b',
+        max_tokens: 580,
+        temperature: 0.2,
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }]
+      }, { requestType: 'ai_application', timeoutMs: this.groqTimeoutMs });
+      const content = gwRes.choices?.[0]?.message?.content || '';
+      if (content) return { content, model: this.groqModel || 'qwen/qwen3.8-27b' };
+    } catch (gwErr) {
+      if (gwErr.message && gwErr.message.includes('Insufficient AI credits')) {
+        throw gwErr;
+      }
+    }
     const apiKey = process.env.GROQ_API_KEY || this.apiKey;
     const model = this.groqModel || 'qwen/qwen3.8-27b';
     let hasRetried = false;

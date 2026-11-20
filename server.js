@@ -13,14 +13,24 @@ const tracker = require('./engine/tracker');
 const questionEngine = require('./engine/questionEngine');
 const AutopilotScheduler = require('./engine/scheduler');
 const vaultManager = require('./engine/vaultManager');
+const chromeProfileManager = require('./engine/chromeProfileManager');
+const platformVerifier = require('./engine/platformVerifier');
+const resumeParser = require('./engine/resumeParser');
+const autoLoginEngine = require('./engine/autoLoginEngine');
+const browserBridge = require('./engine/browserBridge');
+const outreachGenerator = require('./engine/outreachGenerator');
+const triAiEvaluator = require('./engine/triAiEvaluator');
+const cloudAiGateway = require('./engine/cloudAiGateway');
+const eligibilityEngine = require('./engine/eligibilityEngine');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const scheduler = new AutopilotScheduler(orchestrator);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/tailored_cvs', express.static(path.join(__dirname, 'data', 'tailored_cvs')));
 
@@ -40,6 +50,10 @@ orchestrator.on('state_change', state => broadcastEvent('state_change', state));
 orchestrator.on('stats_update', stats => broadcastEvent('stats_update', stats));
 orchestrator.on('current_job', job => broadcastEvent('current_job', job));
 orchestrator.on('screenshot', base64 => broadcastEvent('screenshot', base64));
+orchestrator.on('client_message', data => broadcastEvent('client_message', data));
+orchestrator.on('auth_challenge_required', data => broadcastEvent('auth_challenge_required', data));
+autoLoginEngine.on('log', entry => broadcastEvent('log', { timestamp: new Date().toLocaleTimeString(), message: entry.text, type: entry.type || 'info' }));
+autoLoginEngine.on('challenge_created', data => broadcastEvent('auth_challenge_required', data));
 scheduler.on('status', status => broadcastEvent('autopilot_status', status));
 
 // SSE Endpoint for real-time frontend streaming
@@ -68,6 +82,14 @@ app.get('/api/status', (req, res) => {
 
 app.post('/api/start', async (req, res) => {
   try {
+    const currentCredits = cloudAiGateway.getCachedCredits();
+    if (typeof currentCredits === 'number' && currentCredits <= 0) {
+      orchestrator.log('🛑 [Credit System] Start blocked: 0 credits remaining. Please top up your balance.', 'warn');
+      return res.status(402).json({
+        success: false,
+        error: 'Insufficient credits: You have 0 credits remaining. Please redeem a promo code or top up.'
+      });
+    }
     orchestrator.start();
     res.json({ success: true, state: orchestrator.state });
   } catch (err) {
@@ -185,6 +207,20 @@ app.get('/api/applications', (req, res) => {
   res.json(tracker.getAllApplications(platform));
 });
 
+// Comprehensive Performance KPIs & Metrics
+app.get('/api/analytics/kpis', (req, res) => {
+  try {
+    const kpiPath = path.join(__dirname, 'data', 'weekly_performance_report.json');
+    if (fs.existsSync(kpiPath)) {
+      res.json(JSON.parse(fs.readFileSync(kpiPath, 'utf8')));
+    } else {
+      res.json({ message: 'KPI report not yet generated. Run npm run metrics to generate.' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // Universal Platform Credentials & Vault Endpoints
 // ==========================================
@@ -279,15 +315,545 @@ app.post('/api/credentials/verify/:platform', async (req, res) => {
 
 
 // ==========================================
-// Direct Company ATS Endpoints (Greenhouse, Lever, Ashby)
+// ==========================================
+// ==========================================
+// Autonomous Background Login & 2FA Endpoints
+// ==========================================
+app.post('/api/auth/auto-login', async (req, res) => {
+  try {
+    const { platform = 'linkedin', email, password } = req.body || {};
+    const result = await autoLoginEngine.login(platform, { email, password });
+    if (result.status === 'challenge_required') {
+      broadcastEvent('auth_challenge_required', {
+        platform,
+        challengeType: result.challengeType,
+        message: result.message
+      });
+    } else if (result.status === 'success') {
+      broadcastEvent('platform_verified', { platform, verified: true });
+      try { orchestrator.start(); } catch (_) {}
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.post('/api/auth/submit-code', async (req, res) => {
+  try {
+    const { platform = 'linkedin', code } = req.body || {};
+    if (!code) {
+      return res.status(400).json({ status: 'error', message: 'Verification code is required.' });
+    }
+    const result = await autoLoginEngine.submitChallengeCode(platform, code);
+    if (result.status === 'success') {
+      broadcastEvent('platform_verified', { platform, verified: true });
+      try { orchestrator.start(); } catch (_) {}
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/auth/challenge/:platform', (req, res) => {
+  const { platform } = req.params;
+  const hasChallenge = autoLoginEngine.activeChallenges.has(platform.toLowerCase());
+  res.json({ hasChallenge, platform });
+});
+
+// Standalone System, Onboarding & Chrome Profile Endpoints
+// ==========================================
+
+// 1. Get detected Chrome profiles
+app.get('/api/system/chrome-profiles', (req, res) => {
+  try {
+    const profiles = chromeProfileManager.listProfiles();
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    const currentProfile = settings.execution?.chromeProfile || (profiles.length > 0 ? profiles[0] : null);
+    const isHeadless = settings.execution?.headless !== false;
+    res.json({ profiles, currentProfile, isHeadless });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Save selected Chrome profile & headless option
+app.post('/api/system/chrome-profile', (req, res) => {
+  try {
+    const { profileId, profileName, profileEmail, headless } = req.body;
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.execution) settings.execution = {};
+    settings.execution.chromeProfile = {
+      dir: profileId || 'Default',
+      name: profileName || profileId || 'Default',
+      email: profileEmail || ''
+    };
+    if (typeof headless === 'boolean') {
+      settings.execution.headless = headless;
+    }
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    orchestrator.reloadSettings();
+    res.json({ success: true, chromeProfile: settings.execution.chromeProfile, headless: settings.execution.headless });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Open Chrome directly to platform login page
+app.post('/api/system/open-login', (req, res) => {
+  try {
+    const { platform } = req.body;
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    const profileObj = settings.execution?.chromeProfile || { dir: 'Default', name: 'Default Profile' };
+    const profileDir = profileObj.dir || 'Default';
+    
+    const loginUrls = {
+      linkedin: 'https://www.linkedin.com/login',
+      wellfound: 'https://wellfound.com/login',
+      ycombinator: 'https://www.workatastartup.com/',
+      otta: 'https://app.otta.com/login'
+    };
+
+    const targetUrl = loginUrls[platform] || 'https://www.linkedin.com/login';
+    chromeProfileManager.openChromeForLogin(profileDir, targetUrl);
+    res.json({ success: true, platform, profileDir, profileName: profileObj.name || profileDir, targetUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3a. Manually confirm platform login state
+app.post('/api/system/confirm-login', (req, res) => {
+  try {
+    const { platform, confirmed } = req.body || {};
+    if (!platform) return res.status(400).json({ error: 'Platform name is required' });
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.auth) settings.auth = {};
+    settings.auth[platform] = confirmed !== false;
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    orchestrator.reloadSettings();
+    res.json({ success: true, platform, auth: settings.auth });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3b. Launch Chrome with debugging port enabled
+app.post('/api/system/start-chrome-debug', async (req, res) => {
+  try {
+    const { killExisting, headless } = req.body || {};
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    const profileDir = settings.execution?.chromeProfile?.dir || 'Default';
+    const isHeadless = typeof headless === 'boolean' ? headless : (settings.execution?.headless !== false);
+    await chromeProfileManager.launchChromeDebug(profileDir, isHeadless, !!killExisting);
+    res.json({ success: true, profileDir, isHeadless });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Verify platform logins
+app.get('/api/system/verify-logins', async (req, res) => {
+  try {
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    const results = await platformVerifier.verifyAllPlatforms(settings);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Setup Status Check
+app.get('/api/system/setup-status', (req, res) => {
+  try {
+    const resumePath = path.join(__dirname, 'assets', 'resume.pdf');
+    const resumeExists = fs.existsSync(resumePath);
+    
+    let hasProfile = false;
+    try {
+      const p = JSON.parse(fs.readFileSync(PROFILE_FILE, 'utf-8'));
+      hasProfile = !!(p.personal?.fullName && p.personal?.email && p.personal?.phone);
+    } catch (_) {}
+
+    let hasJobs = false;
+    let hasChromeProfile = false;
+    try {
+      const s = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+      hasJobs = Array.isArray(s.search?.keywords) && s.search.keywords.length > 0;
+      hasChromeProfile = !!(s.execution?.chromeProfile?.dir);
+    } catch (_) {}
+
+    const isSetupComplete = resumeExists && hasProfile && hasJobs && hasChromeProfile;
+    res.json({
+      isSetupComplete,
+      resumeExists,
+      hasProfile,
+      hasJobs,
+      hasChromeProfile
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. Upload CV and auto-parse
+app.post('/api/resume/upload', async (req, res) => {
+  try {
+    const { fileData } = req.body;
+    if (!fileData) {
+      return res.status(400).json({ error: 'No file data received' });
+    }
+
+    const parseResult = await resumeParser.saveAndParseResume(fileData);
+    
+    // Auto-update profile.json with extracted fields if available
+    if (parseResult.extracted && Object.keys(parseResult.extracted).length > 0) {
+      const profile = JSON.parse(fs.readFileSync(PROFILE_FILE, 'utf-8'));
+      const ext = parseResult.extracted;
+      if (ext.fullName) {
+        profile.personal.fullName = ext.fullName;
+        if (ext.firstName) profile.personal.firstName = ext.firstName;
+        if (ext.lastName) profile.personal.lastName = ext.lastName;
+      }
+      if (ext.email) profile.personal.email = ext.email;
+      if (ext.phone) profile.personal.phone = ext.phone;
+      if (ext.linkedin) profile.personal.links.linkedin = ext.linkedin;
+      if (ext.github) profile.personal.links.github = ext.github;
+      if (ext.skills && ext.skills.length > 0) {
+        if (!profile.workExperienceYears) profile.workExperienceYears = { total: 3, default: 2 };
+        ext.skills.forEach(s => {
+          if (!profile.workExperienceYears[s]) profile.workExperienceYears[s] = 2;
+        });
+      }
+      fs.writeFileSync(PROFILE_FILE, JSON.stringify(profile, null, 2));
+      questionEngine.reloadProfile();
+    }
+
+    // Auto-update search.keywords in settings.json with Groq generated job titles
+    if (parseResult.generatedJobTitles && parseResult.generatedJobTitles.length > 0) {
+      const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+      if (!settings.search) settings.search = {};
+      settings.search.keywords = parseResult.generatedJobTitles;
+      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+      orchestrator.reloadSettings();
+    }
+
+    const currentCredits = cloudAiGateway.getCachedCredits();
+    res.json({ success: true, result: parseResult, credits: currentCredits });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6b. Generate job titles from existing resume via Groq
+app.post('/api/resume/generate-titles', async (req, res) => {
+  try {
+    const resumeTxtPath = path.join(__dirname, 'assets', 'resume.txt');
+    let resumeText = '';
+    if (fs.existsSync(resumeTxtPath)) {
+      resumeText = fs.readFileSync(resumeTxtPath, 'utf8');
+    }
+    const titles = await resumeParser.generateJobTitlesWithGroq(resumeText);
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    if (!settings.search) settings.search = {};
+    settings.search.keywords = titles;
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    orchestrator.reloadSettings();
+    const currentCredits = cloudAiGateway.getCachedCredits();
+    res.json({ success: true, titles, credits: currentCredits });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// Unified Multi-Platform Jobs API (Ashby, Greenhouse, Lever, Hacker News, Remote Boards, Wellfound)
 // ==========================================
 app.get('/api/ats/jobs', (req, res) => {
   try {
     const data = orchestrator.companyAtsEngine.loadAtsJobs();
-    res.json(data);
+    let jobs = Array.isArray(data.jobs) ? [...data.jobs] : [];
+
+    const seenIds = new Set(jobs.map(j => j.jobId));
+    const seenSignatures = new Set(jobs.map(j => `${(j.company || '').toLowerCase()}___${(j.title || '').toLowerCase()}`));
+
+    // 1. Merge Direct Discovered ATS Jobs
+    const discPath = path.join(__dirname, 'data', 'ats_discovered_jobs.json');
+    if (fs.existsSync(discPath)) {
+      try {
+        const disc = JSON.parse(fs.readFileSync(discPath, 'utf8'));
+        for (const j of (disc.jobs || [])) {
+          const sig = `${(j.company || '').toLowerCase()}___${(j.title || '').toLowerCase()}`;
+          if (!seenIds.has(j.jobId) && !seenSignatures.has(sig)) {
+            jobs.push(j);
+            seenIds.add(j.jobId);
+            seenSignatures.add(sig);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Merge Hacker News "Who is Hiring" direct founder jobs
+    const hnPath = path.join(__dirname, 'data', 'hn_discovered_jobs.json');
+    if (fs.existsSync(hnPath)) {
+      try {
+        const hn = JSON.parse(fs.readFileSync(hnPath, 'utf8'));
+        for (const j of (hn.jobs || [])) {
+          const sig = `${(j.company || '').toLowerCase()}___${(j.title || '').toLowerCase()}`;
+          if (!seenIds.has(j.jobId) && !seenSignatures.has(sig)) {
+            jobs.push(j);
+            seenIds.add(j.jobId);
+            seenSignatures.add(sig);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Merge Remote Boards cached jobs (RemoteOK, Jobicy, WeWorkRemotely, Remotive)
+    const rbPath = path.join(__dirname, 'data', 'remote_boards_jobs.json');
+    if (fs.existsSync(rbPath)) {
+      try {
+        const rb = JSON.parse(fs.readFileSync(rbPath, 'utf8'));
+        for (const j of (rb.jobs || [])) {
+          const sig = `${(j.company || '').toLowerCase()}___${(j.title || '').toLowerCase()}`;
+          if (!seenIds.has(j.jobId) && !seenSignatures.has(sig)) {
+            jobs.push(j);
+            seenIds.add(j.jobId);
+            seenSignatures.add(sig);
+          }
+        }
+      } catch (_) {}
+    }
+    if (orchestrator.remoteBoardsEngine && Array.isArray(orchestrator.remoteBoardsEngine.cachedJobs)) {
+      for (const j of orchestrator.remoteBoardsEngine.cachedJobs) {
+        const sig = `${(j.company || '').toLowerCase()}___${(j.title || '').toLowerCase()}`;
+        if (!seenIds.has(j.jobId) && !seenSignatures.has(sig)) {
+          jobs.push(j);
+          seenIds.add(j.jobId);
+          seenSignatures.add(sig);
+        }
+      }
+    }
+
+    // 3.5. Universal Profile-Driven Gate (Eligibility, Seniority & Startup Filter)
+    // Synchronized 100% with Telemetry/Autopilot through EligibilityEngine
+    jobs = jobs.filter(j => {
+      const evalResult = eligibilityEngine.evaluateEligibility(j, { excludeSeniorLevels: true });
+      return evalResult.eligible;
+    });
+
+    // 4. Enrich each job and cross-check against Application History (Tracker)
+    const enriched = jobs.map(j => {
+      const copy = { ...j };
+      
+      // Strict cross-check with applications.json
+      const isAlreadyApplied = tracker.hasApplied(j) || copy.status === 'applied' || copy.status === 'previously_applied';
+      copy.isApplied = Boolean(isAlreadyApplied);
+      if (isAlreadyApplied) {
+        copy.status = 'applied';
+      }
+
+      if (!copy.outreach) {
+        copy.outreach = outreachGenerator.generateOutreach(j.company, j.title);
+      }
+
+      const evalData = triAiEvaluator.getCachedEvaluation(j.jobId);
+      if (evalData) {
+        copy.aiEvaluation = evalData;
+      } else {
+        copy.aiEvaluation = {
+          jobId: j.jobId,
+          consensusScore: null,
+          consensusVerdict: 'Pending Tri-AI analysis...',
+          recommendationTier: 'pending',
+          beautifiedJd: triAiEvaluator.beautifyJd(j)
+        };
+      }
+      return copy;
+    });
+
+    res.json({
+      lastScanTime: data.lastScanTime || new Date().toISOString(),
+      total: enriched.length,
+      jobs: enriched
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Endpoint to reset / clear all saved jobs to 0
+app.post('/api/ats/clear-all-jobs', (req, res) => {
+  try {
+    const emptyAts = { lastScanTime: null, jobs: [] };
+    const emptyDisc = { total: 0, scanned_at: null, jobs: [] };
+
+    fs.writeFileSync(path.join(__dirname, 'data', 'ats_jobs.json'), JSON.stringify(emptyAts, null, 2));
+    fs.writeFileSync(path.join(__dirname, 'data', 'ats_discovered_jobs.json'), JSON.stringify(emptyDisc, null, 2));
+    fs.writeFileSync(path.join(__dirname, 'data', 'hn_discovered_jobs.json'), JSON.stringify(emptyDisc, null, 2));
+    fs.writeFileSync(path.join(__dirname, 'data', 'pending_outreach.json'), JSON.stringify([], null, 2));
+    fs.writeFileSync(path.join(__dirname, 'data', 'tri_ai_evaluations.json'), JSON.stringify({}, null, 2));
+
+    try { fs.writeFileSync(path.join(__dirname, 'data', 'ats_discovered_jobs.csv'), ''); } catch (_) {}
+    try { fs.writeFileSync(path.join(__dirname, 'data', 'hn_discovered_jobs.csv'), ''); } catch (_) {}
+
+    if (orchestrator.remoteBoardsEngine) {
+      orchestrator.remoteBoardsEngine.cachedJobs = [];
+    }
+
+    orchestrator.log('🗑️ [Portal] Reset all cached jobs. Job feed now has 0 saved jobs.', 'info');
+    res.json({ success: true, message: 'All saved jobs cleared. Feed reset to 0.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ats/evaluate-job', async (req, res) => {
+  const { jobId, forceRefresh } = req.body;
+  if (!jobId) return res.status(400).json({ error: 'Missing jobId' });
+
+  const atsData = orchestrator.companyAtsEngine.loadAtsJobs();
+  const job = (atsData.jobs || []).find(j => j.jobId === jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found in records' });
+
+  try {
+    const evaluation = await triAiEvaluator.evaluateJob(job, forceRefresh === true);
+    res.json({ success: true, evaluation });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ats/apply-now', async (req, res) => {
+  const { jobId } = req.body;
+  if (!jobId) {
+    return res.status(400).json({ error: 'Missing jobId' });
+  }
+
+  const atsData = orchestrator.companyAtsEngine.loadAtsJobs();
+  const job = (atsData.jobs || []).find(j => j.jobId === jobId);
+  if (!job) {
+    return res.status(404).json({ error: `Job ${jobId} not found in ATS records` });
+  }
+
+  const currentCredits = cloudAiGateway.getCachedCredits();
+  if (typeof currentCredits === 'number' && currentCredits <= 0) {
+    orchestrator.log(`🛑 [1-Click ATS Apply Blocked] 0 credits remaining for "${job.title}" at "${job.company}".`, 'warn');
+    return res.status(402).json({
+      success: false,
+      error: 'Insufficient credits: You have 0 credits remaining. Please top up your balance.'
+    });
+  }
+
+  orchestrator.log(`⚡ [1-Click ATS Apply] Launching autonomous apply: "${job.title}" at "${job.company}" (${job.platform.toUpperCase()})`, 'info');
+  
+  job.status = 'applying';
+  orchestrator.companyAtsEngine.saveAtsJobs(atsData);
+  broadcastEvent('ats_job_update', job);
+
+  try {
+    const page = await browserBridge.getPage();
+    const result = await orchestrator.companyAtsEngine.approveAndApply(jobId, page, {
+      mode: 'autonomous',
+      force: true,
+      clearance: true,
+      manualApproval: true,
+      settings: orchestrator.settings,
+      onStatusUpdate: msg => orchestrator.log(msg, 'info')
+    });
+
+    const updatedData = orchestrator.companyAtsEngine.loadAtsJobs();
+    const updatedJob = (updatedData.jobs || []).find(j => j.jobId === jobId) || job;
+    updatedJob.outreach = outreachGenerator.generateOutreach(updatedJob.company, updatedJob.title);
+    broadcastEvent('ats_job_update', updatedJob);
+
+    if (result?.status === 'applied') {
+      const newBal = cloudAiGateway.deductCredits(5);
+      orchestrator.log(`⚡ [Credit System] 5 credits used for ATS application to "${job.company}". Balance: ${newBal}`, 'info');
+      broadcastEvent('credits_update', { credits: newBal });
+    }
+
+    res.json({
+      success: result?.status === 'applied',
+      status: updatedJob.status,
+      message: result?.message || (result?.status === 'applied' ? 'Application submitted successfully!' : 'Completed with status: ' + updatedJob.status),
+      job: updatedJob
+    });
+  } catch (err) {
+    orchestrator.log(`❌ [1-Click ATS Apply Error] ${err.message}`, 'error');
+    job.status = 'failed';
+    job.failureReason = err.message;
+    orchestrator.companyAtsEngine.saveAtsJobs(atsData);
+    broadcastEvent('ats_job_update', job);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/ats/refresh', (req, res) => {
+  orchestrator.log('🔄 [Multi-Platform] Running universal job discovery across Startup ATS, Hacker News, and Remote Boards...', 'info');
+  const atsScript = path.join(__dirname, 'scripts', 'ats_finder.py');
+  const hnScript = path.join(__dirname, 'scripts', 'hn_hiring_finder.py');
+
+  // Trigger Remote Boards fetch in parallel
+  try {
+    if (orchestrator.remoteBoardsEngine) {
+      orchestrator.remoteBoardsEngine.searchJobs(orchestrator.settings, (msg) => orchestrator.log(msg, 'info'));
+    }
+  } catch (_) {}
+
+  // Run ATS finder and HN finder
+  exec(`python "${atsScript}" --sync && python "${hnScript}" --track auto --sync`, (err, stdout, stderr) => {
+    if (err) {
+      orchestrator.log(`⚠️ Discovery notice: ${err.message}`, 'warn');
+    }
+    const data = orchestrator.companyAtsEngine.loadAtsJobs();
+    orchestrator.log(`✓ [Universal Discovery Complete] Synchronized multi-platform startup feed.`, 'success');
+    broadcastEvent('ats_refreshed', { count: data.jobs?.length || 0 });
+    res.json({ success: true, count: data.jobs?.length || 0 });
+  });
+});
+
+app.get('/api/hn/jobs', (req, res) => {
+  try {
+    const hnPath = path.join(__dirname, 'data', 'hn_discovered_jobs.json');
+    if (fs.existsSync(hnPath)) {
+      const data = JSON.parse(fs.readFileSync(hnPath, 'utf8'));
+      return res.json(data);
+    }
+    res.json({ total: 0, jobs: [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/hn/refresh', (req, res) => {
+  const track = req.query.track || 'auto';
+  orchestrator.log(`🚀 [Hacker News Discovery] Harvester fetching latest 'Who is hiring' thread (Track: ${track.toUpperCase()})...`, 'info');
+  const pyScript = path.join(__dirname, 'scripts', 'hn_hiring_finder.py');
+  exec(`python "${pyScript}" --track ${track} --sync`, (err, stdout, stderr) => {
+    if (err) {
+      orchestrator.log(`⚠️ HN discovery error: ${err.message}`, 'warn');
+      return res.status(500).json({ error: err.message });
+    }
+    const hnPath = path.join(__dirname, 'data', 'hn_discovered_jobs.json');
+    let count = 0;
+    if (fs.existsSync(hnPath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(hnPath, 'utf8'));
+        count = data.jobs?.length || 0;
+      } catch (_) {}
+    }
+    orchestrator.log(`✓ [HN Discovery Complete] Harvester captured ${count} roles with direct emails & portals.`, 'success');
+    broadcastEvent('hn_refreshed', { count });
+    res.json({ success: true, count });
+  });
+});
+
+app.get('/api/ats/outreach', (req, res) => {
+  const { company, role } = req.query;
+  const outreach = outreachGenerator.generateOutreach(company, role);
+  res.json(outreach);
 });
 
 app.get('/api/ats/companies', (req, res) => {
@@ -301,10 +867,24 @@ app.get('/api/ats/companies', (req, res) => {
 
 app.post('/api/ats/scan', async (req, res) => {
   try {
-    const results = await orchestrator.companyAtsEngine.scanAllCompanies(orchestrator.settings, (msg) => {
+    orchestrator.log('🔍 [Multi-Platform] Initiating comprehensive job scan across ATS & Remote feeds...', 'info');
+    
+    // 1. Direct Startup ATS Harvester (Ashby, Greenhouse, Lever)
+    const atsResults = await orchestrator.companyAtsEngine.scanAllCompanies(orchestrator.settings, (msg) => {
       orchestrator.log(msg, 'info');
     });
-    res.json({ success: true, results });
+
+    // 2. Curated Remote Tech Feeds (RemoteOK, Jobicy, WeWorkRemotely)
+    try {
+      if (orchestrator.remoteBoardsEngine) {
+        orchestrator.log('📡 [Remote Boards] Fetching fresh listings from RemoteOK, Jobicy, and WeWorkRemotely...', 'info');
+        await orchestrator.remoteBoardsEngine.searchJobs(orchestrator.settings, (msg) => orchestrator.log(msg, 'info'));
+      }
+    } catch (rErr) {
+      orchestrator.log(`⚠️ Remote boards note: ${rErr.message}`, 'warning');
+    }
+
+    res.json({ success: true, results: atsResults });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -479,6 +1059,34 @@ app.post('/api/ats/skip', (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Credit System Routes ────────────────────────────────────────────────────
+
+// GET /api/credits/balance  — returns current credit balance for this device
+app.get('/api/credits/balance', async (req, res) => {
+  try {
+    const result = await cloudAiGateway.getBalance();
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ credits: 0, error: e.message });
+  }
+});
+
+// POST /api/credits/redeem  — body: { code: "PROMO_CODE" }
+app.post('/api/credits/redeem', async (req, res) => {
+  const { code } = req.body;
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ success: false, message: 'Missing promo code' });
+  }
+  try {
+    const result = await cloudAiGateway.redeemPromo(code.trim().toUpperCase());
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.listen(PORT, () => {
   console.log(`\n======================================================`);
   console.log(`🚀 LinkedIn Easy Apply Automation Control Dashboard`);
@@ -497,3 +1105,19 @@ app.listen(PORT, () => {
     aiOptimizer.launchOllamaIfNeeded().catch(() => {});
   } catch (e) {}
 });
+
+
+// Auto-evaluate discovered ATS jobs in background with 3 AI models
+async function runBackgroundAtsEvaluator() {
+  try {
+    const atsData = orchestrator.companyAtsEngine.loadAtsJobs();
+    const jobs = atsData.jobs || [];
+    for (const job of jobs.slice(0, 50)) {
+      if (!triAiEvaluator.cache[job.jobId]) {
+        await triAiEvaluator.evaluateJob(job);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+  } catch (_) {}
+}
+setTimeout(runBackgroundAtsEvaluator, 2500);

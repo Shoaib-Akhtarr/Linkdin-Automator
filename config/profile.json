@@ -1,11 +1,11 @@
 {
   "personal": {
-    "firstName": "Shoaib",
-    "lastName": "Akhtar",
-    "fullName": "Shoaib Akhtar",
+    "firstName": "SHOAIB",
+    "lastName": "AKHTAR",
+    "fullName": "SHOAIB AKHTAR",
     "headline": "AI Engineer | AI/ML Software Engineer | LLM & Multi-Agent Systems",
     "email": "onlyshoaib158@gmail.com",
-    "phone": "+923056054842",
+    "phone": "92) 30560548",
     "phoneCountryCode": "Pakistan (+92)",
     "phoneCountryCodeNumber": "92",
     "address": {
@@ -45,7 +45,8 @@
     "TypeScript": 2,
     "Git": 3,
     "default": 2,
-    "data science": 2
+    "data science": 2,
+    "Data Science": 2
   },
   "workAuthorization": {
     "legallyAuthorized": "Yes",
@@ -58,7 +59,7 @@
   },
   "compensationAndAvailability": {
     "desiredSalary": "Competitive / Negotiable",
-    "desiredSalaryNumeric": 50000,
+    "desiredSalaryNumeric": 4015,
     "currency": "USD",
     "noticePeriod": "Immediately (within 2 weeks)",
     "noticePeriodWeeks": 2,

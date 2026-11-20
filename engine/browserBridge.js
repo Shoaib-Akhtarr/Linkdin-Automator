@@ -4,12 +4,17 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
+const chromeProfileManager = require('./chromeProfileManager');
 
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const DEFAULT_USER_DATA_DIR = path.join(
-  process.env.LOCALAPPDATA || 'C:\\Users\\mshoa\\AppData\\Local',
-  'LinkedInAutomationChromeProfile'
-);
+function getProfileSettings() {
+  try {
+    const settingsPath = path.join(__dirname, '..', 'config', 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    }
+  } catch (_) {}
+  return {};
+}
 
 class BrowserBridge {
   constructor() {
@@ -39,43 +44,84 @@ class BrowserBridge {
     });
   }
 
-  async launchChromeIfNeeded(userDataDir = DEFAULT_USER_DATA_DIR) {
+  async launchChromeIfNeeded() {
     const reachable = await this.isCdpReachable();
+    const settings = getProfileSettings();
+    const isHeadless = settings.execution?.headless === true;
+
     if (reachable) {
-      console.log('✓ Chrome CDP already active on port 9222.');
-      return;
+      // Self-healing: If user wants visible mode, make sure a headless zombie isn't squatting on port 9222
+      if (!isHeadless) {
+        try {
+          const { execSync } = require('child_process');
+          const psCheck = execSync('powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"name=\'chrome.exe\'\\" | Where-Object { $_.CommandLine -like \'*9222*\' } | Select-Object -ExpandProperty CommandLine"', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+          if (psCheck && psCheck.includes('--headless')) {
+            console.log('⚠️ Detected stuck headless Chrome on port 9222 while visible mode is requested. Auto-clearing...');
+            execSync('taskkill /F /IM chrome.exe', { stdio: 'ignore' });
+            await new Promise(r => setTimeout(r, 1500));
+          } else {
+            console.log('✓ Chrome CDP already active on port 9222.');
+            return;
+          }
+        } catch (_) {
+          console.log('✓ Chrome CDP already active on port 9222.');
+          return;
+        }
+      } else {
+        console.log('✓ Chrome CDP already active on port 9222.');
+        return;
+      }
     }
 
-    if (!fs.existsSync(userDataDir)) {
-      fs.mkdirSync(userDataDir, { recursive: true });
-    }
+    const chromeExe = chromeProfileManager.getChromeExecutable();
+    const userDataDir = chromeProfileManager.autoApplyDataDir;
+    const selectedProfile = settings.execution?.chromeProfile?.dir || 'Default';
 
-    console.log('Starting Headless Google Chrome daemon with remote debugging port 9222...');
-    this.chromeProcess = spawn(
-      CHROME_PATH,
-      [
-        '--headless=new',
-        '--remote-debugging-port=9222',
-        `--user-data-dir=${userDataDir}`,
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--window-size=1440,900',
-        '--mute-audio',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-quic',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-background-timer-throttling',
-        '--disable-features=OptimizationHints,Translate,WebUIOmniboxPopup',
-        'https://www.linkedin.com/jobs/'
-      ],
-      {
+    // Safely sync authenticated cookies from normal Chrome if needed without locking files
+    try {
+      chromeProfileManager.syncCookiesFromDefaultChrome(selectedProfile);
+    } catch (_) {}
+
+    console.log(`Starting Google Chrome (${isHeadless ? 'Headless' : 'Visible'}) with profile "${selectedProfile}" on port 9222...`);
+
+    const chromeArgs = [
+      '--remote-debugging-port=9222',
+      `--user-data-dir=${userDataDir}`,
+      `--profile-directory=${selectedProfile}`,
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--window-size=1440,900',
+      '--mute-audio',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-quic',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-background-timer-throttling',
+      '--disable-features=OptimizationHints,Translate,WebUIOmniboxPopup',
+      'https://www.linkedin.com/feed/'
+    ];
+
+    if (isHeadless) {
+      chromeArgs.unshift('--headless=new');
+      this.chromeProcess = spawn(chromeExe, chromeArgs, {
         detached: true,
         stdio: 'ignore',
         windowsHide: true
-      }
-    );
-    this.chromeProcess.unref();
+      });
+      this.chromeProcess.unref();
+    } else if (process.platform === 'win32') {
+      const { exec } = require('child_process');
+      const cmdArgs = chromeArgs.map(a => a.includes(' ') ? `"${a}"` : a).join(' ');
+      const startCmd = `start "" "${chromeExe}" ${cmdArgs}`;
+      exec(startCmd, { shell: 'cmd.exe' });
+    } else {
+      this.chromeProcess = spawn(chromeExe, chromeArgs, {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false
+      });
+      this.chromeProcess.unref();
+    }
 
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 500));
@@ -85,7 +131,7 @@ class BrowserBridge {
       }
     }
 
-    throw new Error('Timed out waiting for Chrome to start with remote debugging port 9222.');
+    throw new Error('Timed out waiting for Chrome to start with remote debugging port 9222. If Chrome is already open in normal mode, please close it or click "Launch for Automation".');
   }
 
   async connect() {
@@ -193,6 +239,23 @@ class BrowserBridge {
     const contexts = this.browser.contexts();
     this.context = contexts.length > 0 ? contexts[0] : await this.browser.newContext();
 
+    if (process.env.LI_AT_COOKIE) {
+      try {
+        await this.context.addCookies([
+          {
+            name: 'li_at',
+            value: process.env.LI_AT_COOKIE.trim(),
+            domain: '.linkedin.com',
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+          }
+        ]);
+        console.log('🔑 Injected authenticated li_at session cookie into Chrome CDP context.');
+      } catch (_) {}
+    }
+
     const pages = this.context.pages();
     const existingLinkedInPage = pages.find(p => p.url().includes('linkedin.com'));
     if (existingLinkedInPage) {
@@ -267,27 +330,58 @@ class BrowserBridge {
       }
     } catch (_) {}
     if (!this.page || this.page.isClosed()) return false;
-    const url = this.page.url();
-    if (url.includes('linkedin.com/login') || url.includes('linkedin.com/checkpoint')) {
-      return false;
-    }
+
+    // 1. PRIMARY CHECK: Real authentic LinkedIn session cookie (li_at)
     try {
       if (this.context) {
-        const cookies = await this.context.cookies('https://www.linkedin.com');
-        const hasLiAt = cookies.some(c => c.name === 'li_at' && c.value && c.value.length > 10);
-        if (hasLiAt) return true;
+        const cookies = await this.context.cookies(['https://www.linkedin.com', 'https://linkedin.com']);
+        const liAt = cookies.find(c => c.name === 'li_at' && c.value && c.value.length > 10);
+        if (liAt) {
+          // Permanently save li_at into .env and settings.json so it never loses it!
+          try {
+            const envPath = path.join(__dirname, '..', '.env');
+            if (fs.existsSync(envPath)) {
+              let envText = fs.readFileSync(envPath, 'utf8');
+              if (envText.includes('LI_AT_COOKIE=')) {
+                envText = envText.replace(/LI_AT_COOKIE=.*/g, `LI_AT_COOKIE=${liAt.value}`);
+              } else {
+                envText += `\nLI_AT_COOKIE=${liAt.value}\n`;
+              }
+              fs.writeFileSync(envPath, envText);
+              process.env.LI_AT_COOKIE = liAt.value;
+            }
+
+            const settingsPath = path.join(__dirname, '..', 'config', 'settings.json');
+            if (fs.existsSync(settingsPath)) {
+              const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+              if (!s.auth) s.auth = {};
+              s.auth.linkedin = true;
+              fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2));
+            }
+          } catch (_) {}
+
+          return true;
+        }
       }
     } catch (e) {}
 
+    // 2. DOM Check: Feed elements, user avatar, search bar
     try {
-      const memberNav = await this.page.$('.global-nav__me, img.global-nav__me-photo, #global-nav-typeahead, .feed-identity-module');
+      const memberNav = await this.page.$('.global-nav__me, img.global-nav__me-photo, #global-nav-typeahead, .feed-identity-module, a[href*="/in/"]');
       if (memberNav) return true;
-
-      const guestSignIn = await this.page.$('a.nav__button-secondary, a[data-tracking-control-name*="signin"]');
-      if (guestSignIn) return false;
     } catch (e) {}
 
-    return url.includes('linkedin.com/feed');
+    // 3. URL Check: Feed or Jobs page
+    const url = this.page.url() || '';
+    if (url.includes('linkedin.com/feed') || url.includes('linkedin.com/jobs')) {
+      return true;
+    }
+
+    if (url.includes('linkedin.com/login') || url.includes('linkedin.com/checkpoint')) {
+      return false;
+    }
+
+    return false;
   }
 
   async disconnect() {

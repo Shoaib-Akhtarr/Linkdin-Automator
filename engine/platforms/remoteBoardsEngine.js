@@ -290,7 +290,13 @@ class RemoteBoardsEngine {
 
   filterJobsByKeywords(jobs, keywords) {
     return jobs.filter(job => {
+      // 1. Candidate-Driven Dynamic Eligibility (Seniority, Giant Blacklist, Domain Fit)
+      const evalResult = eligibilityEngine.evaluateEligibility(job, { excludeSeniorLevels: true });
+      if (!evalResult.eligible) return false;
+
+      // 2. Keyword check
       const text = `${job.title} ${(job.tags || []).join(' ')} ${job.description}`.toLowerCase();
+      if (!keywords || keywords.length === 0) return true;
       return keywords.some(k => text.includes(k.toLowerCase().trim()));
     });
   }

@@ -256,6 +256,15 @@ class Tracker {
     this.data.applications = this.data.applications.filter(a => !this.isSameJob(a, entry));
     this.data.applications.unshift(entry);
     this.saveData();
+
+    if (finalStatus === 'applied') {
+      try {
+        const cloudAiGateway = require('./cloudAiGateway');
+        const newBal = cloudAiGateway.deductCredits(5);
+        console.log(`[Credit System] Deducted 5 credits for applied role "${entry.title}" at "${entry.company}". Remaining: ${newBal}`);
+      } catch (_) {}
+    }
+
     return entry;
   }
 
@@ -387,6 +396,12 @@ class Tracker {
 
     // 4. Previously Skipped Jobs
     if (status === 'SKIPPED') {
+      // If prior skip was on a third-party aggregator (e.g. Jobicy, WWR) and current is direct company ATS, allow proceeding
+      const priorPlatform = String(prior.platform || '').toLowerCase();
+      const currentPlatform = String(job.platform || '').toLowerCase();
+      if (['jobicy', 'weworkremotely', 'remoteok'].includes(priorPlatform) && ['greenhouse', 'lever', 'ashby', 'workday', 'remote_ats', 'company_ats'].includes(currentPlatform)) {
+        return { action: 'PROCEED', class: 'CLEAR', reason: 'CODE_PREFLIGHT_UPGRADED_TO_DIRECT_ATS', attemptsCount: attempts };
+      }
       return { action: 'SKIP', class: 'HOLD', reason: 'CODE_PREVIOUSLY_SKIPPED', attemptsCount: attempts };
     }
 

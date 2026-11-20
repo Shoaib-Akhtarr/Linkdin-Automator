@@ -76,3 +76,23 @@ Axiom is a terminal-grade dark interface where every glyph is monospaced, every 
 - **Ghost CTA:** Transparent, 1px `#3a3a3a` border, `#eeeeee` text, 2px radius.
 - **Accents:** Active items get a 2px solid `#da5c2c` indicator or border.
 - **Zero Gradients, Zero Heavy Drop-Shadows:** Pure flat surfaces with crisp borders.
+
+## Motion & Interaction System (figma-use-motion grounded)
+
+Grounded in Figma Motion specifications and smart-animate spring primitives:
+
+### Easing Profiles
+| Profile | Curve | Timing | Usage |
+|---|---|---|---|
+| **`QUICK`** | `cubic-bezier(0.2, 0, 0, 1)` | 150ms | Button presses, pill clicks, dropdown toggles, active scale |
+| **`GENTLE`** | `cubic-bezier(0.16, 1, 0.3, 1)` | 300ms | Modal intros, drawer reveals, tab cross-fades, card layout shifts |
+| **`BOUNCY`** | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 240ms | Review alert entrance, toast notifications, status badges |
+| **`HOLD`** | `steps(1, end)` | 1.1s | Blinking cursor, monospaced step animations, typewriter cadence |
+
+### Choreography & Component States
+- **Interactive Button Compression**: `active:scale-[0.98]` with `--motion-quick` (120ms) recovery.
+- **Job Card Hover Horizon**: `hover:translate-x-0.5` with `--motion-quick` and hairline border glow (`hover:border-ember/70`).
+- **Tab Cross-Fade**: Clean 200ms opacity transition without layout jank.
+- **Modal Scale & Backdrop**: Entrance from `scale(0.97)` to `scale(1)` at 250ms with `GENTLE` ease-out; backdrop fades at 200ms.
+- **Review Alert Ribbon**: Smooth top-down slide with 2px Ember border illumination.
+

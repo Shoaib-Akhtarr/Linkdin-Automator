@@ -1,38 +1,1148 @@
 [
-  { "name": "Anthropic", "slug": "anthropic", "ats": "greenhouse", "enabled": true },
-  { "name": "OpenAI", "slug": "openai", "ats": "ashby", "enabled": true },
-  { "name": "Figma", "slug": "figma", "ats": "greenhouse", "enabled": true },
-  { "name": "Stripe", "slug": "stripe", "ats": "greenhouse", "enabled": true },
-  { "name": "Linear", "slug": "linear", "ats": "ashby", "enabled": true },
-  { "name": "Ramp", "slug": "ramp", "ats": "ashby", "enabled": true },
-  { "name": "Perplexity AI", "slug": "perplexity", "ats": "ashby", "enabled": true },
-  { "name": "Cursor (Anysphere)", "slug": "cursor", "ats": "ashby", "enabled": true },
-  { "name": "Cognition AI (Devin)", "slug": "cognition", "ats": "ashby", "enabled": true },
-  { "name": "ElevenLabs", "slug": "elevenlabs", "ats": "ashby", "enabled": true },
-  { "name": "Notion", "slug": "notion", "ats": "ashby", "enabled": true },
-  { "name": "Cohere", "slug": "cohere", "ats": "ashby", "enabled": true },
-  { "name": "Supabase", "slug": "supabase", "ats": "ashby", "enabled": true },
-  { "name": "Synthesia", "slug": "synthesia", "ats": "ashby", "enabled": true },
-  { "name": "Cartesia", "slug": "cartesia", "ats": "ashby", "enabled": true },
-  { "name": "Vapi AI", "slug": "vapi", "ats": "ashby", "enabled": true },
-  { "name": "Replit", "slug": "replit", "ats": "ashby", "enabled": true },
-  { "name": "Modal Labs", "slug": "modal", "ats": "ashby", "enabled": true },
-  { "name": "LangChain", "slug": "langchain", "ats": "ashby", "enabled": true },
-  { "name": "Pinecone", "slug": "pinecone", "ats": "ashby", "enabled": true },
-  { "name": "Weaviate", "slug": "weaviate", "ats": "ashby", "enabled": true },
-  { "name": "Deepgram", "slug": "deepgram", "ats": "ashby", "enabled": true },
-  { "name": "Baseten", "slug": "baseten", "ats": "ashby", "enabled": true },
-  { "name": "Runway", "slug": "runway", "ats": "ashby", "enabled": true },
-  { "name": "Scale AI", "slug": "scaleai", "ats": "greenhouse", "enabled": true },
-  { "name": "Vercel", "slug": "vercel", "ats": "greenhouse", "enabled": true },
-  { "name": "GitLab", "slug": "gitlab", "ats": "greenhouse", "enabled": true },
-  { "name": "Databricks", "slug": "databricks", "ats": "greenhouse", "enabled": true },
-  { "name": "Canonical (Ubuntu)", "slug": "canonical", "ats": "greenhouse", "enabled": true },
-  { "name": "Together AI", "slug": "togetherai", "ats": "greenhouse", "enabled": true },
-  { "name": "AssemblyAI", "slug": "assemblyai", "ats": "greenhouse", "enabled": true },
-  { "name": "Mistral AI", "slug": "mistral", "ats": "lever", "enabled": true },
-  { "name": "Spotify", "slug": "spotify", "ats": "lever", "enabled": true },
-  { "name": "Kraken", "slug": "kraken", "ats": "lever", "enabled": true },
-  { "name": "Datadog", "slug": "datadog", "ats": "lever", "enabled": true },
-  { "name": "Anyscale (Ray)", "slug": "anyscale", "ats": "lever", "enabled": true }
+  {
+    "name": "Deta Space",
+    "slug": "deta",
+    "ats": "ashby",
+    "category": "Starter / Cloud Dev Tools",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Trieve",
+    "slug": "trieve",
+    "ats": "ashby",
+    "category": "Starter / Search & RAG",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Trigger.dev",
+    "slug": "triggerdev",
+    "ats": "ashby",
+    "category": "Starter / DevTools Automation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Speakeasy",
+    "slug": "speakeasy-api",
+    "ats": "ashby",
+    "category": "Starter / SDK Generation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Infisical",
+    "slug": "infisical",
+    "ats": "ashby",
+    "category": "Starter / Secrets Management",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Zep AI",
+    "slug": "zep-ai",
+    "ats": "ashby",
+    "category": "Starter / AI Memory",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Skyvern",
+    "slug": "skyvern",
+    "ats": "ashby",
+    "category": "Starter / Browser Automation AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Composio",
+    "slug": "composio",
+    "ats": "ashby",
+    "category": "Starter / AI Integrations",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Turbopuffer",
+    "slug": "turbopuffer",
+    "ats": "ashby",
+    "category": "Starter / Fast Vector DB",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Hatchet",
+    "slug": "hatchet-run",
+    "ats": "ashby",
+    "category": "Starter / Workflow Orchestration",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Dust",
+    "slug": "dust-tt",
+    "ats": "ashby",
+    "category": "Starter / Enterprise AI Apps",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Beam Cloud",
+    "slug": "beam-cloud",
+    "ats": "ashby",
+    "category": "Starter / Serverless GPU",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Vocode",
+    "slug": "vocode",
+    "ats": "ashby",
+    "category": "Starter / Voice AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Mintlify",
+    "slug": "mintlify",
+    "ats": "ashby",
+    "category": "Starter / Dev Docs",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Freeplay",
+    "slug": "freeplay",
+    "ats": "ashby",
+    "category": "Starter / LLM Evaluation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Orby AI",
+    "slug": "orby-ai",
+    "ats": "ashby",
+    "category": "Starter / Process Automation AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Nooks",
+    "slug": "nooks",
+    "ats": "ashby",
+    "category": "Starter / Sales AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "OpenMeter",
+    "slug": "openmeter",
+    "ats": "ashby",
+    "category": "Starter / Usage Metering",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Documenso",
+    "slug": "documenso",
+    "ats": "ashby",
+    "category": "Starter / Open Source DocSign",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "OpenStatus",
+    "slug": "openstatus",
+    "ats": "ashby",
+    "category": "Starter / Open Source Monitoring",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Twenty CRM",
+    "slug": "twenty",
+    "ats": "ashby",
+    "category": "Starter / Open Source CRM",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Typebot",
+    "slug": "typebot",
+    "ats": "ashby",
+    "category": "Starter / Chatbot Builder",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fume",
+    "slug": "fume-dev",
+    "ats": "ashby",
+    "category": "Starter / AI Dev Automation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Outerbase",
+    "slug": "outerbase",
+    "ats": "ashby",
+    "category": "Starter / Database UI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Nango",
+    "slug": "nango",
+    "ats": "ashby",
+    "category": "Starter / API Integrations",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Lago",
+    "slug": "lago",
+    "ats": "ashby",
+    "category": "Starter / Open Source Billing",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Hoppscotch",
+    "slug": "hoppscotch",
+    "ats": "ashby",
+    "category": "Starter / Open Source API Tool",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Activepieces",
+    "slug": "activepieces",
+    "ats": "ashby",
+    "category": "Starter / Workflow Automation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "BoxyHQ",
+    "slug": "boxyhq",
+    "ats": "ashby",
+    "category": "Starter / Enterprise SSO",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Hanko",
+    "slug": "hanko",
+    "ats": "ashby",
+    "category": "Starter / Passwordless Auth",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Markprompt",
+    "slug": "markprompt",
+    "ats": "ashby",
+    "category": "Starter / AI Docs Search",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "AgentOps",
+    "slug": "agentops",
+    "ats": "ashby",
+    "category": "Starter / AI Agent Monitoring",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Portkey AI",
+    "slug": "portkey-ai",
+    "ats": "ashby",
+    "category": "Starter / LLM Gateway",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Lunary",
+    "slug": "lunary",
+    "ats": "ashby",
+    "category": "Starter / LLM Logging",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Helicone",
+    "slug": "helicone",
+    "ats": "ashby",
+    "category": "Starter / LLM Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Cal.com",
+    "slug": "cal-com",
+    "ats": "lever",
+    "category": "Starter / Scheduling Open Source",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Realmalliance",
+    "slug": "realmalliance",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Ellipsis Labs",
+    "slug": "ellipsislabs",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Jampack AI",
+    "slug": "jampack-ai",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Pylon Labs",
+    "slug": "pylon-labs",
+    "ats": "ashby",
+    "category": "Starter / Customer Support AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Stradahq",
+    "slug": "stradahq",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Hyphenate",
+    "slug": "hyphenate",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Agave",
+    "slug": "agave",
+    "ats": "ashby",
+    "category": "Starter / Construction API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Julius",
+    "slug": "julius",
+    "ats": "ashby",
+    "category": "Starter / AI Data Analysis",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Goaly",
+    "slug": "goaly",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fellowai",
+    "slug": "fellowai",
+    "ats": "ashby",
+    "category": "Starter / Meeting AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Cylake",
+    "slug": "cylake-inc",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Backbone",
+    "slug": "backbone",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Relling",
+    "slug": "relling",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Bridger",
+    "slug": "bridger",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Spruce ID",
+    "slug": "spruceid",
+    "ats": "ashby",
+    "category": "Starter / Digital Identity",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Wasp Lang",
+    "slug": "wasp-lang",
+    "ats": "ashby",
+    "category": "Starter / Full Stack Framework",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Liveblocks",
+    "slug": "liveblocks",
+    "ats": "ashby",
+    "category": "Starter / Real-time Collab",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Upstash",
+    "slug": "upstash",
+    "ats": "ashby",
+    "category": "Starter / Serverless Redis",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Plane",
+    "slug": "plane",
+    "ats": "ashby",
+    "category": "Starter / Open Source PM",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fern",
+    "slug": "fern-api",
+    "ats": "ashby",
+    "category": "Starter / API SDK Tooling",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Basedash",
+    "slug": "basedash",
+    "ats": "ashby",
+    "category": "Starter / Internal Admin Tool",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Keyval",
+    "slug": "keyval",
+    "ats": "ashby",
+    "category": "Starter / Observability",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Permit.io",
+    "slug": "permitio",
+    "ats": "ashby",
+    "category": "Starter / Authorization API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Oso",
+    "slug": "oso",
+    "ats": "greenhouse",
+    "category": "Starter / Authorization Framework",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Plain",
+    "slug": "plain",
+    "ats": "ashby",
+    "category": "Starter / Customer Support API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Loft Labs",
+    "slug": "loft",
+    "ats": "ashby",
+    "category": "Starter / Kubernetes Dev",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Lightdash",
+    "slug": "lightdash",
+    "ats": "greenhouse",
+    "category": "Starter / Open Source BI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Metabase",
+    "slug": "metabase",
+    "ats": "greenhouse",
+    "category": "Starter / Open Source Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Redpanda Data",
+    "slug": "redpanda-data",
+    "ats": "greenhouse",
+    "category": "Starter / Kafka Alternative",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Alloy Automation",
+    "slug": "alloy-automation",
+    "ats": "greenhouse",
+    "category": "Starter / iPaaS",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Vessel",
+    "slug": "vessel",
+    "ats": "ashby",
+    "category": "Starter / CRM Integrations",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Flipt",
+    "slug": "flipt",
+    "ats": "ashby",
+    "category": "Starter / Feature Flags",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Eraser",
+    "slug": "eraser",
+    "ats": "ashby",
+    "category": "Starter / Diagramming AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Comet ML",
+    "slug": "comet-ml",
+    "ats": "greenhouse",
+    "category": "Starter / ML Tracking",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Baseten",
+    "slug": "baseten",
+    "ats": "greenhouse",
+    "category": "Starter / ML Inference",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Superagent",
+    "slug": "superagent",
+    "ats": "ashby",
+    "category": "Starter / AI Agent Platform",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Langfuse",
+    "slug": "langfuse",
+    "ats": "ashby",
+    "category": "Starter / LLM Observability",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Braintrust Data",
+    "slug": "braintrustdata",
+    "ats": "ashby",
+    "category": "Starter / AI Evaluation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Confident AI",
+    "slug": "confident-ai",
+    "ats": "ashby",
+    "category": "Starter / LLM Testing",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Baserun",
+    "slug": "baserun",
+    "ats": "ashby",
+    "category": "Starter / LLM Testing",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Gradio",
+    "slug": "gradio",
+    "ats": "ashby",
+    "category": "Starter / ML UI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Dify",
+    "slug": "dify",
+    "ats": "ashby",
+    "category": "Starter / LLM App Builder",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fireworks AI",
+    "slug": "fireworks-ai",
+    "ats": "greenhouse",
+    "category": "Starter / Fast LLM Inference",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "LlamaIndex",
+    "slug": "llamaindex",
+    "ats": "ashby",
+    "category": "Starter / RAG Framework",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Superlinked",
+    "slug": "superlinked",
+    "ats": "ashby",
+    "category": "Starter / Vector Compute",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Grafbase",
+    "slug": "grafbase",
+    "ats": "ashby",
+    "category": "Starter / Edge GraphQL",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "WunderGraph",
+    "slug": "wundergraph",
+    "ats": "ashby",
+    "category": "Starter / API Composition",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Mergent",
+    "slug": "mergent",
+    "ats": "ashby",
+    "category": "Starter / Task Queue API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Listmonk",
+    "slug": "listmonk",
+    "ats": "ashby",
+    "category": "Starter / Open Source Email",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Erxes",
+    "slug": "erxes",
+    "ats": "ashby",
+    "category": "Starter / Open Source CRM",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Formbricks",
+    "slug": "formbricks",
+    "ats": "ashby",
+    "category": "Starter / Open Source Surveys",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Flipt",
+    "slug": "flipt-io",
+    "ats": "ashby",
+    "category": "Starter / Open Source Feature Flags",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Plausible Analytics",
+    "slug": "plausible",
+    "ats": "ashby",
+    "category": "Starter / Privacy-first Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fathom Analytics",
+    "slug": "fathom",
+    "ats": "ashby",
+    "category": "Starter / Privacy Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Umami",
+    "slug": "umami",
+    "ats": "ashby",
+    "category": "Starter / Open Source Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Debugbear",
+    "slug": "debugbear",
+    "ats": "ashby",
+    "category": "Starter / Frontend Perf Monitoring",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Height",
+    "slug": "height",
+    "ats": "ashby",
+    "category": "Starter / Project Management",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Jitsi",
+    "slug": "jitsi",
+    "ats": "ashby",
+    "category": "Starter / Open Source Video",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Bytescale",
+    "slug": "bytescale",
+    "ats": "ashby",
+    "category": "Starter / File Upload API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Imagekit",
+    "slug": "imagekit",
+    "ats": "ashby",
+    "category": "Starter / Image Optimization",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Payload CMS",
+    "slug": "payloadcms",
+    "ats": "ashby",
+    "category": "Starter / Open Source CMS",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Strapi",
+    "slug": "strapi",
+    "ats": "greenhouse",
+    "category": "Starter / Open Source CMS",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Builder.io",
+    "slug": "builderio",
+    "ats": "ashby",
+    "category": "Starter / Visual CMS & AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Lemon Squeezy",
+    "slug": "lemon-squeezy",
+    "ats": "ashby",
+    "category": "Starter / Payments for SaaS",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Stigg",
+    "slug": "stigg",
+    "ats": "ashby",
+    "category": "Starter / Pricing & Entitlements",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Orb",
+    "slug": "withorb",
+    "ats": "ashby",
+    "category": "Starter / Usage-based Billing",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Metronome",
+    "slug": "metronome",
+    "ats": "ashby",
+    "category": "Starter / Usage Billing",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Zilliz",
+    "slug": "zilliz",
+    "ats": "greenhouse",
+    "category": "Starter / Vector Database",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Mintbase",
+    "slug": "mintbase",
+    "ats": "ashby",
+    "category": "Starter / Web3 NFT",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Moralis",
+    "slug": "moralis",
+    "ats": "ashby",
+    "category": "Starter / Web3 API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Hashnode",
+    "slug": "hashnode",
+    "ats": "ashby",
+    "category": "Starter / Dev Blogging",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Gitpod",
+    "slug": "gitpod",
+    "ats": "greenhouse",
+    "category": "Starter / Cloud Dev Environment",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Coder",
+    "slug": "coder",
+    "ats": "greenhouse",
+    "category": "Starter / Remote Dev Workspaces",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Stackblitz",
+    "slug": "stackblitz",
+    "ats": "ashby",
+    "category": "Starter / Browser IDE",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "CodeSandbox",
+    "slug": "codesandbox",
+    "ats": "ashby",
+    "category": "Starter / Online Dev Env",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Mage AI",
+    "slug": "mage-ai",
+    "ats": "ashby",
+    "category": "Starter / Open Source ETL",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Estuary Flow",
+    "slug": "estuary",
+    "ats": "ashby",
+    "category": "Starter / Real-time Data Pipelines",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Atlas (Ariga)",
+    "slug": "ariga",
+    "ats": "ashby",
+    "category": "Starter / Schema Migration",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Prisma Data",
+    "slug": "prisma-data",
+    "ats": "ashby",
+    "category": "Starter / DB Dev Tooling",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Buf",
+    "slug": "buf",
+    "ats": "ashby",
+    "category": "Starter / Protobuf Tooling",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Encore",
+    "slug": "encore",
+    "ats": "ashby",
+    "category": "Starter / Backend Dev Platform",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Nitric",
+    "slug": "nitric",
+    "ats": "ashby",
+    "category": "Starter / Backend Cloud Framework",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Zuplo",
+    "slug": "zuplo",
+    "ats": "ashby",
+    "category": "Starter / API Gateway",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Konfig",
+    "slug": "konfig",
+    "ats": "ashby",
+    "category": "Starter / SDK Generation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Stainless",
+    "slug": "stainless",
+    "ats": "ashby",
+    "category": "Starter / SDK Generation",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Fern API",
+    "slug": "fern-api",
+    "ats": "ashby",
+    "category": "Starter / SDK Gen & Docs",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Treblle",
+    "slug": "treblle",
+    "ats": "ashby",
+    "category": "Starter / API Observability",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Apitally",
+    "slug": "apitally",
+    "ats": "ashby",
+    "category": "Starter / API Analytics",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Groundcover",
+    "slug": "groundcover",
+    "ats": "greenhouse",
+    "category": "Starter / Cloud-native Monitoring",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Motia",
+    "slug": "motia",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Stacksync",
+    "slug": "stacksync",
+    "ats": "ashby",
+    "category": "Starter / Two-Way Data Sync",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Ampersand",
+    "slug": "ampersand",
+    "ats": "ashby",
+    "category": "Starter / Native Integration Platform",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Apideck",
+    "slug": "apideck",
+    "ats": "ashby",
+    "category": "Starter / Unified API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Morph",
+    "slug": "morph",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Unkey",
+    "slug": "unkey",
+    "ats": "ashby",
+    "category": "Starter / API Key Management",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Propel Data",
+    "slug": "propeldata",
+    "ats": "ashby",
+    "category": "Starter / Product Analytics API",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Mintlify Alt",
+    "slug": "mintlify-com",
+    "ats": "ashby",
+    "category": "Starter / Dev Docs Platform",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Archbee",
+    "slug": "archbee",
+    "ats": "ashby",
+    "category": "Starter / Documentation Platform",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Volta",
+    "slug": "volta",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Gladia",
+    "slug": "gladia",
+    "ats": "ashby",
+    "category": "Starter / Audio AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Leya",
+    "slug": "leya",
+    "ats": "ashby",
+    "category": "Starter / Legal AI",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Lexi AI",
+    "slug": "lexi",
+    "ats": "ashby",
+    "category": "Starter / Auto-Discovered",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Coze",
+    "slug": "coze",
+    "ats": "ashby",
+    "category": "Starter / AI Bot Builder",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Recraft",
+    "slug": "recraft",
+    "ats": "ashby",
+    "category": "Starter / AI Design Tool",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Rerun.io",
+    "slug": "rerun-io",
+    "ats": "ashby",
+    "category": "Starter / Data Visualization",
+    "tier": "starter",
+    "enabled": true
+  },
+  {
+    "name": "Thunder Compute (YC S24)",
+    "slug": "thundercompute",
+    "ats": "ashby",
+    "category": "Discovered / HN Startup",
+    "tier": "starter",
+    "enabled": true,
+    "discoveredAt": "2026-11-20T13:19:41.722054+00:00"
+  },
+  {
+    "name": "Duck Duck Go",
+    "slug": "duck-duck-go",
+    "ats": "ashby",
+    "category": "Discovered / HN Startup",
+    "tier": "starter",
+    "enabled": true,
+    "discoveredAt": "2026-11-20T13:19:41.722495+00:00"
+  }
 ]

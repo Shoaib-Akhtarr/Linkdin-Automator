@@ -154,30 +154,44 @@ Respond with ONLY valid JSON:
 { "isGhost": true|false, "confidence": 0.0-1.0, "reason": "one sentence explanation" }`;
 
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
-
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
+      let data;
+      try {
+        const cloudGateway = require('./cloudAiGateway');
+        data = await cloudGateway.callChatCompletions({
           model: GROQ_MODEL,
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 150,
           temperature: 0.1
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        return { isGhost: false, reason: `Groq HTTP ${res.status}`, confidence: 0.3, source: 'groq_error' };
+        }, { requestType: 'question_qa', timeoutMs: GROQ_TIMEOUT_MS });
+      } catch (gwErr) {
+        if (gwErr.message && gwErr.message.includes('Insufficient AI credits')) {
+          throw gwErr;
+        }
+        if (apiKey) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: GROQ_MODEL,
+              messages: [{ role: 'user', content: prompt }],
+              max_tokens: 150,
+              temperature: 0.1
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          if (res.ok) data = await res.json();
+        }
       }
 
-      const data = await res.json();
+      if (!data) {
+        return { isGhost: false, reason: 'AI Gateway unavailable', confidence: 0.3, source: 'groq_error' };
+      }
       const raw = data.choices?.[0]?.message?.content?.trim() || '{}';
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};

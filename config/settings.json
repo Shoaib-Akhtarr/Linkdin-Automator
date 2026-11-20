@@ -3,8 +3,10 @@
   "directCompanyAts": {
     "enabled": true,
     "autoApply": true,
-    "minimumMatchScore": 75
+    "minimumMatchScore": 70,
+    "excludeSeniorLevels": true
   },
+  "excludeSeniorLevels": true,
   "platforms": {
     "linkedin": {
       "enabled": true,
@@ -42,21 +44,12 @@
   "search": {
     "keywords": [
       "AI Engineer",
-      "Generative AI Engineer",
       "Machine Learning Engineer",
       "LLM Engineer",
-      "Agentic AI Engineer",
-      "AI Agent Developer",
       "Python Developer",
-      "Python Engineer",
-      "Backend Engineer",
-      "Software Engineer",
       "Full Stack Engineer",
-      "Data Scientist",
-      "NLP Engineer",
-      "Deep Learning Engineer",
-      "MLOps Engineer",
-      "AI Automation Engineer"
+      "Backend Engineer",
+      "Generative AI Engineer"
     ],
     "location": "Worldwide",
     "workplaceType": "remote",
@@ -69,7 +62,14 @@
       "CyberCoders",
       "Revature",
       "Staffing",
-      "TalentBurst"
+      "TalentBurst",
+      "Jobot",
+      "Motion Recruitment",
+      "TEKsystems",
+      "Insight Global",
+      "Apex Systems",
+      "Robert Half",
+      "Kforce"
     ],
     "paginationPages": 6
   },
@@ -84,21 +84,26 @@
     "easyApplyMode": "autonomous",
     "externalMode": "autonomous",
     "maxPerCategory": 0,
-    "dailyApplicationLimit": 500,
-    "minDelayMs": 500,
-    "maxDelayMs": 1200,
+    "dailyApplicationLimit": 30,
+    "minDelayMs": 2000,
+    "maxDelayMs": 5000,
     "cdpPort": 9222,
     "cdpHost": "http://127.0.0.1:9222",
     "autoSubmitInAutonomousMode": true,
     "pauseForReviewInHybridMode": false,
     "skipOnUnmatchedRequiredFields": false,
-    "headless": true
+    "headless": true,
+    "chromeProfile": {
+      "dir": "Profile 4",
+      "name": "Shoaib",
+      "email": "baba.nazar7204@gmail.com"
+    }
   },
   "intelligence": {
     "readFullDescription": true,
     "filterSecurityClearance": true,
-    "filterCitizenshipRestricted": false,
-    "minimumMatchScore": 75,
+    "filterCitizenshipRestricted": true,
+    "minimumMatchScore": 70,
     "tailorCoverLetter": true,
     "dynamicCVGeneration": true,
     "dynamicProjects": true
@@ -129,5 +134,10 @@
       "apiEndpoint": "/analyze",
       "timeoutMs": 45000
     }
+  },
+  "auth": {
+    "linkedin": true,
+    "wellfound": true,
+    "ycombinator": true
   }
 }

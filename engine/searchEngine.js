@@ -98,6 +98,7 @@ class SearchEngine {
     const maxPages = settings.search?.paginationPages || 6;
     const allJobs = [];
     const seenJobIds = new Set();
+    this.lastSearchUrl = this.buildSearchUrl(keyword, settings, 0);
 
     for (let pageNum = 0; pageNum < maxPages; pageNum++) {
       const url = this.buildSearchUrl(keyword, settings, pageNum * 25);
@@ -267,21 +268,32 @@ class SearchEngine {
           location = afterCompanyLines.length > 0 ? afterCompanyLines[0] : '';
         }
 
-        // 5. Numeric Job ID extraction
+        // 5. Numeric Job ID extraction (Enhanced for all modern LinkedIn URN & attribute formats)
         let jobId = '';
         const rawJobId = card.getAttribute('data-job-id') ||
                          card.getAttribute('data-occludable-job-id') ||
                          card.querySelector('[data-job-id]')?.getAttribute('data-job-id') ||
                          card.querySelector('[data-occludable-job-id]')?.getAttribute('data-occludable-job-id') ||
-                         card.closest('[data-job-id], [data-occludable-job-id]')?.getAttribute('data-job-id');
-        if (rawJobId && /^\d+$/.test(rawJobId)) {
-          jobId = rawJobId;
+                         card.closest('[data-job-id], [data-occludable-job-id]')?.getAttribute('data-job-id') || '';
+        
+        const rawDigitsMatch = rawJobId.match(/(\d{6,})/);
+        if (rawDigitsMatch) {
+          jobId = rawDigitsMatch[1];
+        }
+
+        if (!jobId) {
+          const cardHtml = card.outerHTML || '';
+          const m = cardHtml.match(/jobPosting:(\d+)/i) || 
+                    cardHtml.match(/currentJobId=(\d+)/i) || 
+                    cardHtml.match(/\/jobs\/view\/(\d+)/i) || 
+                    cardHtml.match(/data-job-id=["'](\d+)["']/i);
+          if (m) jobId = m[1];
         }
 
         if (!jobId) {
           const links = Array.from(card.querySelectorAll('a[href]'));
           for (const a of links) {
-            const href = a.href || '';
+            const href = a.getAttribute('href') || a.href || '';
             const m1 = href.match(/\/jobs\/view\/(\d+)/);
             if (m1) { jobId = m1[1]; break; }
             const m2 = href.match(/[?&]currentJobId=(\d+)/);
@@ -291,12 +303,7 @@ class SearchEngine {
           }
         }
 
-        if (!jobId) {
-          const urnMatch = (card.outerHTML || '').match(/urn:li:(?:fsd_)?jobPosting:(\d+)/);
-          if (urnMatch) jobId = urnMatch[1];
-        }
-
-        // Deterministic fallback (safe and unique)
+        // Deterministic fallback if absolutely no numeric ID could be parsed
         if (!jobId) {
           const cleanC = company.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'company';
           const cleanT = title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'role';
@@ -344,7 +351,8 @@ class SearchEngine {
           company,
           location,
           hasEasyApply,
-          isAppliedOnLinkedIn
+          isAppliedOnLinkedIn,
+          url: /^\d+$/.test(String(jobId)) ? `https://www.linkedin.com/jobs/view/${jobId}/` : ''
         };
       };
 
@@ -481,7 +489,7 @@ class SearchEngine {
     // 3. Fallback: index click only if cards still match bounds and hasn't selected
     if (!selected && job.index !== undefined) {
       try {
-        const cards = await page.$$('[data-testid="lazy-column"] div[role="button"]');
+        const cards = await page.$('[data-testid="lazy-column"] div[role="button"]');
         if (cards && cards.length > job.index) {
           await cards[job.index].scrollIntoViewIfNeeded();
           await this.bridge.humanDelay(200, 400);
@@ -489,6 +497,16 @@ class SearchEngine {
           await this.bridge.humanDelay(1500, 2500);
           selected = true;
         }
+      } catch (e) {}
+    }
+
+    // 4. Fallback direct URL navigation if cards are unmounted or virtualized
+    if (!selected && job.url && job.url.startsWith('http')) {
+      try {
+        update(`Navigating directly to job URL: ${job.url}...`);
+        await page.goto(job.url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        await this.bridge.humanDelay(1500, 2500);
+        selected = true;
       } catch (e) {}
     }
 

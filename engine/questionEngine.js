@@ -63,18 +63,15 @@ class QuestionEngine {
     const cleanPrompt = prompt.toLowerCase().trim();
     const skills = this.profile.workExperienceYears || {};
 
-    // 0. YES/NO QUESTIONS PRE-CHECK (e.g. "Do you have 2+ years of experience in Python?")
+    // 0. YES/NO QUESTIONS PRE-CHECK (Rule: "for canceling any job to no, make every possible to yes")
     const isYesNoOptions = options.length === 2 && options.some(o => /^yes$/i.test(o)) && options.some(o => /^no$/i.test(o));
     if (isYesNoOptions) {
-      if (/convicted|felony|terminated|fired|require.*visa|require.*sponsorship/i.test(cleanPrompt)) {
-        const needSponsorship = this.profile.workAuthorization?.requireSponsorship === 'Yes';
-        if (/visa|sponsorship/i.test(cleanPrompt)) {
-          return { answer: needSponsorship ? 'Yes' : 'No', confidence: 0.95, reasoning: 'Sponsorship Yes/No' };
-        }
-        return { answer: 'No', confidence: 0.95, reasoning: 'Disqualifier -> No' };
+      if (/convicted|felony|terminated for cause|fired for cause/i.test(cleanPrompt)) {
+        return { answer: this.matchOption('No', options), confidence: 0.95, reasoning: 'Disqualifier crime check -> No to prevent cancellation' };
       }
-      // Any questions asking about skills, experience, qualifications, comfort, remote, legally authorized
-      return { answer: this.matchOption('Yes', options), confidence: 0.95, reasoning: 'Qualification Yes/No confirmation -> Yes' };
+      // For all qualifications, experience, authorization, willingness, time zone, certifications, and screening:
+      // Make every possible answer "Yes" to keep the application qualified and alive!
+      return { answer: this.matchOption('Yes', options), confidence: 0.98, reasoning: 'User Directive: Make every possible answer to Yes to prevent job cancellation -> Yes' };
     }
 
     // 1. YEARS / MONTHS OF EXPERIENCE & DURATION
@@ -276,24 +273,20 @@ class QuestionEngine {
       return { answer: this.profile.personal?.address?.postalCode || '', confidence: 0.9, reasoning: 'Postal Code' };
     }
 
-    // 10. GENERIC YES/NO
+    // 10. GENERIC YES/NO (Rule: "for canceling any job to no, make every possible to yes")
     if (options.length === 2 && options.some(o => /^yes$/i.test(o)) && options.some(o => /^no$/i.test(o))) {
-      // Questions asking for experience, skills, comfort, authorization, agreement generally desire 'Yes'
-      if (/have you|do you have|are you comfortable|are you at least|agree|acknowledge|proficient/i.test(cleanPrompt)) {
-        return { answer: this.matchOption('Yes', options), confidence: 0.8, reasoning: 'Affirmative qualification -> Yes' };
+      // Disqualifiers where answering Yes admits to crime/firing
+      if (/convicted|felony|terminated for cause|fired for cause/i.test(cleanPrompt)) {
+        return { answer: this.matchOption('No', options), confidence: 0.95, reasoning: 'Disqualifier -> No to prevent cancellation' };
       }
-      // Negative disqualifiers
-      if (/convicted|felony|terminated|fired/i.test(cleanPrompt)) {
-        return { answer: this.matchOption('No', options), confidence: 0.9, reasoning: 'Disqualifier -> No' };
-      }
-      return { answer: this.matchOption('Yes', options), confidence: 0.6, reasoning: 'Default Yes/No -> Yes' };
+      return { answer: this.matchOption('Yes', options), confidence: 0.95, reasoning: 'Affirmative Yes to prevent cancellation -> Yes' };
     }
 
     const isNumericPrompt = inputType === 'number' || /how many|number of|months|years|ctc|salary|amount|rate|inr|lpa/i.test(cleanPrompt);
     return {
-      answer: isNumericPrompt ? 2 : 'Yes',
-      confidence: 0.4,
-      reasoning: isNumericPrompt ? 'Numeric prompt fallback -> 2' : 'Generic fallback answer -> Yes'
+      answer: isNumericPrompt ? 3 : 'Yes',
+      confidence: 0.8,
+      reasoning: isNumericPrompt ? 'Numeric prompt fallback -> 3' : 'Generic affirmative fallback answer -> Yes'
     };
   }
 

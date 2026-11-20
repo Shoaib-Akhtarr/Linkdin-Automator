@@ -4,9 +4,22 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "desktop": "electron electron/main.js",
     "start": "node server.js",
     "batch": "node run-batch.js",
     "get-cookie": "node scripts/get-cookie.js",
+    "find-jobs": "python scripts/ats_finder.py --sync",
+    "find-jobs:sync": "python scripts/ats_finder.py --sync",
+    "find-hn": "python scripts/hn_hiring_finder.py --sync",
+    "find-hn:all": "python scripts/hn_hiring_finder.py --track all --sync",
+    "outreach": "python scripts/cold_outreach.py --recent",
+    "hn-outreach": "python scripts/cold_outreach.py --hn",
+    "process-ats": "node scripts/process_ats_queue.js",
+    "process-ats:dry": "node scripts/process_ats_queue.js --dry-run",
+    "summary": "node scripts/daily_summary.js",
+    "metrics": "node scripts/performance_metrics.js",
+    "kpi": "node scripts/performance_metrics.js",
+    "dorks": "python scripts/ats_finder.py --show-dorks",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -21,5 +34,9 @@
     "nodemailer": "^10.1.1",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.64.0"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "javascript-obfuscator": "^5.10.1"
   }
 }

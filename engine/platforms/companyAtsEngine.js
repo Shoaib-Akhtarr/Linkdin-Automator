@@ -75,7 +75,14 @@ class CompanyAtsEngine {
   loadCompanies() {
     try {
       if (fs.existsSync(COMPANIES_FILE)) {
-        return JSON.parse(fs.readFileSync(COMPANIES_FILE, 'utf-8')).filter(c => c.enabled !== false);
+        const blacklist = new Set([
+          'anthropic', 'openai', 'figma', 'stripe', 'notion', 'cohere', 'scaleai', 'scale-ai',
+          'databricks', 'cloudflare', 'snowflake', 'gitlab', 'datadog', 'spotify', 'hubspot',
+          'coinbase', 'crowdstrike', 'canva', 'postman', 'snyk', 'wiz', 'verkada', '1password',
+          'quora', 'ziprecruiter', 'affirm', 'shield', 'anduril', 'andurilindustries', 'purestorage',
+          'doordash', 'doordashusa', 'fal-ai', 'telus-digital', 'armadin', 'horizon3ai'
+        ]);
+        return JSON.parse(fs.readFileSync(COMPANIES_FILE, 'utf-8')).filter(c => c.enabled !== false && !blacklist.has((c.slug || '').toLowerCase()));
       }
     } catch (_) {}
     return [];
@@ -352,8 +359,8 @@ class CompanyAtsEngine {
     const isTechnicalRole = technicalRolePatterns.some(p => p.test(t));
     if (!isTechnicalRole) return false;
 
-    // 3. Exclude Senior / Staff / Principal levels ONLY if explicitly configured by user
-    const excludeSenior = settings.excludeSeniorLevels === true;
+    // 3. Exclude Senior / Staff / Principal / Lead levels (Starter / 0-2y candidate priority)
+    const excludeSenior = settings.excludeSeniorLevels !== false;
     if (excludeSenior) {
       const seniorPatterns = [
         /\bsenior\b/i,
@@ -365,12 +372,13 @@ class CompanyAtsEngine {
         /\bdirector\b/i,
         /\bvp\b/i,
         /\bvice president\b/i,
+        /\bmanager\b/i,
         /\barchitect\b/i
       ];
 
       for (const p of seniorPatterns) {
         if (p.test(t)) {
-          if (!/\bassociate\b|\bintern\b|\bjunior\b|\bentry\b/i.test(t)) {
+          if (!/\bassociate\b|\bintern\b|\bjunior\b|\bentry\b|\bgraduate\b|\bnew grad\b/i.test(t)) {
             return false;
           }
         }
@@ -801,7 +809,10 @@ class CompanyAtsEngine {
     try {
       const applyResult = await this.externalApply.applyDirectUrl(page, job, {
         ...options,
-        mode: 'autonomous'
+        mode: 'autonomous',
+        force: true,
+        clearance: true,
+        manualApproval: true
       });
 
       if (applyResult.status === 'applied') {

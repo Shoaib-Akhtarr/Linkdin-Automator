@@ -1,0 +1,78 @@
+SHOAIB AKHTAR
+AI Developer Intern
+n Gujrat, Pakistan
+n (+92) 3056054842
+) onlyshoaib158@gmail.com
+n shoaib-akhtar
+n github.com/Shoaib-Akhtarr
+CORE LANGUAGES
+Python (Expert)
+JavaScript / TypeScript
+C++
+SQL / Git
+FRAMEWORKS
+PyTorch / TensorFlow
+Hugging Face / OpenCV
+LangChain / LangGraph
+ComfyUI / Stable Diffusion
+FastAPI / Docker
+VISION & GENERATIVE AI
+Diffusion Models
+Image Segmentation
+Object Detection
+Agentic Pipelines
+EDUCATION
+University of Gujrat (UOG)
+BS Computer Science
+Oct 2023 – Present (Expected 2027)
+SHOAIB AKHTAR
+AI Developer Intern
+PROFESSIONAL SUMMARY
+Creative and technically driven Computer Science student working at the intersection of computer vision, generative AI,
+and agentic systems. Experienced in building real-time image processing pipelines, training deep learning perception
+models, and developing autonomous AI agents for production workflows. Passionate about crafting clean, maintainable
+code and applying emerging AI technologies — including diffusion models and agentic frameworks — to solve real creative
+and engineering challenges.
+PROFESSIONAL EXPERIENCE
+AppEvolve Jun 2024 - Jun 2026
+AI Intern -> Junior AI Engineer | Full-time, On-site
+Developed and deployed LLM-based applications, AI chatbots, multi-agent systems, and agentic workflows using LangChain,
+LangGraph, CrewAI, and AutoGen in production environments.
+Built RAG pipelines and document Q&A systems using vector databases (FAISS, ChromaDB) and OpenAI API, enabling
+semantic search over enterprise knowledge bases.
+Trained, fine-tuned, and deployed ML/DL models for classification, regression, and recommendation using PyTorch,
+TensorFlow, Scikit-learn, and XGBoost.
+Designed FastAPI/Flask REST APIs and AI automation pipelines, integrating models into real-world applications with Docker
+containerization and Git-based version control.
+AI & MACHINE LEARNING PROJECTS
+Real-Time Object Tracking & Semantic Segmentation PyTorch, OpenCV, Hugging Face, CUDA
+Built advanced perception models processing temporal sequences of camera frames to identify, track, and segment
+objects dynamically in real time — laying foundational work for autonomous driving and 3D computer vision.
+Designed optimized inference pipelines handling continuous video streams with minimal latency, translating sequential visual
+data into accurate spatial coordinates and pixel-level object boundaries.
+Engineered real-time segmentation architecture balancing model accuracy against inference speed, enabling smooth
+processing of high-frequency camera frame sequences.
+Automated Image Classification & Perception Pipeline PyTorch, Vision Transformers, Scikit-Learn
+Designed a deep learning visual classification system that automatically categorizes images into target classes using
+fine-tuned convolutional networks and vision transformers.
+Structured and optimized end-to-end data preprocessing and augmentation pipelines, ensuring high model accuracy and
+efficient image processing during training and inference.
+Fine-tuned vision transformer architectures to extract high-level features from raw pixel data, achieving strong classification
+performance across diverse image datasets.
+Multi-Agent AI Platform with Agentic Pipelines LangGraph, LangChain, FastAPI, Docker, Qdrant
+Designed and deployed a production-ready agentic AI system with autonomous specialized agents, RAG knowledge
+retrieval, and fully automated CI/CD pipelines.
+Built role-based LLM agents (Operations, Finance, Customer Service) with LangGraph orchestration, persistent memory, and
+source-cited RAG responses via Qdrant vector search.
+Containerized with Docker and automated CI/CD via GitHub Actions — delivering monitoring, test suites, and documentation
+for clean production handoff.
+CERTIFICATIONS
+Generative AI with Large Language Models – DeepLearning.AI
+Instruction fine-tuning, prompt optimization, RAG, and vector database deployments.
+Generative AI for Software Development – DeepLearning.AI
+Agentic workflows, building LLM applications, and production AI coding assistants.
+Machine Learning Engineering for Production (MLOps) – DeepLearning.AI
+End-to-end MLOps architectures, CI/CD automated deployment, and monitoring.
+
+-- 1 of 1 --
+

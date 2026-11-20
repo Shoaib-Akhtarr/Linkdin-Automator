@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-11-19T12:00:50.262Z",
+  "healthScore": 100,
+  "totals": {
+    "totalRecorded": 2489,
+    "totalApplied": 1532,
+    "totalFailed": 506,
+    "totalSkipped": 210,
+    "totalCheck": 4,
+    "totalInterviews": 0,
+    "totalAcknowledged": 0
+  },
+  "velocity": {
+    "today": 0,
+    "last7d": 2,
+    "last14d": 162,
+    "last30d": 1070
+  },
+  "tailoring": {
+    "tailoredCount": 1234,
+    "defaultCount": 298,
+    "tailoringRatio": 81
+  },
+  "platformStats": {
+    "ashby": {
+      "attempts": 17,
+      "applied": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    "remote_ats": {
+      "attempts": 141,
+      "applied": 121,
+      "failed": 20,
+      "skipped": 0
+    },
+    "weworkremotely": {
+      "attempts": 75,
+      "applied": 15,
+      "failed": 60,
+      "skipped": 0
+    },
+    "jobicy": {
+      "attempts": 485,
+      "applied": 292,
+      "failed": 101,
+      "skipped": 92
+    },
+    "remoteok": {
+      "attempts": 18,
+      "applied": 7,
+      "failed": 11,
+      "skipped": 0
+    },
+    "linkedin": {
+      "attempts": 1078,
+      "applied": 569,
+      "failed": 269,
+      "skipped": 64
+    },
+    "wellfound": {
+      "attempts": 345,
+      "applied": 315,
+      "failed": 30,
+      "skipped": 0
+    },
+    "lever": {
+      "attempts": 12,
+      "applied": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    "external": {
+      "attempts": 2,
+      "applied": 0,
+      "failed": 0,
+      "skipped": 0
+    },
+    "greenhouse": {
+      "attempts": 36,
+      "applied": 36,
+      "failed": 0,
+      "skipped": 0
+    },
+    "unknown": {
+      "attempts": 1,
+      "applied": 0,
+      "failed": 0,
+      "skipped": 0
+    },
+    "other": {
+      "attempts": 279,
+      "applied": 155,
+      "failed": 15,
+      "skipped": 54
+    }
+  },
+  "failureReasons": {
+    "Other Failure": 434,
+    "Authentication / Login Gate Required": 160,
+    "Citizenship / Security Clearance Gated": 8,
+    "Apply Button Selector Not Found (Expired/Stale)": 83,
+    "Position Closed / Quota Filled": 2,
+    "DOM Form Traversal Loop (Fixed)": 29
+  },
+  "responseRate": "0.0"
+}
